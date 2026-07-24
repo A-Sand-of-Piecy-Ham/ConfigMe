@@ -1,0 +1,64 @@
+return {}
+-- return {
+--   "mg979/vim-visual-multi",
+--   init = function()
+--     -- Clear standard maps to avoid conflict with our immediate insert keys
+--     vim.g.VM_maps = {
+--       ["Visual Cursors"] = "",
+--       ["Visual Append"] = "",
+--     }
+--   end,
+--   config = function()
+--     -- Direct AstroNvim Neovim keymaps targeting the raw plugin functions
+--     -- These bypass the 'gmc' buffer mode and activate immediate typing
+--
+--     -- Pressing 'i' in Visual Block Mode spawns live multi-cursors at the START
+--     vim.keymap.set("x", "I", "<Plug>(VM-Visual-Cursors)i", { silent = true })
+--
+--     -- Pressing 'A' in Visual Block Mode spawns live multi-cursors at the END 
+--     vim.keymap.set("x", "A", "<Plug>(VM-Visual-Cursors)A", { silent = true })
+--   end,
+-- }
+
+
+-- return {
+--   "jake-stewart/multicursor.nvim",
+--   branch = "1.0",
+--   config = function()
+--     -- Implement block insert for other insert varieties
+--     vim.keymap.set("x", "I", function()
+--         return vim.api.nvim_get_mode().mode == "" and "I" or "<C-v>I"
+--     end, { expr = true, silent = true, noremap = true })
+--
+--     local mc = require("multicursor-nvim")
+--
+--     mc.setup()
+--
+--     vim.keymap.set("x", "I", mc.insertVisual)
+--     vim.keymap.set("x", "A", mc.appendVisual)
+--   end,
+-- }
+
+-- return {
+--   "mg979/vim-visual-multi",
+--   branch = "master",
+--   config = function()
+--     vim.keymap.set("x", "I", function()
+--       -- Ctrl-V mode is "\22"
+--       if vim.fn.visualmode() == "\22" then
+--         -- trigger visual-multi instead of native block insert
+--
+--         -- create cursors on each selected line
+--         vim.cmd("VMEnter")
+--
+--         -- start insert mode at all cursors
+--         vim.cmd("normal! i")
+--
+--         return
+--       end
+--
+--       -- fallback to normal visual I
+--       vim.cmd("normal! I")
+--     end, { noremap = true })
+--   end,
+-- }

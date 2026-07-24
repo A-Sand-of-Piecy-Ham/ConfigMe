@@ -1,0 +1,52 @@
+return {
+  -- -- Add the AstroCommunity completion modules
+  -- { import = "astrocommunity.completion.copilot-cmp" },
+  -- { import = "astrocommunity.completion.copilotchat-nvim" },
+  -- mappings = {
+  --   n = {
+  --     ["<Leader>ac"] = { "<cmd>CopilotChatToggle<cr>", desc = "Toggle Copilot Chat" },
+  --   },
+  --   v = {
+  --     ["<Leader>ac"] = { "<cmd>CopilotChatToggle<cr>", desc = "Toggle Copilot Chat" },
+  --   }
+  -- }
+}
+-- return {
+--   -- 1. Import the Copilot Chat agent pack from the community
+--   -- { import = "astrocommunity.completion.copilotchat-nvim" },
+--
+--   -- 2. Modify the core copilot plugin to turn off autocompletion
+--   {
+--     "zbirenbaum/copilot.lua",
+--     cmd = "Copilot",
+--     event = "InsertEnter",
+--     build = ":Copilot auth",
+--     opts = {
+--       suggestion = {
+--         enabled = false,
+--         keymap = {
+--           accept = "<C-l>",
+--           next = "<M-]>",
+--           prev = "<M-[>",
+--         },
+--       },
+--       panel = { enabled = false },
+--     },
+--   },
+--   mappings = {
+--     n = {
+--       ["<Leader><Space>c"] = {
+--         function()
+-- 		      require("copilot.panel").open({}) --{*layout={'left'}*})
+--         end,
+--         desc = "Open Copilot"
+--     }
+--     }
+--   },
+--   config = function()
+-- 		require("copilot").setup({
+--
+-- 		})
+--   end
+--
+-- }
