@@ -15,3 +15,5 @@
 [push]
 	default = simple
 	autoSetupRemote = true
+[core]
+	excludesfile = /Users/maxwagner/.gitignore_global

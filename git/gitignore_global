@@ -1,0 +1,13 @@
+# Eclipse Buildship annotation-processor classpath file — generated per Gradle
+# subproject on sync when annotation processing (Lombok, QueryDSL, Spring Data)
+# is in play. Contains hardcoded absolute paths into the local ~/.gradle cache.
+**/.factorypath
+
+# Harper grammar/spell-checker extension's local custom dictionary file.
+.harper-dictionary.txt
+
+# clangd compile-flags config — commonly hardcodes an absolute local
+# CompilationDatabase build path, so it's machine-local, not repo-shared.
+.clangd
+
+**/.claude/settings.local.json

@@ -19,7 +19,7 @@ link "$DOTFILES/nvim" "$HOME/.config/nvim"
 
 echo "==> git"
 link "$DOTFILES/git/config" "$HOME/.gitconfig"
-link "$DOTFILES/git/ignore" "$HOME/.config/git/ignore"
+link "$DOTFILES/git/gitignore_global" "$HOME/.gitignore_global"
 
 echo "==> tmux"
 link "$DOTFILES/tmux/.tmux.conf" "$HOME/.tmux.conf"
