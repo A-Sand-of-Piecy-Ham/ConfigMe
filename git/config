@@ -1,6 +1,6 @@
 [user]
 	name = Max Wanger
-	email = YOUR_EMAIL@example.com
+	email = maxwamger@gmail.com
 	signingkey = ~/.ssh/id_ed25519.pub
 [gpg]
 	format = ssh
