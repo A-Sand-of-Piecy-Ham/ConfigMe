@@ -39,5 +39,22 @@ CCACHE_DIR="$HOME/Library/Preferences/ccache"
 mkdir -p "$CCACHE_DIR"
 link "$DOTFILES/ccache/ccache.conf" "$CCACHE_DIR/ccache.conf"
 
+echo "==> claude skills"
+mkdir -p "$HOME/.claude"
+if [ -d "$HOME/.claude/skills" ] && [ ! -L "$HOME/.claude/skills" ]; then
+    echo "  backing up $HOME/.claude/skills -> $HOME/.claude/skills.bak"
+    mv "$HOME/.claude/skills" "$HOME/.claude/skills.bak"
+fi
+link "$DOTFILES/claude/skills" "$HOME/.claude/skills"
+
+echo "==> claude memory"
+mkdir -p "$HOME/.claude"
+if [ -d "$HOME/.claude/memory" ] && [ ! -L "$HOME/.claude/memory" ]; then
+    echo "  backing up $HOME/.claude/memory -> $HOME/.claude/memory.bak"
+    mv "$HOME/.claude/memory" "$HOME/.claude/memory.bak"
+fi
+link "$DOTFILES/claude/memory" "$HOME/.claude/memory"
+link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+
 echo ""
 echo "Done. Update git/config with your email before committing."
