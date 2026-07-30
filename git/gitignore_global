@@ -11,3 +11,7 @@
 .clangd
 
 **/.claude/settings.local.json
+
+# macOS Finder folder-metadata file — created in every directory Finder
+# touches, never meaningful to share.
+.DS_Store
