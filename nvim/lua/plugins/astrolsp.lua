@@ -1,5 +1,3 @@
--- if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
-
 -- AstroLSP allows you to customize the features in AstroNvim's LSP configuration engine
 -- Configuration documentation can be found with `:h astrolsp`
 -- NOTE: We highly recommend setting up the Lua Language Server (`:LspInstall lua_ls`)
@@ -45,6 +43,18 @@ return {
     -- client specific configuration can also go in `lsp/` in your configuration root (see `:h lsp-config`)
     config = {
       -- ["*"] = { capabilities = {} }, -- modify default LSP client settings such as capabilities
+      harper_ls = {
+        settings = {
+          ["harper-ls"] = {
+            linters = {
+              SentenceCapitalization = false,
+              LongSentences = false,
+              AnA = false,
+              ExpandParam = false,
+            },
+          },
+        },
+      },
       clangd = {
         formatting = {
           format_on_save = {
@@ -55,11 +65,8 @@ return {
     },
     -- customize how language servers are attached
     handlers = {
-      -- a function with the key `*` modifies the default handler, functions takes the server name as the parameter
-      -- ["*"] = function(server) vim.lsp.enable(server) end
-
-      -- the key is the server that is being setup with `vim.lsp.config`
-      -- rust_analyzer = false, -- setting a handler to false will disable the set up of that language server
+      -- jdtls is configured manually in plugins/jdtls.lua to pass debug/test bundles
+      jdtls = false,
     },
     -- Configure buffer local auto commands to add when attaching a language server
     autocmds = {

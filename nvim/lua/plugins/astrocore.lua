@@ -1,5 +1,3 @@
-if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
-
 -- AstroCore provides a central place to modify mappings, vim options, autocommands, and more!
 -- Configuration documentation can be found with `:h astrocore`
 -- NOTE: We highly recommend setting up the Lua Language Server (`:LspInstall lua_ls`)
@@ -9,6 +7,18 @@ if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
 return {
   "AstroNvim/astrocore",
   ---@type AstroCoreOpts
+  init = function()
+    local id
+    id = vim.api.nvim_create_autocmd("LspAttach", {
+      callback = function(args)
+        local client = vim.lsp.get_client_by_id(args.data.client_id)
+        if client and client.name == "harper_ls" then
+          vim.schedule(function() vim.lsp.stop_client(client.id) end)
+          vim.api.nvim_del_autocmd(id)
+        end
+      end,
+    })
+  end,
   opts = {
     -- Configure core features of AstroNvim
     features = {
@@ -52,34 +62,22 @@ return {
         -- This can be found in the `lua/lazy_setup.lua` file
       },
     },
-    -- Mappings can be configured through AstroCore as well.
-    -- NOTE: keycodes follow the casing in the vimdocs. For example, `<Leader>` must be capitalized
     mappings = {
-      -- first key is the mode
       n = {
-        -- second key is the lefthand side of the map
-
-        -- navigate buffer tabs
-        ["]b"] = { function() require("astrocore.buffer").nav(vim.v.count1) end, desc = "Next buffer" },
-        ["[b"] = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
-
-        -- mappings seen under group name "Buffer"
-        ["<Leader>bd"] = {
+        ["<Leader>us"] = {
           function()
-            require("astroui.status.heirline").buffer_picker(
-              function(bufnr) require("astrocore.buffer").close(bufnr) end
-            )
+            local running = #vim.lsp.get_clients { name = "harper_ls" } > 0
+            if running then
+              for _, c in ipairs(vim.lsp.get_clients { name = "harper_ls" }) do
+                vim.lsp.stop_client(c.id)
+              end
+            else
+              vim.lsp.enable("harper_ls")
+              vim.api.nvim_exec_autocmds("FileType", { buffer = vim.api.nvim_get_current_buf() })
+            end
           end,
-          desc = "Close buffer from tabline",
+          desc = "Toggle spellcheck",
         },
-        -- ["<Leader>h"] = false,
-
-        -- tables with just a `desc` key will be registered with which-key if it's installed
-        -- this is useful for naming menus
-        -- ["<Leader>b"] = { desc = "Buffers" },
-
-        -- setting a mapping to false will disable it
-        -- ["<C-S>"] = false,
       },
     },
   },
