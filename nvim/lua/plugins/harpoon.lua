@@ -7,51 +7,40 @@ return {
       "nvim-telescope/telescope.nvim",
     },
 
-    -- init = function()
-    --   pcall(vim.keymap.del, "n", "<leader>h")
-    -- end
-
     config = function()
-      -- print("harpoon config loaded")
-
       local harpoon = require("harpoon")
 
       harpoon:setup({})
 
       -- Add file
-      vim.keymap.set("n", "<leader>ha", function()
+      vim.keymap.set("n", "<leader><leader>a", function()
         harpoon:list():add()
       end, { desc = "Harpoon Add File" })
 
       -- Toggle menu (edit to reorder/remove entries)
-      vim.keymap.set("n", "<leader>hm", function()
+      vim.keymap.set("n", "<leader><leader>m", function()
         harpoon.ui:toggle_quick_menu(harpoon:list())
       end, { desc = "Harpoon Menu" })
 
       -- Quick navigation by slot
-      vim.keymap.set("n", "<leader>h1", function()
+      vim.keymap.set("n", "<leader><leader>1", function()
         harpoon:list():select(1)
       end, { desc = "Harpoon File 1" })
 
-      vim.keymap.set("n", "<leader>h2", function()
+      vim.keymap.set("n", "<leader><leader>2", function()
         harpoon:list():select(2)
       end, { desc = "Harpoon File 2" })
 
-      vim.keymap.set("n", "<leader>h3", function()
+      vim.keymap.set("n", "<leader><leader>3", function()
         harpoon:list():select(3)
       end, { desc = "Harpoon File 3" })
 
-      vim.keymap.set("n", "<leader>h4", function()
+      vim.keymap.set("n", "<leader><leader>4", function()
         harpoon:list():select(4)
       end, { desc = "Harpoon File 4" })
 
-      -- -- Home menu
-      -- vim.keymap.set("n", "<leader>h.", function()
-      --   require() 
-      -- end, { desc = "Home menu" })
-
       -- Telescope integration
-      vim.keymap.set("n", "<leader>hs", function()
+      vim.keymap.set("n", "<leader><leader>s", function()
         local conf = require("telescope.config").values
 
         local file_paths = {}
@@ -77,8 +66,7 @@ return {
     opts = {
       mappings = {
         n = {
-          -- Lands right inside the standard "Buffers" (<Leader>b) helper menu
-          ["<Leader>h"] = { "", desc = "Harpoon" },
+          ["<Leader><Leader>"] = { "", desc = "Harpoon" },
         },
       },
     },

@@ -6,8 +6,10 @@
 return {
   "AstroNvim/astrocommunity",
   { import = "astrocommunity.pack.lua" },
-  -- Import Harpoon 2 from the community repository
-  { import = "astrocommunity.motion.harpoon" },
+  -- Harpoon 2 is configured entirely in plugins/harpoon.lua instead — this
+  -- pack's <C-x>/<C-p>/<C-n> bindings hijacked builtin decrement/completion
+  -- keys, its terminal-goto used harpoon.term (removed in harpoon2, always
+  -- errored), and it duplicated the add/menu bindings we already have.
   -- import/override with your plugins folder
   -- Install your specific language adapter pack
   { import = "astrocommunity.pack.cpp" }, -- Configures CodeLLDB for C/C++
