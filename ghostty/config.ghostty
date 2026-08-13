@@ -1,0 +1,14 @@
+# Auto-start tmux for every new window/tab, booted through one real login
+# shell. Plain `tmux new-session` (no -A, no name) so each window gets its
+# own independent session rather than all windows mirroring one shared one.
+#
+# The login bash (-l) is required, not cosmetic: Ghostty's own command-launch
+# wrapper always runs `/bin/bash --noprofile --norc`, which never sources
+# /etc/profile — so path_helper (the thing that puts /opt/homebrew/bin on
+# PATH) never runs, and every tool the tmux server's shells rely on
+# (including tmux itself, and brew/fzf/etc. inside every pane, since PATH is
+# inherited from the server's own boot environment) silently fails to
+# resolve. Explicitly invoking a login bash here runs /etc/profile exactly
+# once at server-boot, and every pane inherits the resulting correct PATH
+# from there — no per-pane or per-shell workaround needed.
+command = /bin/bash -l -c "exec /opt/homebrew/bin/tmux new-session"
