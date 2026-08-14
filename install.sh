@@ -17,6 +17,10 @@ link() {
 echo "==> nvim"
 link "$DOTFILES/nvim" "$HOME/.config/nvim"
 
+echo "==> bash"
+link "$DOTFILES/bash/bashrc" "$HOME/.bashrc"
+link "$DOTFILES/bash/bash_profile" "$HOME/.bash_profile"
+
 echo "==> git"
 link "$DOTFILES/git/config" "$HOME/.gitconfig"
 link "$DOTFILES/git/gitignore_global" "$HOME/.gitignore_global"

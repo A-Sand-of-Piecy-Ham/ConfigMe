@@ -1,0 +1,16 @@
+if [ -f ~/.bashrc ]; then
+    source ~/.bash_profile
+fi
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/maxwagner/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+
+export USE_CCACHE=1
+
+if [ -f $(brew --prefix)/etc/bash_completion ]; then
+    . $(brew --prefix)/etc/bash_completion
+fi
+
+export PATH="$(brew --prefix rustup)/bin:$PATH"
+export PATH="$HOME/scripts/git-fuzzy/bin:$PATH"
