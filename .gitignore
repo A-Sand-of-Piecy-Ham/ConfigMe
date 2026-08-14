@@ -1,4 +1,3 @@
 # nvim state — not config
-nvim/lazy-lock.json
 nvim/plugin/
 nvim/.cache/
