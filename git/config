@@ -21,6 +21,10 @@
 	editor = nvim
 	untrackedCache = true
 	fsmonitor = true
+	# Git for Windows enforces its own MAX_PATH limit independently of the
+	# LongPathsEnabled registry setting, so the OS toggle alone is not enough.
+	# Ignored on macOS and Linux, so this stays a single shared config.
+	longpaths = true
 [merge]
 	conflictstyle = zdiff3
 [color]

@@ -16,21 +16,39 @@
     Windows working while the WSL VM is stopped.
 
 .NOTES
-    No elevation or Developer Mode required.
+    Runs without elevation. Developer Mode improves the result but is not
+    required; the script probes for symlink permission and adapts.
 
-    Creating a *symbolic* link on Windows is a privileged operation, but the
-    two mechanisms this script actually relies on are not:
+    Three linking mechanisms, chosen per target rather than uniformly:
 
-      * Directory junctions are unprivileged and behave like symlinks for
-        reads, so every directory target uses one.
-      * For the handful of single files, each target format has its own native
-        include directive (git's [include], bash's `.`, Lua's dofile,
-        CLAUDE.md's @import). A tiny real file carrying that directive
-        redirects into the repo, so edits still flow through with no copying.
+      * Directories use junctions. A junction reads identically to a symlink
+        but needs no privilege, so nvim and the rest keep working even if
+        Developer Mode is later turned off by policy or a reset. There is no
+        upside to a directory symlink here.
 
-    Hard links were deliberately NOT used for the file targets. `git pull`
-    writes a new file and renames it over the old one, which severs a hard
-    link -- the mirror would silently stop updating.
+      * Read-only single files use symlinks when permitted, because a symlink
+        is transparent: an editor opening the path sees the real config, and
+        nothing depends on the consuming tool supporting an include syntax.
+        When symlinks are unavailable these fall back to shims (below), so the
+        install still completes on a locked-down machine.
+
+      * .gitconfig always uses an [include] shim, deliberately, even when
+        symlinks are available. Git writes config by write-and-rename, which
+        would replace a symlink with a regular file and silently strand the
+        mirror. [include] is git's own supported mechanism and survives that.
+        A consequence worth knowing: `git config --global ...` appends to the
+        shim after the [include] line, so machine-local settings override the
+        repo and are not tracked. That is the intended behaviour for
+        machine-local overrides, but it is not obvious.
+
+    Hard links were deliberately NOT used anywhere. `git pull` writes a new
+    file and renames it over the old one, which severs a hard link -- the
+    mirror would silently stop updating.
+
+    Removing a junction by hand needs care: Remove-Item -Recurse in
+    PowerShell 5.1 follows a junction and deletes the TARGET's contents, which
+    here means the repo itself. Use (Get-Item x -Force).Delete() instead --
+    which is what Clear-Destination does.
 
 .PARAMETER Force
     Overwrite existing real files without prompting. They are still backed up
@@ -51,6 +69,23 @@ $Dotfiles = $PSScriptRoot
 # Forward slashes for the shims: bash and git both reject the backslashes of a
 # native Windows path as escape sequences.
 $DotfilesPosix = $Dotfiles -replace '\\', '/'
+
+function Test-SymlinkCapability {
+    # Creating a symlink needs SeCreateSymbolicLinkPrivilege, granted by
+    # Developer Mode or elevation. Probe once rather than reading the registry:
+    # the actual attempt is what matters, and a failure here is not an error
+    # condition -- it just selects the shim path.
+    $probe = Join-Path $env:TEMP ('configme-symlink-probe-' + [guid]::NewGuid())
+    try {
+        New-Item -ItemType SymbolicLink -Path $probe -Target $env:TEMP -EA Stop | Out-Null
+        (Get-Item $probe -Force).Delete()
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+$CanSymlink = Test-SymlinkCapability
 
 function Clear-Destination {
     # Returns $true if the caller should proceed with writing $Destination.
@@ -134,8 +169,33 @@ function New-Shim {
     Write-Host "  shim $Destination" -ForegroundColor Green
 }
 
+function New-FileLink {
+    # Read-only file targets. Prefers a transparent symlink; falls back to the
+    # supplied shim text when symlinks are not permitted, so the install still
+    # completes without Developer Mode.
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination,
+        [Parameter(Mandatory)][string]$Shim
+    )
+
+    if (-not (Test-Path -LiteralPath $Source)) {
+        Write-Host "  skip $Destination (no $Source)" -ForegroundColor DarkGray
+        return
+    }
+
+    if ($script:CanSymlink) {
+        if (-not (Clear-Destination $Destination)) { return }
+        New-Item -ItemType SymbolicLink -Path $Destination -Target $Source | Out-Null
+        Write-Host "  symlink $Destination" -ForegroundColor Green
+    } else {
+        New-Shim -Destination $Destination -Content $Shim
+    }
+}
+
 Write-Host "==> dotfiles: $Dotfiles"
 Write-Host "==> target:   $env:USERPROFILE"
+Write-Host ("==> file links: " + $(if ($CanSymlink) { 'symlinks' } else { 'shims (no symlink privilege)' }))
 Write-Host ''
 
 Write-Host '==> nvim'
@@ -146,16 +206,24 @@ Write-Host '==> bash (Git Bash / MinGW)'
 # ~/.config/dotfiles/common.sh resolve -- the same path the Linux and macOS
 # installs use, so common.sh needs no per-platform lookup logic.
 New-DirLink -Source (Join-Path $Dotfiles 'bash') -Destination (Join-Path $env:USERPROFILE '.config\dotfiles')
-New-Shim -Destination (Join-Path $env:USERPROFILE '.bashrc') -Content @"
+New-FileLink -Source (Join-Path $Dotfiles 'bash\bashrc.windows') `
+             -Destination (Join-Path $env:USERPROFILE '.bashrc') `
+             -Shim @"
 # managed by ConfigMe -- edit $DotfilesPosix/bash/bashrc.windows instead
 . "$DotfilesPosix/bash/bashrc.windows"
 "@
-New-Shim -Destination (Join-Path $env:USERPROFILE '.bash_profile') -Content @"
+New-FileLink -Source (Join-Path $Dotfiles 'bash\bash_profile.windows') `
+             -Destination (Join-Path $env:USERPROFILE '.bash_profile') `
+             -Shim @"
 # managed by ConfigMe -- edit $DotfilesPosix/bash/bash_profile.windows instead
 . "$DotfilesPosix/bash/bash_profile.windows"
 "@
 
 Write-Host '==> git'
+# Deliberately a shim even when symlinks are available: git writes config by
+# write-and-rename, which would replace a symlink with a regular file and
+# strand the mirror. See .NOTES.
+#
 # core.excludesfile is re-pointed after the include so it resolves to the repo
 # copy; the shared config sets it to ~/.gitignore_global, which does not exist
 # on this side.
@@ -168,7 +236,9 @@ New-Shim -Destination (Join-Path $env:USERPROFILE '.gitconfig') -Content @"
 "@
 
 Write-Host '==> wezterm'
-New-Shim -Destination (Join-Path $env:USERPROFILE '.wezterm.lua') -Content @"
+New-FileLink -Source (Join-Path $Dotfiles 'wezterm\wezterm.lua') `
+             -Destination (Join-Path $env:USERPROFILE '.wezterm.lua') `
+             -Shim @"
 -- managed by ConfigMe -- edit $DotfilesPosix/wezterm/wezterm.lua instead
 return dofile("$DotfilesPosix/wezterm/wezterm.lua")
 "@
@@ -177,7 +247,9 @@ Write-Host '==> claude'
 # .claude\skills on this machine is a tree of links into %USERPROFILE%\.agents
 # and is managed separately, so only memory and CLAUDE.md are mirrored.
 New-DirLink -Source (Join-Path $Dotfiles 'claude\memory') -Destination (Join-Path $env:USERPROFILE '.claude\memory')
-New-Shim -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md') -Content @"
+New-FileLink -Source (Join-Path $Dotfiles 'claude\CLAUDE.md') `
+             -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md') `
+             -Shim @"
 <!-- managed by ConfigMe -- edit $DotfilesPosix/claude/CLAUDE.md instead -->
 @$DotfilesPosix/claude/CLAUDE.md
 "@
