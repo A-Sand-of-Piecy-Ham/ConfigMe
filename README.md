@@ -28,8 +28,30 @@ On Windows, run the PowerShell installer from the Windows clone instead:
 .\install.ps1
 ```
 
-It needs Developer Mode enabled (Settings > System > For developers) or an
-elevated prompt, because creating symlinks is a privileged operation otherwise.
+It runs without elevation. Developer Mode (Settings > System > For developers)
+improves the result but is not required -- the script probes for symlink
+permission and adapts.
+
+Three mechanisms, chosen per target rather than uniformly:
+
+| Target | Mechanism | Why |
+|---|---|---|
+| directories (`nvim`, `bash`, `claude/memory`) | junction | Reads identically to a symlink but needs no privilege, so these keep working even if Developer Mode is later turned off. A symlink buys nothing here. |
+| `.bashrc`, `.bash_profile`, `.wezterm.lua`, `CLAUDE.md` | symlink, falling back to a shim | Read-only from the consumer's side, so transparency is a pure win, and it drops any dependency on include syntax. |
+| `.gitconfig` | `[include]` shim, always | Git writes config by write-and-rename, which would replace a symlink with a regular file and silently strand the mirror. |
+
+Two things worth knowing:
+
+- **`git config --global ...` on Windows appends to the shim**, after the
+  `[include]` line, so it overrides the repo value and is not tracked. That is
+  correct for machine-local settings, but it is not obvious.
+- **Never remove a junction with `Remove-Item -Recurse`.** PowerShell 5.1
+  follows the junction and deletes the *target* -- the repo itself. Use
+  `(Get-Item x -Force).Delete()` or `fsutil reparsepoint delete`.
+
+Note that PowerShell 5.1's `New-Item -ItemType SymbolicLink` omits the
+`ALLOW_UNPRIVILEGED_CREATE` flag that Developer Mode unlocks, so the installer
+calls `CreateSymbolicLinkW` directly rather than using it.
 
 ## Two checkouts, one source of truth
 
