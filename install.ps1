@@ -75,8 +75,12 @@ function Clear-Destination {
 
     # A shim we wrote previously is ours to replace too.
     if (-not $item.PSIsContainer) {
+        # Match the marker without any comment prefix: the shims use whatever
+        # comment syntax their consumer understands (#, --, <!--), so keying on
+        # one of them makes the script fail to recognise its own output and
+        # back a shim up over the genuine original on the next run.
         $existing = Get-Content -LiteralPath $Destination -Raw -EA SilentlyContinue
-        if ($existing -and $existing.Contains('# managed by ConfigMe')) {
+        if ($existing -and $existing.Contains('managed by ConfigMe')) {
             Remove-Item -LiteralPath $Destination -Force
             return $true
         }
