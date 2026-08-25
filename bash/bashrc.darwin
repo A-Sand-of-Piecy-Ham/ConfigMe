@@ -1,4 +1,6 @@
-if [ -f ~/.bashrc ]; then
+# Login shells on macOS source only .bash_profile; pull it in here so
+# interactive non-login shells get the same PATH and exports.
+if [ -f ~/.bash_profile ]; then
     source ~/.bash_profile
 fi
 
@@ -6,7 +8,8 @@ fi
 export PATH="/Users/maxwagner/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
-export USE_CCACHE=1
+# Shared, platform-agnostic config (PATH, aliases, EDITOR, ccache).
+[ -f "$HOME/.config/dotfiles/common.sh" ] && . "$HOME/.config/dotfiles/common.sh"
 
 if [ -f $(brew --prefix)/etc/bash_completion ]; then
     . $(brew --prefix)/etc/bash_completion

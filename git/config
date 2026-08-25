@@ -17,7 +17,7 @@
 	default = simple
 	autoSetupRemote = true
 [core]
-	excludesfile = /Users/maxwagner/.gitignore_global
+	excludesfile = ~/.gitignore_global
 	editor = nvim
 	untrackedCache = true
 	fsmonitor = true

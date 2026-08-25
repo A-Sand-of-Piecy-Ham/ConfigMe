@@ -1,0 +1,13 @@
+# Login shells on Linux/WSL read this instead of .bashrc.
+#
+# Source the shared config *before* delegating, not only via .bashrc: a
+# non-interactive login shell — `bash -lc`, `wsl -- <cmd>`, and most editor and
+# agent integrations — hits .bashrc's `case $- in *i*)` guard and returns
+# immediately, so anything defined only there (PATH, EDITOR) would be missing.
+if [ -f "$HOME/.config/dotfiles/common.sh" ]; then
+    . "$HOME/.config/dotfiles/common.sh"
+fi
+
+if [ -f "$HOME/.bashrc" ]; then
+    . "$HOME/.bashrc"
+fi

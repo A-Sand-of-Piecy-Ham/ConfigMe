@@ -1,0 +1,33 @@
+# Git Bash / MSYS2 (MinGW) on Windows.
+#
+# Used when WezTerm launches Git Bash directly rather than dropping into WSL.
+# Nothing here may assume a Linux filesystem layout: HOME is C:\Users\<you>,
+# and /mnt/c does not exist — the drive is mounted at /c.
+
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+HISTCONTROL=ignoreboth
+HISTSIZE=1000
+HISTFILESIZE=2000
+shopt -s histappend
+shopt -s checkwinsize
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+
+# Shared, platform-agnostic config (PATH, aliases, EDITOR, ccache).
+[ -f "$HOME/.config/dotfiles/common.sh" ] && . "$HOME/.config/dotfiles/common.sh"
+
+# Windows nvim, if installed outside Git Bash's own PATH.
+for _nvim in "/c/Program Files/Neovim/bin" "$LOCALAPPDATA/nvim-data/bin"; do
+    [ -d "$_nvim" ] && case ":$PATH:" in
+        *":$_nvim:"*) ;;
+        *) PATH="$PATH:$_nvim" ;;
+    esac
+done
+unset _nvim
+
+PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '

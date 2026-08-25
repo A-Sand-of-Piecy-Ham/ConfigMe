@@ -1,0 +1,12 @@
+# Git Bash always starts login shells, so this is the entry point on Windows.
+#
+# Source the shared config before delegating — a non-interactive login shell
+# returns early from .bashrc's interactivity guard, and would otherwise miss
+# PATH and EDITOR entirely. See bash_profile.linux for the same reasoning.
+if [ -f "$HOME/.config/dotfiles/common.sh" ]; then
+    . "$HOME/.config/dotfiles/common.sh"
+fi
+
+if [ -f "$HOME/.bashrc" ]; then
+    . "$HOME/.bashrc"
+fi
