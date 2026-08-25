@@ -8,15 +8,29 @@
     source of truth: edit there, commit, push, then `git pull` here and re-run
     this script. Nothing in this repo should be edited from Windows.
 
-    A second, native checkout is used rather than symlinking into
-    \\wsl.localhost because everything Windows reads through that path goes
-    over the 9p bridge -- roughly an order of magnitude slower per file
-    operation. Neovim touches dozens of files at startup and lazy.nvim touches
-    thousands during a sync, so the difference is plainly visible. The native
-    clone also keeps Windows working when the WSL VM is shut down.
+    A second, native checkout is used rather than pointing Windows at
+    \\wsl.localhost because everything read through that path crosses the 9p
+    bridge -- roughly an order of magnitude slower per file operation. Neovim
+    opens dozens of files at startup and lazy.nvim touches thousands during a
+    sync, so the difference is plainly visible. The native clone also keeps
+    Windows working while the WSL VM is stopped.
 
-    Creating symlinks requires either Developer Mode (Settings > System > For
-    developers) or an elevated shell.
+.NOTES
+    No elevation or Developer Mode required.
+
+    Creating a *symbolic* link on Windows is a privileged operation, but the
+    two mechanisms this script actually relies on are not:
+
+      * Directory junctions are unprivileged and behave like symlinks for
+        reads, so every directory target uses one.
+      * For the handful of single files, each target format has its own native
+        include directive (git's [include], bash's `.`, Lua's dofile,
+        CLAUDE.md's @import). A tiny real file carrying that directive
+        redirects into the repo, so edits still flow through with no copying.
+
+    Hard links were deliberately NOT used for the file targets. `git pull`
+    writes a new file and renames it over the old one, which severs a hard
+    link -- the mirror would silently stop updating.
 
 .PARAMETER Force
     Overwrite existing real files without prompting. They are still backed up
@@ -34,21 +48,56 @@ param(
 $ErrorActionPreference = 'Stop'
 $Dotfiles = $PSScriptRoot
 
-function Test-SymlinkCapability {
-    # Creating a symlink without Developer Mode or elevation fails with a
-    # privilege error that is easy to misread as "the path is wrong", so probe
-    # for it once and report it clearly instead.
-    $probe = Join-Path $env:TEMP ("dotfiles-symlink-probe-" + [guid]::NewGuid())
-    try {
-        New-Item -ItemType SymbolicLink -Path $probe -Target $env:TEMP -EA Stop | Out-Null
-        Remove-Item $probe -Force -EA SilentlyContinue
-        return $true
-    } catch {
-        return $false
+# Forward slashes for the shims: bash and git both reject the backslashes of a
+# native Windows path as escape sequences.
+$DotfilesPosix = $Dotfiles -replace '\\', '/'
+
+function Clear-Destination {
+    # Returns $true if the caller should proceed with writing $Destination.
+    param([Parameter(Mandatory)][string]$Destination)
+
+    $parent = Split-Path -Parent $Destination
+    if ($parent -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
     }
+
+    if (-not (Test-Path -LiteralPath $Destination)) { return $true }
+
+    $item = Get-Item -LiteralPath $Destination -Force
+
+    # ReparsePoint covers both symlinks and junctions; either way it is a link
+    # a previous run made, so replace it silently rather than accumulating
+    # .bak links pointing at old checkouts.
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        $item.Delete()
+        return $true
+    }
+
+    # A shim we wrote previously is ours to replace too.
+    if (-not $item.PSIsContainer) {
+        $existing = Get-Content -LiteralPath $Destination -Raw -EA SilentlyContinue
+        if ($existing -and $existing.Contains('# managed by ConfigMe')) {
+            Remove-Item -LiteralPath $Destination -Force
+            return $true
+        }
+    }
+
+    $backup = "$Destination.bak"
+    if (Test-Path -LiteralPath $backup) {
+        if (-not $Force) {
+            Write-Host "  SKIP $Destination - $backup already exists (use -Force)" -ForegroundColor Yellow
+            return $false
+        }
+        Remove-Item -LiteralPath $backup -Recurse -Force
+    }
+    Write-Host "  backing up $Destination -> $backup" -ForegroundColor DarkYellow
+    Move-Item -LiteralPath $Destination -Destination $backup -Force
+    return $true
 }
 
-function New-ConfigLink {
+function New-DirLink {
+    # Directory targets: a junction reads exactly like a symlink and needs no
+    # privilege, so prefer it unconditionally over a symlink.
     param(
         [Parameter(Mandatory)][string]$Source,
         [Parameter(Mandatory)][string]$Destination
@@ -58,45 +107,27 @@ function New-ConfigLink {
         Write-Host "  skip $Destination (no $Source)" -ForegroundColor DarkGray
         return
     }
+    if (-not (Clear-Destination $Destination)) { return }
 
-    $parent = Split-Path -Parent $Destination
-    if ($parent -and -not (Test-Path -LiteralPath $parent)) {
-        New-Item -ItemType Directory -Path $parent -Force | Out-Null
-    }
-
-    if (Test-Path -LiteralPath $Destination) {
-        $item = Get-Item -LiteralPath $Destination -Force
-        # ReparsePoint covers both symlinks and directory junctions; either way
-        # it is a link we (or a previous run) made, so replace it silently
-        # rather than accumulating .bak links.
-        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            $item.Delete()
-        } else {
-            $backup = "$Destination.bak"
-            if (Test-Path -LiteralPath $backup) {
-                if (-not $Force) {
-                    Write-Host "  SKIP $Destination -- $backup already exists (use -Force)" -ForegroundColor Yellow
-                    return
-                }
-                Remove-Item -LiteralPath $backup -Recurse -Force
-            }
-            Write-Host "  backing up $Destination -> $backup" -ForegroundColor DarkYellow
-            Move-Item -LiteralPath $Destination -Destination $backup -Force
-        }
-    }
-
-    New-Item -ItemType SymbolicLink -Path $Destination -Target $Source -Force | Out-Null
-    Write-Host "  linked $Destination" -ForegroundColor Green
+    New-Item -ItemType Junction -Path $Destination -Target $Source | Out-Null
+    Write-Host "  junction $Destination" -ForegroundColor Green
 }
 
-if (-not (Test-SymlinkCapability)) {
-    Write-Error @'
-Cannot create symlinks.
+function New-Shim {
+    # File targets: write a real file whose contents tell the consuming tool to
+    # read the repo copy, using that tool's own include mechanism.
+    param(
+        [Parameter(Mandatory)][string]$Destination,
+        [Parameter(Mandatory)][string]$Content
+    )
 
-Enable Developer Mode (Settings > System > For developers > Developer Mode),
-or re-run this script from an elevated PowerShell prompt.
-'@
-    exit 1
+    if (-not (Clear-Destination $Destination)) { return }
+
+    # ASCII, LF, no BOM: bash chokes on CRLF and on a UTF-8 BOM at the top of a
+    # sourced file, and git's config parser dislikes a BOM equally.
+    $text = ($Content -replace "`r`n", "`n")
+    [IO.File]::WriteAllText($Destination, $text, (New-Object Text.UTF8Encoding $false))
+    Write-Host "  shim $Destination" -ForegroundColor Green
 }
 
 Write-Host "==> dotfiles: $Dotfiles"
@@ -104,34 +135,48 @@ Write-Host "==> target:   $env:USERPROFILE"
 Write-Host ''
 
 Write-Host '==> nvim'
-New-ConfigLink -Source (Join-Path $Dotfiles 'nvim') `
-               -Destination (Join-Path $env:LOCALAPPDATA 'nvim')
-
-Write-Host '==> wezterm'
-New-ConfigLink -Source (Join-Path $Dotfiles 'wezterm\wezterm.lua') `
-               -Destination (Join-Path $env:USERPROFILE '.wezterm.lua')
-
-Write-Host '==> git'
-New-ConfigLink -Source (Join-Path $Dotfiles 'git\config') `
-               -Destination (Join-Path $env:USERPROFILE '.gitconfig')
-New-ConfigLink -Source (Join-Path $Dotfiles 'git\gitignore_global') `
-               -Destination (Join-Path $env:USERPROFILE '.gitignore_global')
+New-DirLink -Source (Join-Path $Dotfiles 'nvim') -Destination (Join-Path $env:LOCALAPPDATA 'nvim')
 
 Write-Host '==> bash (Git Bash / MinGW)'
-New-ConfigLink -Source (Join-Path $Dotfiles 'bash\common.sh') `
-               -Destination (Join-Path $env:USERPROFILE '.config\dotfiles\common.sh')
-New-ConfigLink -Source (Join-Path $Dotfiles 'bash\bashrc.windows') `
-               -Destination (Join-Path $env:USERPROFILE '.bashrc')
-New-ConfigLink -Source (Join-Path $Dotfiles 'bash\bash_profile.windows') `
-               -Destination (Join-Path $env:USERPROFILE '.bash_profile')
+# The whole bash/ directory is junctioned into place, which is what makes
+# ~/.config/dotfiles/common.sh resolve -- the same path the Linux and macOS
+# installs use, so common.sh needs no per-platform lookup logic.
+New-DirLink -Source (Join-Path $Dotfiles 'bash') -Destination (Join-Path $env:USERPROFILE '.config\dotfiles')
+New-Shim -Destination (Join-Path $env:USERPROFILE '.bashrc') -Content @"
+# managed by ConfigMe -- edit $DotfilesPosix/bash/bashrc.windows instead
+. "$DotfilesPosix/bash/bashrc.windows"
+"@
+New-Shim -Destination (Join-Path $env:USERPROFILE '.bash_profile') -Content @"
+# managed by ConfigMe -- edit $DotfilesPosix/bash/bash_profile.windows instead
+. "$DotfilesPosix/bash/bash_profile.windows"
+"@
+
+Write-Host '==> git'
+# core.excludesfile is re-pointed after the include so it resolves to the repo
+# copy; the shared config sets it to ~/.gitignore_global, which does not exist
+# on this side.
+New-Shim -Destination (Join-Path $env:USERPROFILE '.gitconfig') -Content @"
+# managed by ConfigMe -- edit $DotfilesPosix/git/config instead
+[include]
+	path = $DotfilesPosix/git/config
+[core]
+	excludesfile = $DotfilesPosix/git/gitignore_global
+"@
+
+Write-Host '==> wezterm'
+New-Shim -Destination (Join-Path $env:USERPROFILE '.wezterm.lua') -Content @"
+-- managed by ConfigMe -- edit $DotfilesPosix/wezterm/wezterm.lua instead
+return dofile("$DotfilesPosix/wezterm/wezterm.lua")
+"@
 
 Write-Host '==> claude'
-# Only CLAUDE.md and memory are mirrored. .claude\skills on this machine is a
-# tree of links into %USERPROFILE%\.agents and is managed separately.
-New-ConfigLink -Source (Join-Path $Dotfiles 'claude\CLAUDE.md') `
-               -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md')
-New-ConfigLink -Source (Join-Path $Dotfiles 'claude\memory') `
-               -Destination (Join-Path $env:USERPROFILE '.claude\memory')
+# .claude\skills on this machine is a tree of links into %USERPROFILE%\.agents
+# and is managed separately, so only memory and CLAUDE.md are mirrored.
+New-DirLink -Source (Join-Path $Dotfiles 'claude\memory') -Destination (Join-Path $env:USERPROFILE '.claude\memory')
+New-Shim -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md') -Content @"
+<!-- managed by ConfigMe -- edit $DotfilesPosix/claude/CLAUDE.md instead -->
+@$DotfilesPosix/claude/CLAUDE.md
+"@
 
 Write-Host ''
 Write-Host 'Done.' -ForegroundColor Green
