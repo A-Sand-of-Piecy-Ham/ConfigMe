@@ -70,19 +70,43 @@ $Dotfiles = $PSScriptRoot
 # native Windows path as escape sequences.
 $DotfilesPosix = $Dotfiles -replace '\\', '/'
 
+# PowerShell 5.1's New-Item -ItemType SymbolicLink calls CreateSymbolicLinkW
+# WITHOUT SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, so it fails for a
+# non-elevated user even when Developer Mode is on -- Developer Mode is exactly
+# what that flag unlocks. PowerShell 7 fixed this; 5.1 never will. Call the API
+# directly so Developer Mode is actually usable.
+Add-Type -Namespace ConfigMe -Name Native -MemberDefinition @'
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern bool CreateSymbolicLinkW(string link, string target, int flags);
+'@
+
+function New-Symlink {
+    param(
+        [Parameter(Mandatory)][string]$Link,
+        [Parameter(Mandatory)][string]$Target,
+        [switch]$Directory
+    )
+
+    $base = if ($Directory) { 0x1 } else { 0x0 }
+
+    # 0x2 is ALLOW_UNPRIVILEGED_CREATE. Windows builds without Developer Mode
+    # support reject the unknown flag outright with ERROR_INVALID_PARAMETER, so
+    # retry without it before giving up.
+    if ([ConfigMe.Native]::CreateSymbolicLinkW($Link, $Target, $base -bor 0x2)) { return $true }
+    if ([ConfigMe.Native]::CreateSymbolicLinkW($Link, $Target, $base)) { return $true }
+    return $false
+}
+
 function Test-SymlinkCapability {
-    # Creating a symlink needs SeCreateSymbolicLinkPrivilege, granted by
-    # Developer Mode or elevation. Probe once rather than reading the registry:
-    # the actual attempt is what matters, and a failure here is not an error
-    # condition -- it just selects the shim path.
+    # Probe with a real attempt rather than reading the Developer Mode registry
+    # value: what matters is whether this process can actually create one, and
+    # a failure is not an error condition -- it just selects the shim path.
     $probe = Join-Path $env:TEMP ('configme-symlink-probe-' + [guid]::NewGuid())
-    try {
-        New-Item -ItemType SymbolicLink -Path $probe -Target $env:TEMP -EA Stop | Out-Null
+    if (New-Symlink -Link $probe -Target $env:TEMP -Directory) {
         (Get-Item $probe -Force).Delete()
         return $true
-    } catch {
-        return $false
     }
+    return $false
 }
 
 $CanSymlink = Test-SymlinkCapability
@@ -186,8 +210,14 @@ function New-FileLink {
 
     if ($script:CanSymlink) {
         if (-not (Clear-Destination $Destination)) { return }
-        New-Item -ItemType SymbolicLink -Path $Destination -Target $Source | Out-Null
-        Write-Host "  symlink $Destination" -ForegroundColor Green
+        if (New-Symlink -Link $Destination -Target $Source) {
+            Write-Host "  symlink $Destination" -ForegroundColor Green
+        } else {
+            # Privilege was probed successfully, so a failure here is specific
+            # to this path. Fall back rather than aborting the whole install.
+            Write-Host "  symlink failed, using shim: $Destination" -ForegroundColor Yellow
+            New-Shim -Destination $Destination -Content $Shim
+        }
     } else {
         New-Shim -Destination $Destination -Content $Shim
     }
