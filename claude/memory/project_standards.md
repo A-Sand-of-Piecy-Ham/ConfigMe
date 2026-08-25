@@ -5,7 +5,7 @@ metadata:
   type: reference
 ---
 
-Standards live at `~/projects/dotfiles/github-templates/`. Apply proportionally to project size.
+Standards live at `~/projects/ConfigMe/github-templates/`. Apply proportionally to project size.
 
 **PRs:** Always via PR once collaborators exist. Use the template (Background / Problem / Solution / Not Done / Testing / Reviewers). Scoped to one concern. Reference issue ID.
 

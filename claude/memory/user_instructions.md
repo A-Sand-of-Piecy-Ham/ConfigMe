@@ -18,4 +18,4 @@ metadata:
 
 **Why:** User stated these directly as their working preferences.
 
-**How to apply:** Apply to every session by default. Full instructions live in dotfiles at `~/projects/dotfiles/claude/instructions.md`.
+**How to apply:** Apply to every session by default. Full instructions live in dotfiles at `~/projects/ConfigMe/claude/CLAUDE.md`.

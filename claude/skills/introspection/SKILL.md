@@ -50,7 +50,7 @@ Generalizable patterns only — no project-specific details. Terse, traceable to
 
 ## Step 5 — Commit to memory
 
-Append to `## From introspection` in `~/projects/dotfiles/claude/memory/interaction_style.md`. Update or reinforce existing entries rather than duplicating. Update `MEMORY.md` index only if a new top-level section was added.
+Append to `## From introspection` in `~/projects/ConfigMe/claude/memory/interaction_style.md`. Update or reinforce existing entries rather than duplicating. Update `MEMORY.md` index only if a new top-level section was added.
 
 ---
 
