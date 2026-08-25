@@ -10,7 +10,7 @@
 
     A second, native checkout is used rather than symlinking into
     \\wsl.localhost because everything Windows reads through that path goes
-    over the 9p bridge — roughly an order of magnitude slower per file
+    over the 9p bridge -- roughly an order of magnitude slower per file
     operation. Neovim touches dozens of files at startup and lazy.nvim touches
     thousands during a sync, so the difference is plainly visible. The native
     clone also keeps Windows working when the WSL VM is shut down.
@@ -27,6 +27,10 @@ param(
     [switch]$Force
 )
 
+# Keep this file pure ASCII. PowerShell 5.1 decodes -File scripts as
+# Windows-1252 when there is no BOM, so a UTF-8 em dash (E2 80 94) arrives as
+# a right smart quote (0x94 in CP1252), which opens a string that never closes
+# and produces parse errors pointing at unrelated lines further down.
 $ErrorActionPreference = 'Stop'
 $Dotfiles = $PSScriptRoot
 
@@ -71,7 +75,7 @@ function New-ConfigLink {
             $backup = "$Destination.bak"
             if (Test-Path -LiteralPath $backup) {
                 if (-not $Force) {
-                    Write-Host "  SKIP $Destination — $backup already exists (use -Force)" -ForegroundColor Yellow
+                    Write-Host "  SKIP $Destination -- $backup already exists (use -Force)" -ForegroundColor Yellow
                     return
                 }
                 Remove-Item -LiteralPath $backup -Recurse -Force
