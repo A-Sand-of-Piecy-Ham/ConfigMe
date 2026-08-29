@@ -118,8 +118,29 @@ Registered in `~/.claude.json`, which cannot be symlinked into this repo: it
 also holds per-project session state that changes constantly. Recorded here so
 the set is reproducible on a new machine.
 
-Currently registered: `fetch`, `filesystem`, `memory`, `context7`,
-`sequential-thinking`, `chrome-devtools`.
+Currently registered: `filesystem`, `context7`, `sequential-thinking`,
+`chrome-devtools`, `github`.
+
+`fetch` and `memory` were removed. `fetch` duplicated the built-in `WebFetch`,
+which is strictly better -- it takes a prompt and answers against the content
+rather than returning the whole page -- and it launched through `uvx`, spinning
+a Python environment per call. `memory` had never written a store file, and its
+ground is covered by auto memory and `claude/rules/`.
+
+### github
+
+```bash
+claude mcp add github -s user -- ~/.local/bin/github-mcp
+```
+
+`bin/github-mcp` reads `gh auth token` at launch rather than storing a
+Personal Access Token in `~/.claude.json`. The documented alternatives are a
+PAT pasted into config, or Docker -- which is unusable here while the engine
+returns 500s from a CLI/engine version mismatch. Reading from `gh` also means
+the credential rotates when `gh` refreshes, and revoking `gh` revokes this.
+
+That token carries `repo` scope, so the server can write to repositories. The
+never-push-without-asking rule binds it exactly as it binds `git`.
 
 ### chrome-devtools
 

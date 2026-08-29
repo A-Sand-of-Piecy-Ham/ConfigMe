@@ -274,8 +274,6 @@ return dofile("$DotfilesPosix/wezterm/wezterm.lua")
 "@
 
 Write-Host '==> claude'
-New-DirLink -Source (Join-Path $Dotfiles 'claude\memory') -Destination (Join-Path $env:USERPROFILE '.claude\memory')
-
 # Rules load every session and were previously WSL-only, so every behavioural
 # rule in this repo silently did not apply on Windows.
 New-DirLink -Source (Join-Path $Dotfiles 'claude\rules') -Destination (Join-Path $env:USERPROFILE '.claude\rules')

@@ -182,6 +182,22 @@ doctor() {
             || warn "kitty.desktop not in /usr/share/applications -- no Start Menu entry"
     fi
 
+    echo "==> claude"
+    for d in skills rules; do
+        if [ -L "$HOME/.claude/$d" ] && [ -d "$HOME/.claude/$d" ]; then
+            ok "$d linked ($(find -L "$HOME/.claude/$d" -maxdepth 1 -mindepth 1 | wc -l) entries)"
+        else
+            bad "~/.claude/$d not linked -- skills or rules will not load"
+        fi
+    done
+    [ -L "$HOME/.claude/CLAUDE.md" ] && ok "CLAUDE.md linked" || bad "~/.claude/CLAUDE.md not linked"
+    if command -v github-mcp >/dev/null 2>&1; then
+        gh auth status >/dev/null 2>&1 && ok "github-mcp (gh authenticated)" \
+                                       || bad "github-mcp present but gh not logged in"
+    else
+        warn "github-mcp missing -- GitHub MCP server unavailable"
+    fi
+
     echo
     printf 'ok %s, warnings %s, problems %s\n' "$PASS" "$WARN" "$FAIL"
     [ "$FAIL" -eq 0 ]
@@ -432,7 +448,6 @@ esac
 echo "==> claude"
 link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
 link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
-link "$DOTFILES/claude/memory"   "$HOME/.claude/memory"
 link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 
 echo

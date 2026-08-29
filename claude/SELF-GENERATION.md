@@ -78,10 +78,24 @@ read:
 this repo works and the memory half has been inert. The seven curated files in
 `claude/memory/` have never reached a session automatically.
 
-The fix is not to force them all into the loaded path, which would just move the
-cost. It is to split them by the table above — most are procedures or triggered
-knowledge and belong as skills, a few are always-on rules and belong merged into
+Resolved by splitting rather than relocating. `~/.claude/rules/` loads every
+session, keeps one file per topic, supports symlinks, and supports `paths:`
+frontmatter to load only alongside matching files — so the three always-on
+behavioural files moved there and stayed separate rather than being merged into
 `CLAUDE.md`.
+
+`@path` imports were considered and rejected: the documentation states that
+imported files still load at launch, so imports organise without reducing cost.
+
+The rest of `claude/memory/` turned out not to need a home. `user_instructions.md`
+duplicated `CLAUDE.md` line for line; `dotfiles.md` and `project_standards.md`
+were already covered by the `dotfiles-change` and `git-workflow` skills, with
+only their unique fragments folded in. The directory was removed.
+
+A general lesson worth keeping: **an inert store accumulates content that looks
+maintained.** Those files were edited and indexed for months while never being
+read by anything. Whatever holds memory should be verifiable — the `--doctor`
+check now asserts the skills and rules links actually resolve.
 
 ## Open questions
 

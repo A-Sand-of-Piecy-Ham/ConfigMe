@@ -15,6 +15,11 @@ live in `github-templates/project-standards.md`. Read that when setting up or
 assessing a repo rather than duplicating it here. This skill covers only the
 mechanics of making a change land.
 
+When a new repo is being set up, or an existing one grows collaborators,
+suggest copying `github-templates/pull_request_template.md` into `.github/` and
+applying the standards proportionally to project size. Flag when a growing
+project would benefit from branch protection or CI it does not yet have.
+
 ## Commit messages
 
 Subject line under ~72 characters, imperative mood, no trailing period.

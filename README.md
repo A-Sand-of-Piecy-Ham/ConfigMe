@@ -86,11 +86,11 @@ these: why a description is permanent context cost while a body is not, the
 procedure-vs-shim distinction, and where a lesson belongs (skill, memory, or
 `CLAUDE.md`).
 
-`claude/memory/` is symlinked to `~/.claude/memory/`, which nothing reads --
-auto-memory lives in `~/.claude/projects/<slug>/memory/`. The always-on
-behavioural files moved to `claude/rules/`, which does load. What remains in
-`claude/memory/` is reference material pending a decision; see
-SELF-GENERATION.md.
+`claude/memory/` was removed. It symlinked to `~/.claude/memory/`, which nothing
+reads -- auto-memory lives in `~/.claude/projects/<slug>/memory/`, which is
+machine-local and not trackable. The behavioural files moved to `claude/rules/`;
+the rest was either a duplicate of `CLAUDE.md` or already covered by a skill.
+See SELF-GENERATION.md.
 
 ## Keybindings
 
