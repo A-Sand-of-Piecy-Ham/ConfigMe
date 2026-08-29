@@ -11,9 +11,21 @@ memory and in every tutorial online.
 
 | Was | Now | Why |
 |---|---|---|
-| tmux prefix `C-b` | **`C-Space`** | `C-b` is vim's page-up, felt both in nvim and in tmux's own vi copy-mode. `C-Space` also avoids readline's `C-a`. |
+| tmux prefix `C-b` | **`C-Space`** | `C-b` is vim's page-up, felt both in nvim and in tmux's own vi copy-mode. |
 | tmux `prefix l` — last-window | **`prefix a`** | `l` became "select pane right" in the vi-style navigation set. Not moved to `Tab`: tmux-sidebar claims that, and plugin bindings load last and win. |
 | kitty `ctrl+shift+e` — open URL | **`ctrl+shift+p` `o`** | TickTick registers `ctrl+shift+e` as a Windows global hotkey. A global hotkey is intercepted by the OS before the focused window sees it, so kitty could never receive the combination -- the binding would look present and silently never fire. |
+
+### A collision `C-Space` does not avoid
+
+`C-Space` was chosen partly to dodge readline's `C-a` (beginning-of-line), which
+`C-a` as a prefix would have shadowed. It does dodge that, but it is not
+collision-free: **`C-Space` is `set-mark` in readline**, so the prefix shadows
+mark-setting in bash and in any other readline program.
+
+In practice this only bites when using mark-and-region editing on the command
+line — set a mark, move, then `C-x C-x` or a kill-to-mark. If that is part of
+your editing vocabulary, `C-Space` is the wrong prefix and something outside
+readline's bindings entirely, such as `C-\` or a function key, would be better.
 
 ## tmux
 
