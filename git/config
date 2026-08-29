@@ -43,3 +43,11 @@
 	algorithm = histogram
 [init]
 	defaultBranch = main
+[diff "kitty"]
+	command = kitten diff $LOCAL $REMOTE
+[difftool "kitty"]
+	cmd = kitten diff \"$LOCAL\" \"$REMOTE\"
+[alias]
+	# Side-by-side diff in the terminal, with image support. Not the default
+	# difftool: it only works when the terminal is kitty.
+	kdiff = difftool --no-symlinks --dir-diff --tool=kitty

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Open a file in nvim, preferring the existing tmux session.
+#
+# kitty's hints kitten opens matched file:line errors with whatever `editor` is
+# set to. Launching nvim directly would put it in a bare kitty window alongside
+# the one already running tmux, splitting the workspace in two. When a tmux
+# server is reachable this opens a tmux window instead, so the file lands in
+# the layout already in use.
+#
+# kitty launches this without a shell, so $TMUX is not set even when the
+# calling window is inside tmux. `tmux has-session` still finds the server via
+# the default socket, and new-window without a target uses the most recently
+# active session -- which is the one being looked at.
+set -euo pipefail
+
+if [ "$#" -eq 0 ]; then
+    echo "usage: kitty-nvim [+LINE] FILE..." >&2
+    exit 2
+fi
+
+if command -v tmux >/dev/null 2>&1 && tmux has-session 2>/dev/null; then
+    exec tmux new-window -- nvim "$@"
+fi
+
+exec nvim "$@"
