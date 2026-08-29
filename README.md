@@ -53,6 +53,19 @@ Note that PowerShell 5.1's `New-Item -ItemType SymbolicLink` omits the
 `ALLOW_UNPRIVILEGED_CREATE` flag that Developer Mode unlocks, so the installer
 calls `CreateSymbolicLinkW` directly rather than using it.
 
+## Claude skills
+
+`claude/skills/` is linked to `~/.claude/skills`. A skill's `description` is
+its trigger -- Claude matches the task against it -- so descriptions are
+written with the phrases that should invoke them, not as summaries.
+
+| Skill | Triggers on |
+|---|---|
+| `web-browsing` | Reading, searching, or interacting with a page; routes between WebFetch and chrome-devtools rather than reaching for a browser first |
+| `todo-capture` | "create a todo", "add a task", "remind me to" -- captures into TickTick instead of replying that it was noted |
+| `dotfiles-change` | Editing anything this repo manages; covers the steps that fail silently, like a running tmux server never re-reading its config |
+| `introspection` | Reviewing a finished session for what worked |
+
 ## Keybindings
 
 [KEYBINDINGS.md](KEYBINDINGS.md) documents every binding this repo defines, and
