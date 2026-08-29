@@ -130,4 +130,14 @@ export NVM_DIR="$HOME/.nvm"
 # (wsl.exe, code, explorer.exe) without Windows' full PATH bloating completion.
 if grep -qi microsoft /proc/version 2>/dev/null; then
     export BROWSER=wslview
+
+    # Force Mesa onto the hardware path. Under WSLg it first tries zink, fails
+    # with "ZINK: failed to choose pdev", and silently falls back to llvmpipe
+    # software rendering -- the GL version reported jumps to 4.5 (llvmpipe's
+    # cap) instead of 4.1 (what the d3d12 Gallium driver supports), which is
+    # the only outward sign. Applies to GL apps launched from a shell; kitty
+    # gets it from its .desktop Exec line, since WSLg starts it without one.
+    if [ -e /dev/dxg ]; then
+        export GALLIUM_DRIVER=d3d12
+    fi
 fi

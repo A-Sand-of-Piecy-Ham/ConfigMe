@@ -88,6 +88,44 @@ else
     link "$DOTFILES/wezterm/wezterm.lua" "$HOME/.wezterm.lua"
 fi
 
+echo "==> kitty"
+if [ "$OS" = windows ]; then
+    echo "  skipped -- kitty has no Windows build"
+else
+    link "$DOTFILES/kitty/kitty.conf" "$XDG/kitty/kitty.conf"
+
+    if [ "$IS_WSL" = 1 ]; then
+        # WSLg surfaces .desktop entries from here in the Windows Start Menu,
+        # so kitty can be pinned and launched like a native Windows app.
+        #
+        # GALLIUM_DRIVER is set on the Exec line, not in .bashrc: WSLg launches
+        # this binary directly, so no shell ever runs to export it. Without it
+        # Mesa tries zink, fails to pick a physical device, and silently falls
+        # back to llvmpipe -- software rendering in a GPU-accelerated terminal.
+        KITTY_BIN="$HOME/.local/kitty.app/bin/kitty"
+        if [ -x "$KITTY_BIN" ]; then
+            DESKTOP="$HOME/.local/share/applications/kitty.desktop"
+            mkdir -p "$(dirname "$DESKTOP")"
+            cat > "$DESKTOP" <<DESKTOPEOF
+[Desktop Entry]
+Type=Application
+Name=kitty (WSL)
+GenericName=Terminal emulator
+Comment=Kitty running under WSLg with GPU acceleration
+Exec=env GALLIUM_DRIVER=d3d12 $KITTY_BIN
+Icon=$HOME/.local/kitty.app/share/icons/hicolor/256x256/apps/kitty.png
+Categories=System;TerminalEmulator;
+Terminal=false
+StartupNotify=true
+DESKTOPEOF
+            echo "  wrote $DESKTOP"
+        else
+            echo "  kitty not installed; skipping desktop entry"
+            echo "  install with: curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin"
+        fi
+    fi
+fi
+
 echo "==> ccache"
 case "$OS" in
     darwin)  link "$DOTFILES/ccache/ccache.conf" "$HOME/Library/Preferences/ccache/ccache.conf" ;;
