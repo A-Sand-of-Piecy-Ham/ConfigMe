@@ -65,6 +65,18 @@ written with the phrases that should invoke them, not as summaries.
 | `todo-capture` | "create a todo", "add a task", "remind me to" -- captures into TickTick instead of replying that it was noted |
 | `dotfiles-change` | Editing anything this repo manages; covers the steps that fail silently, like a running tmux server never re-reading its config |
 | `introspection` | Reviewing a finished session for what worked |
+| `skill-forge` | Writing or revising a skill |
+| `git-workflow` | Commits, branches, PRs -- the habits easy to skip under momentum |
+
+[claude/SELF-GENERATION.md](claude/SELF-GENERATION.md) covers the design behind
+these: why a description is permanent context cost while a body is not, the
+procedure-vs-shim distinction, and where a lesson belongs (skill, memory, or
+`CLAUDE.md`).
+
+**Known issue:** `claude/memory/` is symlinked to `~/.claude/memory/`, which
+nothing reads. Auto-memory lives in `~/.claude/projects/<slug>/memory/`. The
+`CLAUDE.md` half of this repo loads; the memory half is currently inert. See
+SELF-GENERATION.md.
 
 ## Keybindings
 
