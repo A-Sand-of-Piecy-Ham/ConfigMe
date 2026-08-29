@@ -99,10 +99,22 @@ For the paper, and for experiments here:
 - **Aggregation.** Six skills with six descriptions cost more than three skills
   with three. When is merging two skills better than keeping their triggers
   distinct, and does a merged description lose recall?
-- **Decay.** Nothing currently removes a skill. A skill for a workflow that no
-  longer exists keeps charging its description cost forever.
+- **Decay and tombstoning.** Nothing currently removes a skill, so one for a
+  workflow that no longer exists charges its description cost forever. Deletion
+  is not obviously right either: a removed entry invites the next session to
+  rediscover the same dead end. `doc-lookup` marks dead entries rather than
+  deleting them, on the theory that "this was tried and led nowhere" is itself
+  information. Whether that generalises, and what the right staleness horizon
+  is, are open.
 - **Transfer.** Do skills written for one project help another, or does
   specificity make them dead weight elsewhere?
+
+## Observations
+
+Evidence noticed while doing other work, appended by the `research-log` skill.
+Dated, one entry each; observations rather than conclusions.
+
+_(none yet)_
 
 ## Prior art to check
 

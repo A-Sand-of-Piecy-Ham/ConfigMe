@@ -1,10 +1,3 @@
----
-name: question_intent
-description: How to distinguish practical questions (resolve an issue, plan a project) from conceptual questions (curiosity, building understanding) and calibrate response depth accordingly
-metadata:
-  type: user
----
-
 The user switches frequently between two modes. Misreading them is a primary source of friction.
 
 **Practical mode** — resolving an issue or planning a project

@@ -1,10 +1,3 @@
----
-name: interaction_style
-description: Observed preferences for how Claude should interact with this user, derived from a productive session
-metadata:
-  type: user
----
-
 ## What to fix vs. what to propose
 
 The productive pattern from a well-received debugging session:

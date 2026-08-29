@@ -67,15 +67,29 @@ written with the phrases that should invoke them, not as summaries.
 | `introspection` | Reviewing a finished session for what worked |
 | `skill-forge` | Writing or revising a skill |
 | `git-workflow` | Commits, branches, PRs -- the habits easy to skip under momentum |
+| `doc-lookup` | Library and API questions; caches hard-won answers, tombstones dead ones |
+| `calendar-check` | Availability and scheduling |
+| `memory-write` | "always", "never", "from now on" -- persists rather than just complying |
+| `research-log` | Evidence bearing on the SELF-GENERATION open questions |
+
+`skill-forge`, `introspection` and `memory-write` pin `model: opus` with raised
+`effort` in their frontmatter, so meta-work runs on the strongest model
+regardless of the session setting.
+
+`claude/rules/` is linked to `~/.claude/rules`. Rules load every session, one
+file per topic, and support `paths:` frontmatter to load only alongside matching
+files -- the right home for always-true behaviour that should stay in separate
+files rather than being merged into `CLAUDE.md`.
 
 [claude/SELF-GENERATION.md](claude/SELF-GENERATION.md) covers the design behind
 these: why a description is permanent context cost while a body is not, the
 procedure-vs-shim distinction, and where a lesson belongs (skill, memory, or
 `CLAUDE.md`).
 
-**Known issue:** `claude/memory/` is symlinked to `~/.claude/memory/`, which
-nothing reads. Auto-memory lives in `~/.claude/projects/<slug>/memory/`. The
-`CLAUDE.md` half of this repo loads; the memory half is currently inert. See
+`claude/memory/` is symlinked to `~/.claude/memory/`, which nothing reads --
+auto-memory lives in `~/.claude/projects/<slug>/memory/`. The always-on
+behavioural files moved to `claude/rules/`, which does load. What remains in
+`claude/memory/` is reference material pending a decision; see
 SELF-GENERATION.md.
 
 ## Keybindings

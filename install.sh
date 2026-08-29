@@ -431,6 +431,7 @@ esac
 
 echo "==> claude"
 link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
+link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
 link "$DOTFILES/claude/memory"   "$HOME/.claude/memory"
 link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 

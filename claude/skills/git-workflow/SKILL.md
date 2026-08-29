@@ -3,12 +3,17 @@ name: git-workflow
 description: Commit, branch, PR, or push in any repo. Triggers - "commit this", "make a PR", "push", "open an issue", writing a commit message, or finishing a change that should be recorded.
 ---
 
-## Never push unasked
+## Scope
 
-Committing is fine. Pushing is not, ever, without being asked in that session.
-Approval to push once is not approval to push again.
+`CLAUDE.md` already carries the standing rules -- never push unasked, never
+touch in-repo config or `.gitignore` without discussion -- and is loaded every
+session, so they are not restated here beyond one reminder: **approval to push
+once is not approval to push again.** Branch first if on the default branch.
 
-If on the default branch, branch first.
+Repo conventions -- branch naming, CI expectations, versioning, review norms --
+live in `github-templates/project-standards.md`. Read that when setting up or
+assessing a repo rather than duplicating it here. This skill covers only the
+mechanics of making a change land.
 
 ## Commit messages
 

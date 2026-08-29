@@ -2,6 +2,8 @@
 name: introspection
 description: >
   Analyze a completed interaction to identify what response patterns worked well versus caused friction, and commit findings to the user's interaction style memory. Suggest invoking when the user expresses satisfaction with a session.
+model: opus
+effort: high
 ---
 
 ## Token budget

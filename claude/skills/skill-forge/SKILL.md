@@ -1,6 +1,8 @@
 ---
 name: skill-forge
 description: Write or revise a skill. Triggers - "make a skill", "turn this into a skill", "shim for", "remember this workflow", "you should always do X when Y", or a workflow was corrected twice.
+model: opus
+effort: high
 ---
 
 ## Descriptions are permanent cost; bodies are not
@@ -68,6 +70,46 @@ Include verification, especially where success and failure look alike.
 
 Skip preamble, restated titles, and closing summaries. Assume the reader is
 already doing the task — the skill only loaded because they are.
+
+## Check for redundancy before writing
+
+Read the existing skill descriptions first. A new skill that overlaps an old one
+is worse than no skill: two descriptions compete for the same triggers, both
+pay permanent context cost, and which one fires becomes arbitrary.
+
+Also check what is already loaded unconditionally. `CLAUDE.md` and
+`~/.claude/rules/` are in context every session -- restating them in a skill
+buys nothing and costs tokens. Point at them instead. When `git-workflow` was
+written it duplicated the never-push rule from `CLAUDE.md` and the branch and CI
+conventions from `github-templates/project-standards.md`; both were cut to
+pointers.
+
+## Merge, split, or leave alone
+
+**Merge** when two skills share most of their triggers and a reader of one would
+need the other. One description costs less than two, and the merged body is
+usually shorter than the sum.
+
+Do not merge on subject-matter similarity alone. Two skills about git that fire
+on different moments -- committing versus setting up a repo -- have disjoint
+triggers and should stay apart. Trigger overlap is the test, not topic.
+
+Where merging would force a real choice -- conflicting instructions, or one
+skill's rule contradicting the other's -- **stop and ask** rather than picking.
+A silently resolved conflict is a rule that quietly stopped applying.
+
+**Split (mitosis)** when a skill has grown enough that most invocations load
+material irrelevant to the task at hand. Signals:
+
+- The body has sections that never co-occur in the same task.
+- The description has accumulated trigger phrases pulling in unrelated work.
+- The body is long enough that loading it is itself a cost worth avoiding.
+
+Split along the trigger seam, not the topic seam: each half should own a set of
+phrases the other does not want. If both halves would need the same triggers,
+the skill was not actually two skills.
+
+After splitting, re-check both descriptions for the competition problem above.
 
 ## Placement
 
