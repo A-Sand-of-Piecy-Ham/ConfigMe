@@ -1,7 +1,6 @@
 ---
 name: dotfiles-change
-description: >
-  Make a change to the ConfigMe dotfiles repo correctly, including the steps that are easy to forget. Use when adding or editing any config this repo manages -- tmux, kitty, nvim, bash, git, ccache, WezTerm, Claude -- when adding a new tool to the repo, or when a change needs to reach the Windows machine.
+description: Edit anything ConfigMe manages - tmux, kitty, nvim, bash, git, ccache, WezTerm, Claude. Triggers - config change, adding a tool, change must reach Windows.
 ---
 
 ## The repo is not the live config

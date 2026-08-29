@@ -1,7 +1,6 @@
 ---
 name: todo-capture
-description: >
-  Capture a task into TickTick rather than replying that it has been noted. Use whenever asked to create a todo, add a task, make a ticket, put something on a list, track or note something for later, or remind me to do something -- and when a task surfaces mid-work that is explicitly deferred ("do that later", "leave a note to fix this").
+description: Capture task to TickTick. Triggers - "create todo", "add task", "make a ticket", "remind me", "put on my list", deferred work mentioned mid-task.
 ---
 
 ## Why this exists
@@ -17,6 +16,18 @@ Call `list_projects` once and choose the project that fits. Do not default to
 the inbox when an obviously matching project exists; an item in the wrong list
 is nearly as lost as one never created. Reuse the result for the rest of the
 session rather than listing again per task.
+
+File by what the task is *for*, not the subject it touches. An academic-sounding
+task is not automatically a Study task:
+
+| Project | Holds |
+|---|---|
+| `📖Study` | Coursework and learning |
+| `🎓Career` | Professional and research: academic outreach, collaborations, publications, networking |
+| `🎯Applications` | Job applications specifically |
+| `💼Homework` | Assignments |
+
+Emailing a professor about co-authoring a paper is Career, not Study.
 
 Search first with `search_task` when the item sounds recurring or previously
 mentioned. Duplicates are worse than a missing task, because both copies then

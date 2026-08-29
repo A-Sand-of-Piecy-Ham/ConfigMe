@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# github-mcp-server, authenticated from the gh CLI at launch.
+#
+# The documented setups either need Docker (broken here -- the engine returns
+# 500s from a CLI/engine version mismatch) or a Personal Access Token pasted
+# into ~/.claude.json. This avoids storing a credential at all: gh already
+# holds a token, so read it at startup. It also rotates on its own when gh
+# refreshes, and revoking gh's token revokes this too.
+set -euo pipefail
+
+if ! command -v gh >/dev/null 2>&1; then
+    echo "github-mcp: gh CLI not found" >&2
+    exit 1
+fi
+
+token="$(gh auth token 2>/dev/null || true)"
+if [ -z "$token" ]; then
+    echo "github-mcp: not logged in -- run 'gh auth login'" >&2
+    exit 1
+fi
+
+export GITHUB_PERSONAL_ACCESS_TOKEN="$token"
+exec github-mcp-server stdio "$@"

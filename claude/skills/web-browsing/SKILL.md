@@ -1,7 +1,6 @@
 ---
 name: web-browsing
-description: >
-  Choose the right tool for reading, searching, or interacting with a web page, and drive chrome-devtools efficiently when a real browser is needed. Use when asked to look at, check, read, open, or browse a page or site; when a URL is pasted; when a page needs logging into, clicking through, or filling in; and when diagnosing a page that is slow, erroring, or rendering wrong.
+description: Read, search, or interact with a web page. Triggers - URL pasted, "check this site", "what does X say", login/click/fill needed, page slow or erroring. Routes WebFetch vs chrome-devtools.
 ---
 
 ## Pick the cheapest tool that can work
