@@ -118,8 +118,8 @@ Registered in `~/.claude.json`, which cannot be symlinked into this repo: it
 also holds per-project session state that changes constantly. Recorded here so
 the set is reproducible on a new machine.
 
-Currently registered: `fetch`, `filesystem`, `memory`, `playwright`,
-`context7`, `sequential-thinking`, `chrome-devtools`.
+Currently registered: `fetch`, `filesystem`, `memory`, `context7`,
+`sequential-thinking`, `chrome-devtools`.
 
 ### chrome-devtools
 
@@ -145,13 +145,35 @@ Note that performance tools still send trace URLs to the Google CrUX API to
 fetch field data. Add `--no-performance-crux` to stop that; the cost is losing
 real-user performance comparisons.
 
-### A note on the playwright server
+### Why playwright was removed
 
-It is configured with `PLAYWRIGHT_MCP_CDP_ENDPOINT=http://localhost:9222`,
+The playwright MCP server was registered alongside this one and was almost
+entirely redundant: 20 of its 24 tools had a direct chrome-devtools
+equivalent, covering the whole interaction and inspection surface. What
+chrome-devtools adds -- `performance_start_trace`, `performance_stop_trace`,
+`performance_analyze_insight`, `lighthouse_audit`, `take_heapsnapshot` and
+`emulate` -- playwright had no counterpart for, making chrome-devtools close
+to a superset.
+
+It was also pointed at `PLAYWRIGHT_MCP_CDP_ENDPOINT=http://localhost:9222`,
 which expects a Chrome already running with remote debugging on that port.
-Nothing listens there by default, so that endpoint only works when such a
-Chrome has been started by hand. `chrome-devtools` deliberately does not depend
-on it and launches its own browser instead.
+Nothing listens there by default, so it only worked when such a Chrome had
+been started by hand.
+
+Note that the playwright MCP *server* is unrelated to the playwright npm
+*library*. Removing the server does not affect any project's tests; a project
+that tests with Playwright depends on the library and is unaffected.
+
+The one real capability lost is non-Chrome browsers: playwright can drive
+Firefox and WebKit, chrome-devtools is Chrome-only. If Firefox coverage
+becomes necessary, re-adding is one command:
+
+```bash
+claude mcp add playwright -s user -- npx -y @playwright/mcp@latest
+```
+
+Note the omitted CDP endpoint -- without it the server launches its own
+browser rather than requiring one on port 9222.
 
 ## Language toolchains
 
