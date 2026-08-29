@@ -53,6 +53,14 @@ Note that PowerShell 5.1's `New-Item -ItemType SymbolicLink` omits the
 `ALLOW_UNPRIVILEGED_CREATE` flag that Developer Mode unlocks, so the installer
 calls `CreateSymbolicLinkW` directly rather than using it.
 
+## Keybindings
+
+[KEYBINDINGS.md](KEYBINDINGS.md) documents every binding this repo defines, and
+the three defaults it deliberately breaks -- the tmux prefix (`C-b` ->
+`C-Space`), tmux's `last-window` (`l` -> `a`), and kitty's URL opener
+(`ctrl+shift+e` -> `ctrl+shift+p o`, because TickTick holds that combination as
+a Windows global hotkey).
+
 ## Dependencies
 
 `packages/apt.txt` lists every system package with the reason it is needed;
