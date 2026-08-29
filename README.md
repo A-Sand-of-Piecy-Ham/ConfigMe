@@ -53,6 +53,24 @@ Note that PowerShell 5.1's `New-Item -ItemType SymbolicLink` omits the
 `ALLOW_UNPRIVILEGED_CREATE` flag that Developer Mode unlocks, so the installer
 calls `CreateSymbolicLinkW` directly rather than using it.
 
+## Dependencies
+
+`packages/apt.txt` lists every system package with the reason it is needed;
+`packages/manual.md` covers what apt cannot provide -- kitty, its terminfo, the
+Nerd Font, and `wsl-notify-send.exe`.
+
+```bash
+./install.sh --doctor   # report what is missing, change nothing
+./install.sh --deps     # print the apt line for missing packages
+```
+
+`--doctor` checks more than binaries: terminfo entries, whether a Nerd Font is
+installed, whether the tmux plugins are actually present, whether the *running*
+tmux server has `allow-passthrough` on, and whether Mesa can reach the d3d12
+driver rather than falling back to software rendering. Those are the failures
+that produce no error message -- glyphs render as boxes, images hang, the
+terminal quietly runs on CPU.
+
 ## Two checkouts, one source of truth
 
 The WSL checkout at `~/projects/ConfigMe` is the **source of truth**. The
@@ -96,6 +114,4 @@ and PowerShell remain available from the launcher — the tab-bar dropdown, or
 ## Future considerations
 
 - Ninja
-- UV (python)
 - nvim LSPs
-- Automatic package installation

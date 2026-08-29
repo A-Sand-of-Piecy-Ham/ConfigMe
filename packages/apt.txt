@@ -1,0 +1,36 @@
+# System packages, one per line, with the reason it is needed.
+# Consumed by `install.sh --deps`; comments and blank lines are ignored.
+#
+# Keep the reason column filled in. The friction this file exists to remove is
+# not installing things, it is not knowing something was required in the first
+# place.
+
+# --- core ---
+git                 # everything
+tmux                # tmux/.tmux.conf
+neovim              # nvim/
+ccache              # ccache/ccache.conf, USE_CCACHE in bash/common.sh
+bash-completion     # sourced by bash/bashrc.linux
+
+# --- nvim: snacks.image ---
+# ImageMagick 6 is what Ubuntu ships. It provides convert/identify but no
+# `magick` binary; snacks.image detects this and falls back, so 6 is enough.
+imagemagick         # snacks.image -- without it images never decode
+ghostscript         # snacks.image: PDF rendering (optional)
+
+# --- terminal ---
+fzf                 # tmux prefix+s session switcher, tmux-fzf plugin
+entr                # tmux-autoreload plugin -- silently inert without it
+ncurses-term        # terminfo entries incl. tmux-256color
+
+# --- notifications (WSL/Linux desktop) ---
+# Provides org.freedesktop.Notifications on the session bus. nvim and other
+# apps raise notifications over D-Bus; without a daemon those calls hang until
+# they time out rather than failing fast.
+dunst               # notification daemon
+libnotify-bin       # notify-send, for testing and for scripts
+
+# --- optional, feature-gated ---
+# Each of these enables one snacks.image document type. Skip them if you do not
+# write that kind of document; nothing else breaks.
+# tectonic          # snacks.image: LaTeX math rendering

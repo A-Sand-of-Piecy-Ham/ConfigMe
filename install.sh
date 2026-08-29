@@ -21,6 +21,181 @@ fi
 
 XDG="${XDG_CONFIG_HOME:-$HOME/.config}"
 
+# ------------------------------------------------------------------ modes ---
+usage() {
+    cat <<USAGE
+usage: install.sh [--doctor|--deps|--help]
+
+  (no args)  link configs into place
+  --doctor   report what is missing or misconfigured, change nothing
+  --deps     print the package-manager command for missing system packages
+USAGE
+}
+
+MODE=install
+case "${1:-}" in
+    --doctor) MODE=doctor ;;
+    --deps)   MODE=deps ;;
+    -h|--help) usage; exit 0 ;;
+    "") ;;
+    *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
+esac
+
+# Package names in packages/apt.txt are followed by a `# reason` comment.
+apt_packages() {
+    sed -e 's/#.*//' -e '/^[[:space:]]*$/d' -e 's/[[:space:]]*$//' \
+        "$DOTFILES/packages/apt.txt"
+}
+
+PASS=0; WARN=0; FAIL=0
+ok()   { printf '  \033[32m*\033[0m %s\n' "$1"; PASS=$((PASS+1)); }
+warn() { printf '  \033[33m!\033[0m %s\n' "$1"; WARN=$((WARN+1)); }
+bad()  { printf '  \033[31mx\033[0m %s\n' "$1"; FAIL=$((FAIL+1)); }
+
+# A required tool is one a linked config actively depends on. An optional tool
+# gates a single feature and is reported as a warning, with the feature named
+# so the report says what is lost rather than just what is absent.
+check_cmd() {
+    local cmd="$1" why="$2" required="${3:-yes}"
+    if command -v "$cmd" >/dev/null 2>&1; then
+        ok "$cmd"
+    elif [ "$required" = yes ]; then
+        bad "$cmd missing -- $why"
+    else
+        warn "$cmd missing -- $why"
+    fi
+}
+
+doctor() {
+    echo "==> commands"
+    check_cmd git    "everything"
+    check_cmd tmux   "tmux/.tmux.conf"
+    check_cmd nvim   "nvim/"
+    check_cmd fzf    "tmux prefix+s session switcher, tmux-fzf"
+    check_cmd ccache "ccache/ccache.conf"
+    # snacks.image shells out to magick, or convert/identify on ImageMagick 6.
+    if command -v magick >/dev/null 2>&1 || command -v convert >/dev/null 2>&1; then
+        ok "ImageMagick"
+    else
+        bad "ImageMagick missing -- snacks.image cannot decode any image"
+    fi
+    check_cmd entr      "tmux-autoreload; the plugin loads but does nothing" no
+    check_cmd gs        "snacks.image PDF rendering" no
+    check_cmd tectonic  "snacks.image LaTeX math rendering" no
+    check_cmd mmdc      "snacks.image Mermaid diagrams" no
+
+    echo "==> terminfo"
+    for t in tmux-256color xterm-kitty; do
+        if infocmp "$t" >/dev/null 2>&1; then
+            ok "$t"
+        else
+            bad "$t missing -- see packages/manual.md"
+        fi
+    done
+
+    echo "==> fonts"
+    if command -v fc-list >/dev/null 2>&1; then
+        if fc-list : family 2>/dev/null | grep -qi 'nerd\|JetBrainsMono NF'; then
+            ok "Nerd Font present"
+        else
+            bad "no Nerd Font -- statusline glyphs render as tofu, not an error"
+        fi
+    else
+        warn "fontconfig absent; cannot check fonts"
+    fi
+
+    echo "==> tmux"
+    if [ -d "$HOME/.tmux/plugins/tpm" ]; then
+        # Every @plugin line should have a matching directory under plugins/.
+        local want have
+        want=$(grep -c "^set -g @plugin" "$DOTFILES/tmux/.tmux.conf" 2>/dev/null || echo 0)
+        have=$(find "$HOME/.tmux/plugins" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
+        if [ "$have" -ge "$want" ]; then
+            ok "plugins installed ($have/$want)"
+        else
+            bad "only $have of $want tmux plugins installed -- run prefix+I"
+        fi
+    else
+        bad "tpm not installed"
+    fi
+    # A running server never re-reads its config, so a correct file on disk
+    # says nothing about the server actually using it.
+    if tmux info >/dev/null 2>&1; then
+        if [ "$(tmux show-options -gv allow-passthrough 2>/dev/null)" = on ]; then
+            ok "running server has allow-passthrough on"
+        else
+            bad "running tmux server has allow-passthrough off -- images will hang; press prefix+R"
+        fi
+    fi
+
+    if [ "$OS" != windows ]; then
+        echo "==> kitty"
+        if [ -x "$HOME/.local/kitty.app/bin/kitty" ]; then
+            ok "kitty $("$HOME/.local/kitty.app/bin/kitty" --version 2>/dev/null | awk '{print $2}')"
+        else
+            warn "kitty not installed -- see packages/manual.md"
+        fi
+        command -v kitty >/dev/null 2>&1 \
+            && ok "kitty on PATH" \
+            || warn "kitty not on PATH -- 'kitty @' and kittens will not resolve from a shell"
+    fi
+
+    if [ "$IS_WSL" = 1 ]; then
+        echo "==> wsl"
+        # Mesa tries zink first under WSLg and silently falls back to llvmpipe
+        # software rendering. There is no error; the only sign is the driver
+        # that ends up loaded.
+        if [ -e /dev/dxg ]; then
+            ok "/dev/dxg present (GPU passthrough)"
+            [ -f /usr/lib/x86_64-linux-gnu/dri/d3d12_dri.so ] \
+                && ok "d3d12 Mesa driver present" \
+                || bad "d3d12_dri.so missing -- GL falls back to software rendering"
+        else
+            warn "/dev/dxg absent -- no GPU passthrough"
+        fi
+        [ -f "$XDG/environment.d/wslg.conf" ] \
+            && ok "WSLg env persisted for systemd (dunst)" \
+            || bad "environment.d/wslg.conf missing -- dunst will fail to start"
+        command -v wsl-notify-send.exe >/dev/null 2>&1 \
+            && ok "wsl-notify-send.exe" \
+            || warn "wsl-notify-send.exe missing -- kitty command-finish notifications disabled"
+        [ -f /usr/share/applications/kitty.desktop ] \
+            && ok "kitty Start Menu entry installed" \
+            || warn "kitty.desktop not in /usr/share/applications -- no Start Menu entry"
+    fi
+
+    echo
+    printf 'ok %s, warnings %s, problems %s\n' "$PASS" "$WARN" "$FAIL"
+    [ "$FAIL" -eq 0 ]
+}
+
+deps() {
+    local missing=()
+    while read -r pkg; do
+        [ -n "$pkg" ] || continue
+        dpkg -s "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+    done < <(apt_packages)
+
+    if [ ${#missing[@]} -eq 0 ]; then
+        echo "all packages in packages/apt.txt are installed"
+        return 0
+    fi
+    echo "missing ${#missing[@]} package(s):"
+    printf '  %s\n' "${missing[@]}"
+    echo
+    echo "sudo apt install ${missing[*]}"
+}
+
+case "$MODE" in
+    doctor) doctor; exit $? ;;
+    deps)
+        if [ "$OS" != linux ]; then
+            echo "--deps only knows apt; on $OS see packages/manual.md" >&2
+            exit 2
+        fi
+        deps; exit 0 ;;
+esac
+
 echo "==> platform: $OS$([ "$IS_WSL" = 1 ] && echo ' (WSL)')"
 echo
 
@@ -124,6 +299,13 @@ WRAPEOF
             chmod +x "$WRAPPER"
             echo "  wrote $WRAPPER"
 
+            # kitty and kitten on PATH. The .desktop launcher uses the wrapper
+            # above, but `kitty @` remote control and every kitten are invoked
+            # from a shell and need the real binaries resolvable by name.
+            for b in kitty kitten; do
+                link "$HOME/.local/kitty.app/bin/$b" "$HOME/.local/bin/$b"
+            done
+
             KITTY_ICON="$HOME/.local/kitty.app/share/icons/hicolor/256x256/apps/kitty.png"
             STAGED="$XDG/kitty/kitty.desktop.staged"
             cat > "$STAGED" <<DESKTOPEOF
@@ -143,7 +325,9 @@ StartupWMClass=kitty
 DESKTOPEOF
 
             SYS_DESKTOP=/usr/share/applications/kitty.desktop
-            if cp "$STAGED" "$SYS_DESKTOP" 2>/dev/null; then
+            if cmp -s "$STAGED" "$SYS_DESKTOP" 2>/dev/null; then
+                echo "  $SYS_DESKTOP already current"
+            elif cp "$STAGED" "$SYS_DESKTOP" 2>/dev/null; then
                 echo "  installed $SYS_DESKTOP"
             elif sudo -n cp "$STAGED" "$SYS_DESKTOP" 2>/dev/null; then
                 echo "  installed $SYS_DESKTOP (via sudo)"
