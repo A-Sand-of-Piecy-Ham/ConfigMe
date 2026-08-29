@@ -66,6 +66,41 @@ Download `wsl-notify-send_windows_amd64.zip` from
 Windows PATH and user-writable, so no PATH edit is needed and WSL resolves it
 by name.
 
+## tectonic
+
+LaTeX engine used by snacks.image to render math. Not packaged for Ubuntu
+24.04. A static binary from the release page is enough:
+
+```bash
+curl -fsSL https://github.com/tectonic-typesetting/tectonic/releases/latest \
+  | grep -oP 'href="\K[^"]*x86_64-unknown-linux-gnu[^"]*\.tar\.gz' | head -1
+# download, tar xzf, then:
+install -m755 ./tectonic ~/.local/bin/tectonic
+```
+
+The first compile downloads its TeX bundle over the network, so it is slow once
+and fast afterwards. No system TeX installation is involved.
+
+## mmdc (mermaid-cli)
+
+Renders Mermaid diagrams for snacks.image. An npm package, not a system one:
+
+```bash
+PUPPETEER_SKIP_DOWNLOAD=true npm install -g @mermaid-js/mermaid-cli
+```
+
+`PUPPETEER_SKIP_DOWNLOAD` matters. mermaid-cli drives a headless browser
+through puppeteer, which by default downloads its own Chromium -- around
+150MB, on top of the Chrome already installed here. Skipping it leaves
+puppeteer with no browser to find, and it fails at launch rather than falling
+back, so `bash/common.sh` exports `PUPPETEER_EXECUTABLE_PATH` pointing at the
+system Chrome. Without that variable `mmdc` errors out; with it, it works
+with no further configuration.
+
+Note that npm's global prefix here is inside the nvm-managed node
+(`~/.nvm/versions/node/<version>`), so `mmdc` disappears if you switch node
+versions with nvm and has to be reinstalled for the new one.
+
 ## tmux plugins
 
 `tpm` is cloned by `install.sh`. The plugins themselves are not:

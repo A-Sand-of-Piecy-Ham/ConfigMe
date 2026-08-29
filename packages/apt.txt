@@ -30,7 +30,10 @@ ncurses-term        # terminfo entries incl. tmux-256color
 dunst               # notification daemon
 libnotify-bin       # notify-send, for testing and for scripts
 
-# --- optional, feature-gated ---
-# Each of these enables one snacks.image document type. Skip them if you do not
-# write that kind of document; nothing else breaks.
-# tectonic          # snacks.image: LaTeX math rendering
+# --- browser (headless, for mermaid) ---
+# mermaid-cli drives a headless browser through puppeteer. Installing Chrome
+# from the distro and pointing puppeteer at it avoids a second ~150MB Chromium
+# download; bash/common.sh exports PUPPETEER_EXECUTABLE_PATH.
+# Chrome is not in the Ubuntu archive -- see packages/manual.md if absent.
+
+# tectonic and mmdc are NOT apt packages. See packages/manual.md.

@@ -26,6 +26,19 @@ alias la='ls -A'
 alias l='ls -CF'
 alias vim=nvim
 
+# ----------------------------------------------------------- mermaid --------
+# mermaid-cli drives a headless browser through puppeteer. It is installed here
+# with puppeteer's own Chromium download skipped, since a full browser is
+# already present -- but puppeteer then has no browser to find and fails at
+# launch rather than falling back. Point it at the system one.
+for _chrome in /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser; do
+    if [ -x "$_chrome" ]; then
+        export PUPPETEER_EXECUTABLE_PATH="$_chrome"
+        break
+    fi
+done
+unset _chrome
+
 # ------------------------------------------------------------- kittens ------
 # kitty ships subprograms ("kittens") that use terminal protocols an ordinary
 # command cannot reach. These only work when the terminal is kitty, so they are

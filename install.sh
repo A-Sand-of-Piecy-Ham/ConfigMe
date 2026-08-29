@@ -83,6 +83,24 @@ doctor() {
     check_cmd gs        "snacks.image PDF rendering" no
     check_cmd tectonic  "snacks.image LaTeX math rendering" no
     check_cmd mmdc      "snacks.image Mermaid diagrams" no
+    # mmdc without a browser path fails at launch rather than degrading, so a
+    # present binary is not on its own enough to call this working. Test for a
+    # browser rather than for PUPPETEER_EXECUTABLE_PATH being set: common.sh
+    # exports that from an interactive shell, which this script is not, so
+    # reading the variable here would report the caller's environment instead
+    # of the configuration.
+    if command -v mmdc >/dev/null 2>&1; then
+        _browser=""
+        for _b in /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser; do
+            [ -x "$_b" ] && { _browser="$_b"; break; }
+        done
+        if [ -n "$_browser" ]; then
+            ok "puppeteer browser ($_browser)"
+        else
+            bad "mmdc installed but no browser found -- puppeteer will fail at launch"
+        fi
+        unset _browser _b
+    fi
 
     echo "==> terminfo"
     for t in tmux-256color xterm-kitty; do
