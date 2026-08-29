@@ -112,6 +112,47 @@ prefix + I
 The prefix is `C-Space`. Until this runs, `tmux-resurrect` and
 `tmux-continuum` are inert config -- session restore silently does nothing.
 
+## Claude Code MCP servers
+
+Registered in `~/.claude.json`, which cannot be symlinked into this repo: it
+also holds per-project session state that changes constantly. Recorded here so
+the set is reproducible on a new machine.
+
+Currently registered: `fetch`, `filesystem`, `memory`, `playwright`,
+`context7`, `sequential-thinking`, `chrome-devtools`.
+
+### chrome-devtools
+
+```bash
+claude mcp add chrome-devtools -s user -- npx -y chrome-devtools-mcp@latest \
+  --executablePath /usr/bin/google-chrome \
+  --isolated \
+  --usageStatistics false
+```
+
+Three flags worth explaining:
+
+- `--executablePath` for the same reason mermaid-cli needs
+  `PUPPETEER_EXECUTABLE_PATH`: the server drives Chrome through puppeteer, and
+  pointing it at the installed browser avoids a redundant download.
+- `--isolated` uses a temporary profile that is cleaned up afterwards, so an
+  agent driving the browser never touches the real Chrome profile, its cookies
+  or its logged-in sessions.
+- `--usageStatistics false` opts out of Google's usage collection, which is
+  on by default.
+
+Note that performance tools still send trace URLs to the Google CrUX API to
+fetch field data. Add `--no-performance-crux` to stop that; the cost is losing
+real-user performance comparisons.
+
+### A note on the playwright server
+
+It is configured with `PLAYWRIGHT_MCP_CDP_ENDPOINT=http://localhost:9222`,
+which expects a Chrome already running with remote debugging on that port.
+Nothing listens there by default, so that endpoint only works when such a
+Chrome has been started by hand. `chrome-devtools` deliberately does not depend
+on it and launches its own browser instead.
+
 ## Language toolchains
 
 Deliberately not managed here, since each has its own version manager and
