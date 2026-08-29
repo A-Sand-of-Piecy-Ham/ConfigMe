@@ -274,9 +274,35 @@ return dofile("$DotfilesPosix/wezterm/wezterm.lua")
 "@
 
 Write-Host '==> claude'
-# .claude\skills on this machine is a tree of links into %USERPROFILE%\.agents
-# and is managed separately, so only memory and CLAUDE.md are mirrored.
 New-DirLink -Source (Join-Path $Dotfiles 'claude\memory') -Destination (Join-Path $env:USERPROFILE '.claude\memory')
+
+# Rules load every session and were previously WSL-only, so every behavioural
+# rule in this repo silently did not apply on Windows.
+New-DirLink -Source (Join-Path $Dotfiles 'claude\rules') -Destination (Join-Path $env:USERPROFILE '.claude\rules')
+
+# .claude\skills is a real directory of per-skill links into
+# %USERPROFILE%\.agents, managed separately. Junctioning the whole directory
+# would destroy those, so link each of this repo's skills individually
+# alongside them. Same reason the loop removes only links it previously made:
+# a stale ConfigMe skill should go, an .agents link must not.
+$skillsDir = Join-Path $env:USERPROFILE '.claude\skills'
+if (-not (Test-Path -LiteralPath $skillsDir)) {
+    New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
+}
+$repoSkills = Join-Path $Dotfiles 'claude\skills'
+$wanted = @{}
+foreach ($skill in Get-ChildItem -LiteralPath $repoSkills -Directory) {
+    $wanted[$skill.Name] = $true
+    New-DirLink -Source $skill.FullName -Destination (Join-Path $skillsDir $skill.Name)
+}
+foreach ($existing in Get-ChildItem -LiteralPath $skillsDir -Force) {
+    if (-not ($existing.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+    if ($wanted.ContainsKey($existing.Name)) { continue }
+    if ($existing.Target -and ($existing.Target -join ' ') -like "*$repoSkills*") {
+        Write-Host ("  removing stale " + $existing.Name) -ForegroundColor DarkYellow
+        $existing.Delete()
+    }
+}
 New-FileLink -Source (Join-Path $Dotfiles 'claude\CLAUDE.md') `
              -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md') `
              -Shim @"

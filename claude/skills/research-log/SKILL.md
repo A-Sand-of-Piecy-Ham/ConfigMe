@@ -43,10 +43,35 @@ question raised by evidence is worth more than one raised by speculation.
 Tell the user in one line: what was observed and where it was noted. Then
 continue the original task.
 
-## What not to do
+## Success is often the interesting part
 
-Do not log a skill working as designed. That is the null result, and logging it
-buries the informative entries.
+The null result to skip is narrow: a skill firing on its primary trigger, the
+way it has fired many times before. Nothing is learned from the twentieth
+routine invocation.
+
+Everything else that worked is worth logging, and success is frequently the more
+informative outcome:
+
+- A trigger phrase fired for the first time, or a phrasing not in the trigger
+  list matched anyway. That is evidence about how much semantic slack the
+  matching has.
+- A skill fired for a task shape it was not written for and turned out to fit.
+  That is a hint the description is broader than intended -- useful whether the
+  outcome is to embrace it or narrow it.
+- A mechanism was exercised for the first time: a merge, a split, a tombstone
+  being honoured, a compressed description surviving compression.
+- Something worked that was expected to fail, or worked for a different reason
+  than predicted.
+
+The test is not "did it work" but **"did this tell us something we did not
+already know"**. A failure on a well-understood path is as uninformative as a
+routine success; a success on an unexplored path is not.
+
+When unsure whether an instance is routine, log it. An over-full log is a
+cheaper problem than a missing observation, and duplicates reveal themselves as
+a pattern later.
+
+## What not to do
 
 Do not rewrite an open question to match a single observation. Questions close
 on accumulated evidence, and closing one early is worse than leaving it open.
