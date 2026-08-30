@@ -148,10 +148,11 @@ never-push-without-asking rule binds it exactly as it binds `git`.
 claude mcp add chrome-devtools -s user -- npx -y chrome-devtools-mcp@latest \
   --executablePath /usr/bin/google-chrome \
   --isolated \
-  --usageStatistics false
+  --usageStatistics false \
+  --performanceCrux false
 ```
 
-Three flags worth explaining:
+Four flags worth explaining:
 
 - `--executablePath` for the same reason mermaid-cli needs
   `PUPPETEER_EXECUTABLE_PATH`: the server drives Chrome through puppeteer, and
@@ -162,9 +163,22 @@ Three flags worth explaining:
 - `--usageStatistics false` opts out of Google's usage collection, which is
   on by default.
 
-Note that performance tools still send trace URLs to the Google CrUX API to
-fetch field data. Add `--no-performance-crux` to stop that; the cost is losing
-real-user performance comparisons.
+- `--performanceCrux false` stops the performance tools sending trace URLs to
+  Google's CrUX API. This is separate from `--usageStatistics`: that one is tool
+  telemetry, this one is the URLs themselves, and it would include localhost,
+  internal hosts, and any token or id sitting in a path or query string.
+
+  What is given up is real-user field data to compare a local trace against,
+  which is genuinely useful — lab numbers on a fast machine with no extensions
+  routinely disagree with what users see. But CrUX only holds data for origins
+  with enough real traffic to be statistically meaningful, so for localhost,
+  internal tools, and personal projects the URL is transmitted and nothing comes
+  back. The trade is only worth reversing when profiling a high-traffic public
+  site, and then only for that work.
+
+  Both `--performanceCrux false` and `--no-performance-crux` parse. The startup
+  banner prints a CrUX notice when it is enabled and omits it when disabled,
+  which is how to confirm the flag took.
 
 ### Why playwright was removed
 
