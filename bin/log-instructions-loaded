@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Append one NDJSON line to ~/.claude/instructions-loaded.log for every
+# instruction file Claude Code loads, so "does ~/.claude/rules/ actually get
+# read?" is a fact on disk rather than a claim from documentation.
+#
+# Wired to the InstructionsLoaded hook, which fires at session start and again
+# when files load lazily. Always exits 0: a purely observational hook should
+# never be able to disrupt a session.
+set -uo pipefail
+
+LOG="$HOME/.claude/instructions-loaded.log"
+payload="$(tr -d '\n' 2>/dev/null || true)"
+
+# Several hooks fire at once at session start. Build the whole line first and
+# emit it with a single write, because separate writes to the same append-mode
+# fd interleave and corrupt each other -- which is exactly what the first
+# version of this script did.
+line="$(printf '{"at":"%s","event":%s}' "$(date -Iseconds)" "${payload:-null}")"
+printf '%s\n' "$line" >> "$LOG" 2>/dev/null
+
+exit 0

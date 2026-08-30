@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run a nested Claude Code session from inside an existing one.
+#
+# A plain `claude -p` fails here with "OAuth session expired and could not be
+# refreshed", which is misleading: the credential is fine. CLAUDE_CODE_ENTRYPOINT
+# is inherited as "claude-desktop", so the nested CLI assumes the desktop app is
+# brokering auth in-process and never reads ~/.claude/.credentials.json.
+# Unsetting that one variable is the whole fix -- no long-lived token, no
+# separate login, no secret to store.
+#
+# Bisected against the full session environment: unsetting CLAUDECODE,
+# CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_SDK_HAS_*, CLAUDE_CODE_OAUTH_SCOPES or
+# ANTHROPIC_BASE_URL individually all still failed; only this one mattered.
+set -euo pipefail
+
+exec env -u CLAUDE_CODE_ENTRYPOINT claude "$@" </dev/null

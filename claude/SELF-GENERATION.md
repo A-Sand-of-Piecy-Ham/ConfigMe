@@ -128,7 +128,30 @@ For the paper, and for experiments here:
 Evidence noticed while doing other work, appended by the `research-log` skill.
 Dated, one entry each; observations rather than conclusions.
 
-_(none yet)_
+**2026-08-30 — a shim existed and did not fire.** Diagnosing why a nested
+`claude -p` failed took a long bisect and ended somewhere non-obvious. That is
+precisely the case `doc-lookup` says to cache, and the skill was installed at
+the time. It did not trigger and the answer was not cached until the user
+pointed it out. Bears on trigger precision. The trigger list is phrased around
+*looking things up* ("how does X work in <lib>"), and this was *debugging that
+produced a reusable finding* — a shape the description does not describe. This
+is a false negative from description scope rather than from matching slack.
+Suggests trigger lists should cover the moment a lesson is *produced*, not only
+the moment information is *sought*.
+
+**2026-08-30 — `InstructionsLoaded` makes load questions empirical.** "Do rules
+load?" had been asserted from documentation three times before being measured.
+The hook answers it in one probe run, and revealed the symlink is followed
+(`file_path` resolves to the repo). Bears on the automatic-detection question:
+some claims about the system are cheaply testable, and the reflex to test rather
+than cite is worth building into skills that make such claims.
+
+**2026-08-30 — a null result was reported as evidence.** After deleting
+`~/.claude/memory/`, its absence from the load log was offered as proof it never
+loaded. The user rejected this correctly: an absent directory cannot load. The
+real test needed the directory recreated with a canary. Bears on nothing in the
+open list directly, but worth recording as a failure mode: **verification run
+after a change cannot establish what was true before it.**
 
 ## Prior art to check
 
