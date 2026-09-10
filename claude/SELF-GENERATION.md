@@ -128,6 +128,15 @@ For the paper, and for experiments here:
 Evidence noticed while doing other work, appended by the `research-log` skill.
 Dated, one entry each; observations rather than conclusions.
 
+**2026-09-09 — the harness cannot test what it was built to test.** `claude-probe`
+was built to answer questions about what a session loads. It turns out headless
+`-p` sessions load `CLAUDE.md`, `~/.claude/rules/` and skills, but not
+auto-memory. So the harness validates two of the three mechanisms and silently
+cannot speak to the third. Bears on the automatic-detection question: a
+verification tool needs to declare what it cannot observe, or its silence reads
+as a pass. The `InstructionsLoaded` hook has the same shape of limit -- it
+observes instruction files only, never memory injection.
+
 **2026-08-30 — a shim existed and did not fire.** Diagnosing why a nested
 `claude -p` failed took a long bisect and ended somewhere non-obvious. That is
 precisely the case `doc-lookup` says to cache, and the skill was installed at
