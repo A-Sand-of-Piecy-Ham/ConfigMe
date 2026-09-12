@@ -108,8 +108,9 @@ a Windows global hotkey).
 Nerd Font, and `wsl-notify-send.exe`.
 
 ```bash
-./install.sh --doctor   # report what is missing, change nothing
-./install.sh --deps     # print the apt line for missing packages
+./install.sh --doctor        # report what is missing, change nothing
+./install.sh --deps          # list missing packages and print the install line
+./install.sh --install-deps  # actually install them (needs sudo)
 ```
 
 `--doctor` checks more than binaries: terminfo entries, whether a Nerd Font is
