@@ -609,9 +609,32 @@ link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
 link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
 link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 
+echo "==> packages"
+if [ "$OS" != linux ]; then
+    echo "  skipped -- packages/apt.txt is apt-only; see packages/manual.md"
+elif ! command -v dpkg >/dev/null 2>&1; then
+    echo "  skipped -- no dpkg on this system; see packages/apt.txt for the list"
+else
+    # Report by default rather than only on request. A dependency nobody is
+    # told about is indistinguishable from one that does not exist, which is
+    # how a machine ends up without fzf while the repo calls it required.
+    _missing=()
+    mapfile -t _missing < <(missing_packages)
+    if [ ${#_missing[@]} -eq 0 ]; then
+        echo "  all packages in packages/apt.txt are installed"
+    else
+        echo "  missing ${#_missing[@]}: ${_missing[*]}"
+        echo "  install with: ./install.sh --install-deps"
+    fi
+    unset _missing
+fi
+
 echo
 echo "Done."
+echo "Run ./install.sh --doctor for a full check, including things apt cannot"
+echo "provide (kitty, the Nerd Font, terminfo, tmux plugins)."
 if [ "$IS_WSL" = 1 ]; then
+    echo
     echo "WSL is the source of truth. To refresh the Windows mirror, run"
     echo "install.ps1 from the Windows clone after pulling."
 fi

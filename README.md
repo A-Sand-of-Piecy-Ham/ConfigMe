@@ -22,6 +22,8 @@ script. Supports macOS, Linux/WSL, and native Windows (Git Bash).
 
 The script detects the platform and links only what applies. Existing **real**
 files are moved to `<name>.bak` first; existing symlinks are replaced silently.
+It finishes by reporting any missing system packages, so a fresh machine is
+told what it lacks without having to ask.
 
 On Windows, run the PowerShell installer from the Windows clone instead:
 
