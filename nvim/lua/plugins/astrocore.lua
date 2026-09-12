@@ -8,13 +8,23 @@ return {
   "AstroNvim/astrocore",
   ---@type AstroCoreOpts
   init = function()
-    local id
-    id = vim.api.nvim_create_autocmd("LspAttach", {
+    -- harper_ls starts silent but stays running.
+    --
+    -- Stopping the client hid the findings but made re-enabling a cold start:
+    -- the server had to relaunch and re-analyse before saying anything.
+    -- Disabling its diagnostic namespace instead leaves it attached and
+    -- working, so the toggle only controls whether what it already found is
+    -- displayed, and turning it on is instant.
+    --
+    -- Both namespaces are disabled because a server may deliver diagnostics by
+    -- push or by pull, and they are tracked separately.
+    vim.api.nvim_create_autocmd("LspAttach", {
+      desc = "Start harper_ls muted rather than stopped",
       callback = function(args)
         local client = vim.lsp.get_client_by_id(args.data.client_id)
-        if client and client.name == "harper_ls" then
-          vim.schedule(function() vim.lsp.stop_client(client.id) end)
-          vim.api.nvim_del_autocmd(id)
+        if not (client and client.name == "harper_ls") then return end
+        for _, pull in ipairs { true, false } do
+          vim.diagnostic.enable(false, { ns_id = vim.lsp.diagnostic.get_namespace(client.id, pull) })
         end
       end,
     })
@@ -66,15 +76,21 @@ return {
       n = {
         ["<Leader>us"] = {
           function()
-            local running = #vim.lsp.get_clients { name = "harper_ls" } > 0
-            if running then
-              for _, c in ipairs(vim.lsp.get_clients { name = "harper_ls" }) do
-                vim.lsp.stop_client(c.id)
-              end
-            else
-              vim.lsp.enable("harper_ls")
-              vim.api.nvim_exec_autocmds("FileType", { buffer = vim.api.nvim_get_current_buf() })
+            local clients = vim.lsp.get_clients { name = "harper_ls" }
+            if #clients == 0 then
+              vim.notify("harper_ls is not attached to this buffer", vim.log.levels.WARN)
+              return
             end
+            -- Read the current state from one namespace, then apply the
+            -- opposite to all of them, so push and pull cannot drift apart.
+            local probe = vim.lsp.diagnostic.get_namespace(clients[1].id, true)
+            local on = not vim.diagnostic.is_enabled { ns_id = probe }
+            for _, c in ipairs(clients) do
+              for _, pull in ipairs { true, false } do
+                vim.diagnostic.enable(on, { ns_id = vim.lsp.diagnostic.get_namespace(c.id, pull) })
+              end
+            end
+            vim.notify("spellcheck " .. (on and "on" or "off"))
           end,
           desc = "Toggle spellcheck",
         },
