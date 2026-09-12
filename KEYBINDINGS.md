@@ -77,9 +77,14 @@ one and never sees the prefix.
 keystroke -- including the remote's own `C-b` -- passes straight through. Use
 it for real work on the far side; the double-tap is for one-off commands.
 
-The **dimmed status bar** shows which session is listening. It pairs with `#h`
-in `status-right`: the outer bar keeps showing this host, the inner one shows
-the server.
+The **session badge turns red and reads `PASSTHRU`** while the outer tmux is
+listening to nothing. It pairs with `#h` in `status-right`: the outer bar keeps
+showing this host, the inner one shows the server.
+
+Dimming `status-style` alone did not work: `status-left`, the window list and
+`status-right` all hard-code their colours with `#[...]`, so changing
+`status-style` only repaints the gaps between them. The toggle swaps
+`status-left`, which is something actually drawn.
 
 ### Copy mode
 
