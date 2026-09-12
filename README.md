@@ -9,6 +9,7 @@ script. Supports macOS, Linux/WSL, and native Windows (Git Bash).
 - Bash (per-OS, see below)
 - Tmux
 - Git
+- SSH (connection multiplexing)
 - Ccache
 - Ghostty (macOS/Linux) and WezTerm (Windows)
 - Claude Code: `CLAUDE.md`, memory, skills

@@ -1,0 +1,24 @@
+# Applies to every host. Anything host-specific belongs in ~/.ssh/config.local,
+# which is machine-local and not tracked here -- see the Include below.
+Host *
+    # Reuse one TCP connection for every session to the same host. The terminal
+    # boots into tmux, so opening several remote windows means several ssh
+    # connections; without this each one pays a full handshake and auth round
+    # trip. With it, the second and later connections are effectively instant.
+    ControlMaster auto
+    ControlPath ~/.ssh/cm/%r@%h:%p
+    # Keep the master alive briefly after the last session closes, so closing
+    # and reopening a window does not re-authenticate.
+    ControlPersist 10m
+
+    # Fail a dead link in ~90s instead of hanging indefinitely. This matters
+    # more once tmux on the far side is holding work: a hung client looks
+    # identical to a slow one, and the session is recoverable either way.
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+
+# Machine-local overrides. Include is read where it appears and the first value
+# for a keyword wins, so this sits at the end: settings above are defaults that
+# a local entry can override only if it appears before them. Put host blocks
+# with real hostnames, users, or keys here rather than in the repo.
+Include ~/.ssh/config.local

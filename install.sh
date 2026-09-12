@@ -182,6 +182,18 @@ doctor() {
             || warn "kitty.desktop not in /usr/share/applications -- no Start Menu entry"
     fi
 
+    echo "==> ssh"
+    [ -d "$HOME/.ssh/cm" ] \
+        && ok "ControlPath dir present" \
+        || bad "~/.ssh/cm missing -- ssh multiplexing silently falls back to a full connection"
+    if [ -L "$HOME/.ssh/config" ]; then
+        ssh -G localhost >/dev/null 2>&1 \
+            && ok "ssh config parses" \
+            || bad "~/.ssh/config does not parse"
+    else
+        warn "~/.ssh/config not linked"
+    fi
+
     echo "==> claude"
     for d in skills rules; do
         if [ -L "$HOME/.claude/$d" ] && [ -d "$HOME/.claude/$d" ]; then
@@ -273,6 +285,14 @@ done
 echo "==> git"
 link "$DOTFILES/git/config" "$HOME/.gitconfig"
 link "$DOTFILES/git/gitignore_global" "$HOME/.gitignore_global"
+
+echo "==> ssh"
+# ControlPath needs its directory to exist. ssh does not create it, and a
+# missing directory makes the multiplex fail silently -- every connection
+# quietly pays a full handshake instead.
+mkdir -p "$HOME/.ssh/cm"
+chmod 700 "$HOME/.ssh" "$HOME/.ssh/cm" 2>/dev/null || true
+link "$DOTFILES/ssh/config" "$HOME/.ssh/config"
 
 if [ "$OS" != windows ]; then
     echo "==> tmux"
