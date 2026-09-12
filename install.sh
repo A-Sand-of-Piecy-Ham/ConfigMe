@@ -79,6 +79,20 @@ install_nvim() {
     echo "  installed $("$HOME/.local/nvim/bin/nvim" --version | head -1)"
 }
 
+# lazy.nvim regenerates lazy-lock.json from what is actually installed on this
+# machine -- install, update and clean all rewrite it. Entries for plugins that
+# are not installed here are dropped rather than preserved, so committing the
+# lock from a machine where something failed to build silently removes that
+# plugin's pin everywhere else. Changed commits are ordinary; deletions are not.
+lock_dropped_plugins() {
+    local diff removed added
+    diff="$(git -C "$DOTFILES" diff -- nvim/lazy-lock.json 2>/dev/null)" || return 0
+    [ -n "$diff" ] || return 0
+    removed="$(printf '%s\n' "$diff" | sed -nE 's/^-  "([^"]+)".*/\1/p' | sort)"
+    added="$(printf '%s\n' "$diff"  | sed -nE 's/^\+  "([^"]+)".*/\1/p' | sort)"
+    comm -23 <(printf '%s\n' "$removed") <(printf '%s\n' "$added") | sed '/^$/d'
+}
+
 # ------------------------------------------------------------------ modes ---
 usage() {
     cat <<USAGE
@@ -164,6 +178,23 @@ doctor() {
             bad "mmdc installed but no browser found -- puppeteer will fail at launch"
         fi
         unset _browser _b
+    fi
+
+    echo "==> nvim plugins"
+    if ! git -C "$DOTFILES" rev-parse --git-dir >/dev/null 2>&1; then
+        warn "not a git checkout; cannot check lazy-lock.json"
+    elif git -C "$DOTFILES" diff --quiet -- nvim/lazy-lock.json 2>/dev/null; then
+        ok "lazy-lock.json clean"
+    else
+        local dropped
+        dropped="$(lock_dropped_plugins)"
+        if [ -n "$dropped" ]; then
+            bad "lazy-lock.json DROPS $(printf '%s\n' "$dropped" | wc -l) plugin(s): $(printf '%s ' $dropped)"
+            bad "  those failed to install here -- committing this removes their pin on every machine"
+        else
+            warn "lazy-lock.json modified (version bumps only, nothing dropped)"
+            warn "  commit deliberately, or: git checkout -- nvim/lazy-lock.json"
+        fi
     fi
 
     echo "==> terminfo"
