@@ -96,18 +96,20 @@ lock_dropped_plugins() {
 # ------------------------------------------------------------------ modes ---
 usage() {
     cat <<USAGE
-usage: install.sh [--doctor|--deps|--help]
+usage: install.sh [--doctor|--deps|--install-deps|--help]
 
-  (no args)  link configs into place
-  --doctor   report what is missing or misconfigured, change nothing
-  --deps     print the package-manager command for missing system packages
+  (no args)      link configs into place
+  --doctor       report what is missing or misconfigured, change nothing
+  --deps         list missing system packages and print the install command
+  --install-deps install the missing system packages (needs sudo)
 USAGE
 }
 
 MODE=install
 case "${1:-}" in
-    --doctor) MODE=doctor ;;
-    --deps)   MODE=deps ;;
+    --doctor)       MODE=doctor ;;
+    --deps)         MODE=deps ;;
+    --install-deps) MODE=install-deps ;;
     -h|--help) usage; exit 0 ;;
     "") ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
@@ -310,13 +312,24 @@ doctor() {
     [ "$FAIL" -eq 0 ]
 }
 
-deps() {
+# Shared by --deps and --install-deps so the two cannot disagree about what is
+# missing.
+missing_packages() {
     local missing=()
     while read -r pkg; do
         [ -n "$pkg" ] || continue
         dpkg -s "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
     done < <(apt_packages)
 
+    # An empty array still prints one blank line through printf, which the
+    # callers then count as a missing package with no name.
+    [ ${#missing[@]} -eq 0 ] && return 0
+    printf '%s\n' "${missing[@]}"
+}
+
+deps() {
+    local missing
+    mapfile -t missing < <(missing_packages)
     if [ ${#missing[@]} -eq 0 ]; then
         echo "all packages in packages/apt.txt are installed"
         return 0
@@ -325,6 +338,21 @@ deps() {
     printf '  %s\n' "${missing[@]}"
     echo
     echo "sudo apt install ${missing[*]}"
+    echo "or: ./install.sh --install-deps"
+}
+
+install_deps() {
+    local missing
+    mapfile -t missing < <(missing_packages)
+    if [ ${#missing[@]} -eq 0 ]; then
+        echo "all packages in packages/apt.txt are installed"
+        return 0
+    fi
+    echo "installing ${#missing[@]} package(s): ${missing[*]}"
+    # Not run under sudo wholesale: only the install needs root, and asking for
+    # it here rather than requiring the whole script to be root keeps every
+    # other target owned by the user rather than by root.
+    sudo apt update && sudo apt install -y "${missing[@]}"
 }
 
 case "$MODE" in
@@ -335,6 +363,12 @@ case "$MODE" in
             exit 2
         fi
         deps; exit 0 ;;
+    install-deps)
+        if [ "$OS" != linux ]; then
+            echo "--install-deps only knows apt; on $OS see packages/manual.md" >&2
+            exit 2
+        fi
+        install_deps; exit $? ;;
 esac
 
 echo "==> platform: $OS$([ "$IS_WSL" = 1 ] && echo ' (WSL)')"
