@@ -38,6 +38,36 @@ scanned. `install.sh` stages the entry and prints this:
 sudo cp ~/.config/kitty/kitty.desktop.staged /usr/share/applications/kitty.desktop
 ```
 
+## Neovim
+
+AstroNvim v6 requires Neovim >= 0.11 and refuses to start below it. Debian,
+Ubuntu LTS and Raspberry Pi OS all package something older, so `apt install
+neovim` produces a binary that exists but cannot run this config -- which is
+worse than none, because it satisfies every "is nvim installed" check.
+
+`install.sh` handles this automatically: it compares the installed version
+against the minimum and, when short, downloads the official release tarball for
+the machine's architecture into `~/.local/nvim`, then links
+`~/.local/bin/nvim`. Since `~/.local/bin` precedes the system path via
+`bash/common.sh`, the new build wins without touching the distro package.
+
+Assets are selected by `uname -m`:
+
+| Platform | Asset |
+|---|---|
+| Linux x86_64 | `nvim-linux-x86_64.tar.gz` |
+| Linux aarch64 / arm64 | `nvim-linux-arm64.tar.gz` |
+| macOS arm64 | `nvim-macos-arm64.tar.gz` |
+
+**32-bit ARM has no official build.** A Raspberry Pi running the 32-bit OS
+(`uname -m` reports `armv7l`) cannot use this path; the options are a 64-bit OS
+reinstall, building Neovim from source, or leaving that machine on a stock
+config. `install.sh` says so rather than failing obscurely.
+
+The install replaces `~/.local/nvim` wholesale rather than extracting over it,
+because leftover files from an older tree shadow the new ones and produce
+failures that read like config bugs.
+
 ## Nerd Font
 
 AstroNvim's statusline and file tree, and the tmux status line, use glyphs no

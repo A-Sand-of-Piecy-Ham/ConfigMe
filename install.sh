@@ -21,6 +21,64 @@ fi
 
 XDG="${XDG_CONFIG_HOME:-$HOME/.config}"
 
+# AstroNvim v6 refuses to start below Neovim 0.11, and Debian, Ubuntu LTS and
+# Raspberry Pi OS all ship well behind that. Rather than fail on those machines,
+# install an official build into ~/.local and put it ahead of the system one.
+NVIM_MIN="0.11.0"
+
+nvim_version() {
+    command -v nvim >/dev/null 2>&1 || return 1
+    nvim --version 2>/dev/null | head -1 | sed -E 's/^NVIM v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/'
+}
+
+nvim_new_enough() {
+    local cur
+    cur="$(nvim_version)" || return 1
+    [ -n "$cur" ] || return 1
+    # sort -V puts the lower version first; if that is the minimum, cur >= min.
+    [ "$(printf '%s\n%s\n' "$NVIM_MIN" "$cur" | sort -V | head -1)" = "$NVIM_MIN" ]
+}
+
+# Official release asset for this machine, or empty when none is published.
+nvim_asset() {
+    case "$OS/$(uname -m)" in
+        linux/x86_64|linux/amd64)   echo "nvim-linux-x86_64.tar.gz" ;;
+        linux/aarch64|linux/arm64)  echo "nvim-linux-arm64.tar.gz" ;;
+        darwin/arm64)               echo "nvim-macos-arm64.tar.gz" ;;
+        darwin/x86_64)              echo "nvim-macos-x86_64.tar.gz" ;;
+        *)                          echo "" ;;
+    esac
+}
+
+install_nvim() {
+    local asset url tmp
+    asset="$(nvim_asset)"
+    if [ -z "$asset" ]; then
+        echo "  no official Neovim build for $OS/$(uname -m)"
+        echo "  32-bit ARM in particular has none; build from source or keep a stock config here"
+        return 1
+    fi
+
+    url="https://github.com/neovim/neovim/releases/latest/download/$asset"
+    tmp="$(mktemp -d)"
+    echo "  downloading $asset"
+    if ! curl -fsSL -o "$tmp/nvim.tar.gz" "$url"; then
+        echo "  download failed: $url"
+        rm -rf "$tmp"
+        return 1
+    fi
+
+    # Replace rather than merge: leftover files from an older tree shadow the
+    # new ones and produce failures that look like config bugs.
+    rm -rf "$HOME/.local/nvim"
+    mkdir -p "$HOME/.local/nvim"
+    tar -xzf "$tmp/nvim.tar.gz" -C "$HOME/.local/nvim" --strip-components=1
+    rm -rf "$tmp"
+
+    link "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
+    echo "  installed $("$HOME/.local/nvim/bin/nvim" --version | head -1)"
+}
+
 # ------------------------------------------------------------------ modes ---
 usage() {
     cat <<USAGE
@@ -70,7 +128,13 @@ doctor() {
     echo "==> commands"
     check_cmd git    "everything"
     check_cmd tmux   "tmux/.tmux.conf"
-    check_cmd nvim   "nvim/"
+    if nvim_new_enough; then
+        ok "nvim $(nvim_version)"
+    elif command -v nvim >/dev/null 2>&1; then
+        bad "nvim $(nvim_version) is below $NVIM_MIN -- AstroNvim v6 will refuse to start; run ./install.sh"
+    else
+        bad "nvim missing -- run ./install.sh"
+    fi
     check_cmd fzf    "tmux prefix+s session switcher, tmux-fzf"
     check_cmd ccache "ccache/ccache.conf"
     # snacks.image shells out to magick, or convert/identify on ImageMagick 6.
@@ -266,6 +330,16 @@ link() {
 }
 
 echo "==> nvim"
+if nvim_new_enough; then
+    echo "  nvim $(nvim_version) (>= $NVIM_MIN)"
+else
+    if command -v nvim >/dev/null 2>&1; then
+        echo "  nvim $(nvim_version) is below $NVIM_MIN, which AstroNvim v6 requires"
+    else
+        echo "  nvim not installed"
+    fi
+    install_nvim || echo "  continuing without a usable nvim"
+fi
 link "$DOTFILES/nvim" "$XDG/nvim"
 
 echo "==> bash"
