@@ -68,6 +68,31 @@ The install replaces `~/.local/nvim` wholesale rather than extracting over it,
 because leftover files from an older tree shadow the new ones and produce
 failures that read like config bugs.
 
+### lazy-lock.json on a secondary machine
+
+lazy.nvim rewrites `nvim/lazy-lock.json` on install, update and clean, so a
+fresh machine dirties it as soon as plugins are set up. That is normal.
+
+What is not normal is committing it from there. The file is regenerated from
+what is *installed*, and `lock.lua` drops any entry whose plugin is not
+installed on this machine rather than preserving it. So if a plugin fails to
+build -- a treesitter parser on ARM, anything needing a compiler -- committing
+that machine's lock silently removes its pin everywhere else.
+
+Treat the primary machine as authoritative for the lock, as with everything
+else here. Elsewhere:
+
+```bash
+git checkout -- nvim/lazy-lock.json      # discard this machine's churn
+```
+
+To make a secondary machine match the locked versions rather than resolve its
+own, use `:Lazy restore`, which checks out the commits in the lockfile.
+`:Lazy sync` and `:Lazy update` are what move off them.
+
+`install.sh --doctor` reports a dirty lock, and distinguishes ordinary version
+bumps from dropped entries -- deletions are the ones that matter.
+
 ## Nerd Font
 
 AstroNvim's statusline and file tree, and the tmux status line, use glyphs no
