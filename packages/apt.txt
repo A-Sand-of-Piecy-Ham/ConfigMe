@@ -8,7 +8,10 @@
 # --- core ---
 git                 # everything
 tmux                # tmux/.tmux.conf
-neovim              # nvim/
+# NOT listed for apt on purpose. Debian, Ubuntu LTS and Raspberry Pi OS all
+# ship a Neovim below the 0.11 that AstroNvim v6 requires, and an apt install
+# would satisfy `command -v nvim` while still being unusable. install.sh
+# fetches an official build into ~/.local instead. See packages/manual.md.
 ccache              # ccache/ccache.conf, USE_CCACHE in bash/common.sh
 bash-completion     # sourced by bash/bashrc.linux
 
