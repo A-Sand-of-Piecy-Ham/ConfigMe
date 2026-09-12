@@ -211,6 +211,32 @@ doctor() {
         fi
     fi
 
+    echo "==> nvim tooling (mason)"
+    # Mason reports only "failed to install" per package; the cause is in
+    # :MasonLog. These are the prerequisites whose absence has actually caused
+    # that here, so check them directly.
+    command -v unzip >/dev/null 2>&1 \
+        && ok "unzip" \
+        || { bad "unzip missing -- zip-packaged tools like clangd fail to install"; fix "./install.sh --install-deps"; }
+
+    if command -v npm >/dev/null 2>&1; then
+        ok "npm ($(command -v npm))"
+    else
+        bad "npm missing -- every npm-based server fails (typescript, eslint, bash, astro)"
+        fix "install node (nvm, or ./install.sh --install-deps for the apt one)"
+    fi
+
+    # Mason runs the SYSTEM python, not whatever python3 resolves to on PATH, so
+    # a uv- or pyenv-managed interpreter having venv proves nothing.
+    if [ -x /usr/bin/python3 ]; then
+        if /usr/bin/python3 -c 'import venv, ensurepip' >/dev/null 2>&1; then
+            ok "system python venv"
+        else
+            bad "/usr/bin/python3 lacks venv -- python servers fail (nginx-language-server, ruff)"
+            fix "./install.sh --install-deps   (python3-venv)"
+        fi
+    fi
+
     echo "==> terminfo"
     for t in tmux-256color xterm-kitty; do
         if infocmp "$t" >/dev/null 2>&1; then
