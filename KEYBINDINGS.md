@@ -62,6 +62,25 @@ unnoticed -- and it needs `entr` installed to do anything at all.
 
 `s` needs `fzf`. `S` always works if it is missing.
 
+### Nested tmux (remote sessions)
+
+The terminal boots into tmux, so tmux on a server is nested inside the local
+one and never sees the prefix.
+
+| Key | Action |
+|---|---|
+| `C-Space` `C-Space` | Send one prefix through to the inner session |
+| **`F12`** | **Hand the whole keyboard to the inner session** (no prefix needed) |
+| `F12` again | Take it back |
+
+`F12` unsets the outer prefix and switches its key table off, so every
+keystroke -- including the remote's own `C-b` -- passes straight through. Use
+it for real work on the far side; the double-tap is for one-off commands.
+
+The **dimmed status bar** shows which session is listening. It pairs with `#h`
+in `status-right`: the outer bar keeps showing this host, the inner one shows
+the server.
+
 ### Copy mode
 
 vi keys. Enter with `[`.
