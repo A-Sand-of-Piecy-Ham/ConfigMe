@@ -125,44 +125,55 @@ PASS=0; WARN=0; FAIL=0
 ok()   { printf '  \033[32m*\033[0m %s\n' "$1"; PASS=$((PASS+1)); }
 warn() { printf '  \033[33m!\033[0m %s\n' "$1"; WARN=$((WARN+1)); }
 bad()  { printf '  \033[31mx\033[0m %s\n' "$1"; FAIL=$((FAIL+1)); }
+# Printed under a failed check only. Naming what is lost without saying how to
+# get it back leaves the reader to go hunting through packages/manual.md.
+fix()  { printf '      fix: %s\n' "$1"; }
+# Continuation line for a multi-step fix, so "fix:" is not repeated.
+fix2() { printf '           %s\n' "$1"; }
 
 # A required tool is one a linked config actively depends on. An optional tool
 # gates a single feature and is reported as a warning, with the feature named
 # so the report says what is lost rather than just what is absent.
 check_cmd() {
-    local cmd="$1" why="$2" required="${3:-yes}"
+    local cmd="$1" why="$2" required="${3:-yes}" howto="${4:-}"
     if command -v "$cmd" >/dev/null 2>&1; then
         ok "$cmd"
-    elif [ "$required" = yes ]; then
+        return
+    fi
+    if [ "$required" = yes ]; then
         bad "$cmd missing -- $why"
     else
         warn "$cmd missing -- $why"
     fi
+    [ -n "$howto" ] && fix "$howto"
 }
 
 doctor() {
     echo "==> commands"
-    check_cmd git    "everything"
-    check_cmd tmux   "tmux/.tmux.conf"
+    check_cmd git    "everything" yes "./install.sh --install-deps"
+    check_cmd tmux   "tmux/.tmux.conf" yes "./install.sh --install-deps"
     if nvim_new_enough; then
         ok "nvim $(nvim_version)"
     elif command -v nvim >/dev/null 2>&1; then
-        bad "nvim $(nvim_version) is below $NVIM_MIN -- AstroNvim v6 will refuse to start; run ./install.sh"
+        bad "nvim $(nvim_version) is below $NVIM_MIN -- AstroNvim v6 will refuse to start"
+        fix "./install.sh   (downloads an official build into ~/.local)"
     else
-        bad "nvim missing -- run ./install.sh"
+        bad "nvim missing"
+        fix "./install.sh   (downloads an official build into ~/.local)"
     fi
-    check_cmd fzf    "tmux prefix+s session switcher, tmux-fzf"
-    check_cmd ccache "ccache/ccache.conf"
+    check_cmd fzf    "tmux prefix+s session switcher, tmux-fzf" yes "./install.sh --install-deps"
+    check_cmd ccache "ccache/ccache.conf" yes "./install.sh --install-deps"
     # snacks.image shells out to magick, or convert/identify on ImageMagick 6.
     if command -v magick >/dev/null 2>&1 || command -v convert >/dev/null 2>&1; then
         ok "ImageMagick"
     else
         bad "ImageMagick missing -- snacks.image cannot decode any image"
+        fix "./install.sh --install-deps"
     fi
-    check_cmd entr      "tmux-autoreload; the plugin loads but does nothing" no
-    check_cmd gs        "snacks.image PDF rendering" no
-    check_cmd tectonic  "snacks.image LaTeX math rendering" no
-    check_cmd mmdc      "snacks.image Mermaid diagrams" no
+    check_cmd entr      "tmux-autoreload; the plugin loads but does nothing" no "./install.sh --install-deps"
+    check_cmd gs        "snacks.image PDF rendering" no "./install.sh --install-deps"
+    check_cmd tectonic  "snacks.image LaTeX math rendering" no "static binary from the release page -- see packages/manual.md"
+    check_cmd mmdc      "snacks.image Mermaid diagrams" no "PUPPETEER_SKIP_DOWNLOAD=true npm install -g @mermaid-js/mermaid-cli"
     # mmdc without a browser path fails at launch rather than degrading, so a
     # present binary is not on its own enough to call this working. Test for a
     # browser rather than for PUPPETEER_EXECUTABLE_PATH being set: common.sh
@@ -178,6 +189,7 @@ doctor() {
             ok "puppeteer browser ($_browser)"
         else
             bad "mmdc installed but no browser found -- puppeteer will fail at launch"
+            fix "install Chrome or Chromium; common.sh sets PUPPETEER_EXECUTABLE_PATH from it"
         fi
         unset _browser _b
     fi
@@ -204,7 +216,12 @@ doctor() {
         if infocmp "$t" >/dev/null 2>&1; then
             ok "$t"
         else
-            bad "$t missing -- see packages/manual.md"
+            bad "$t missing"
+            if [ "$t" = xterm-kitty ]; then
+                fix "mkdir -p ~/.terminfo && cp -r ~/.local/kitty.app/share/terminfo/* ~/.terminfo/"
+            else
+                fix "./install.sh --install-deps   (ncurses-term)"
+            fi
         fi
     done
 
@@ -214,6 +231,8 @@ doctor() {
             ok "Nerd Font present"
         else
             bad "no Nerd Font -- statusline glyphs render as tofu, not an error"
+            fix  "download JetBrainsMono from github.com/ryanoasis/nerd-fonts/releases"
+            fix2 "unzip into ~/.local/share/fonts/, then run fc-cache -f"
         fi
     else
         warn "fontconfig absent; cannot check fonts"
@@ -228,10 +247,12 @@ doctor() {
         if [ "$have" -ge "$want" ]; then
             ok "plugins installed ($have/$want)"
         else
-            bad "only $have of $want tmux plugins installed -- run prefix+I"
+            bad "only $have of $want tmux plugins installed"
+            fix "press prefix+I inside tmux (prefix is C-Space)"
         fi
     else
         bad "tpm not installed"
+        fix "./install.sh   (clones tpm)"
     fi
     # A running server never re-reads its config, so a correct file on disk
     # says nothing about the server actually using it.
@@ -239,7 +260,8 @@ doctor() {
         if [ "$(tmux show-options -gv allow-passthrough 2>/dev/null)" = on ]; then
             ok "running server has allow-passthrough on"
         else
-            bad "running tmux server has allow-passthrough off -- images will hang; press prefix+R"
+            bad "running tmux server has allow-passthrough off -- images will hang"
+            fix "press prefix+R to reload, or: tmux source-file ~/.tmux.conf"
         fi
     fi
 
@@ -248,11 +270,12 @@ doctor() {
         if [ -x "$HOME/.local/kitty.app/bin/kitty" ]; then
             ok "kitty $("$HOME/.local/kitty.app/bin/kitty" --version 2>/dev/null | awk '{print $2}')"
         else
-            warn "kitty not installed -- see packages/manual.md"
+            warn "kitty not installed"
+            fix "curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin"
         fi
         command -v kitty >/dev/null 2>&1 \
             && ok "kitty on PATH" \
-            || warn "kitty not on PATH -- 'kitty @' and kittens will not resolve from a shell"
+            || { warn "kitty not on PATH -- 'kitty @' and kittens will not resolve from a shell"; fix "./install.sh"; }
     fi
 
     if [ "$IS_WSL" = 1 ]; then
@@ -264,31 +287,32 @@ doctor() {
             ok "/dev/dxg present (GPU passthrough)"
             [ -f /usr/lib/x86_64-linux-gnu/dri/d3d12_dri.so ] \
                 && ok "d3d12 Mesa driver present" \
-                || bad "d3d12_dri.so missing -- GL falls back to software rendering"
+                || { bad "d3d12_dri.so missing -- GL falls back to software rendering"; fix "./install.sh --install-deps   (mesa drivers)"; }
         else
             warn "/dev/dxg absent -- no GPU passthrough"
         fi
         [ -f "$XDG/environment.d/wslg.conf" ] \
             && ok "WSLg env persisted for systemd (dunst)" \
-            || bad "environment.d/wslg.conf missing -- dunst will fail to start"
+            || { bad "environment.d/wslg.conf missing -- dunst will fail to start"; fix "./install.sh"; }
         command -v wsl-notify-send.exe >/dev/null 2>&1 \
             && ok "wsl-notify-send.exe" \
-            || warn "wsl-notify-send.exe missing -- kitty command-finish notifications disabled"
+            || { warn "wsl-notify-send.exe missing -- kitty command-finish notifications disabled"; fix "see packages/manual.md (wsl-notify-send)"; }
         [ -f /usr/share/applications/kitty.desktop ] \
             && ok "kitty Start Menu entry installed" \
-            || warn "kitty.desktop not in /usr/share/applications -- no Start Menu entry"
+            || { warn "kitty.desktop not in /usr/share/applications -- no Start Menu entry"; fix "sudo cp $XDG/kitty/kitty.desktop.staged /usr/share/applications/kitty.desktop"; }
     fi
 
     echo "==> ssh"
     [ -d "$HOME/.ssh/cm" ] \
         && ok "ControlPath dir present" \
-        || bad "~/.ssh/cm missing -- ssh multiplexing silently falls back to a full connection"
+        || { bad "~/.ssh/cm missing -- ssh multiplexing silently falls back to a full connection"; fix "./install.sh"; }
     if [ -L "$HOME/.ssh/config" ]; then
         ssh -G localhost >/dev/null 2>&1 \
             && ok "ssh config parses" \
             || bad "~/.ssh/config does not parse"
     else
         warn "~/.ssh/config not linked"
+        fix "./install.sh"
     fi
 
     echo "==> claude"
@@ -297,6 +321,7 @@ doctor() {
             ok "$d linked ($(find -L "$HOME/.claude/$d" -maxdepth 1 -mindepth 1 | wc -l) entries)"
         else
             bad "~/.claude/$d not linked -- skills or rules will not load"
+            fix "./install.sh"
         fi
     done
     [ -L "$HOME/.claude/CLAUDE.md" ] && ok "CLAUDE.md linked" || bad "~/.claude/CLAUDE.md not linked"
@@ -305,6 +330,7 @@ doctor() {
                                        || bad "github-mcp present but gh not logged in"
     else
         warn "github-mcp missing -- GitHub MCP server unavailable"
+        fix "./install.sh   (links bin/github-mcp)"
     fi
 
     echo
