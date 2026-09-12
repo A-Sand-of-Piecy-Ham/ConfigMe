@@ -21,6 +21,16 @@ bash-completion     # sourced by bash/bashrc.linux
 imagemagick         # snacks.image -- without it images never decode
 ghostscript         # snacks.image: PDF rendering (optional)
 
+# --- mason (nvim LSP/DAP/tool installer) ---
+# Mason downloads prebuilt tools and builds others, and it fails per-package
+# with only "failed to install" in the UI -- the real cause is in :MasonLog.
+# These are the prerequisites whose absence has actually bitten here.
+unzip               # clangd and other zip-packaged tools; failed on this exact cause
+python3-venv        # python-based servers (nginx-language-server, ruff, basedpyright).
+                    # Mason invokes the SYSTEM python3.12, not whatever python3
+                    # resolves to on PATH, so a uv- or pyenv-managed python having
+                    # venv is not enough.
+
 # --- terminal ---
 fzf                 # tmux prefix+s session switcher, tmux-fzf plugin
 entr                # tmux-autoreload plugin -- silently inert without it

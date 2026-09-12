@@ -156,6 +156,37 @@ Note that npm's global prefix here is inside the nvm-managed node
 (`~/.nvm/versions/node/<version>`), so `mmdc` disappears if you switch node
 versions with nvm and has to be reinstalled for the new one.
 
+## Diagnosing mason failures
+
+Mason reports only `<tool>: failed to install` per package. The cause is in
+`:MasonLog` (`~/.local/state/nvim/mason.log`), and it is usually a missing
+prerequisite rather than anything about the tool.
+
+Failures cluster by how the tool is packaged, which is the fastest way to read
+a list of them:
+
+| Failing set | Likely cause |
+|---|---|
+| typescript-language-server, eslint-lsp, bash-language-server, astro-language-server | no `npm` on PATH -- these are npm packages |
+| clangd, and other zip-packaged tools | `unzip` missing |
+| nginx-language-server, ruff, basedpyright | system python has no `venv` |
+| codelldb, selene, clangd on ARM | no prebuilt binary for the architecture |
+
+The python one is the subtle case. Mason runs the **system** interpreter, so a
+uv- or pyenv-managed `python3` earlier on PATH having `venv` proves nothing:
+
+```bash
+python3 -m venv /tmp/x        # works   (~/.local/bin/python3, uv)
+/usr/bin/python3 -m venv /tmp/x   # fails (needs python3-venv)
+```
+
+`install.sh --doctor` checks `unzip`, `npm` and the system python's `venv`
+directly, so this class of failure surfaces without reading the log.
+
+Architecture is the one it cannot fix: several mason tools ship x86_64 binaries
+only, and on ARM they will keep failing. Those are worth removing from
+`ensure_installed` on that machine rather than retrying every start.
+
 ## tmux plugins
 
 `tpm` is cloned by `install.sh`. The plugins themselves are not:
