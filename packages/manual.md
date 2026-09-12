@@ -183,6 +183,19 @@ python3 -m venv /tmp/x        # works   (~/.local/bin/python3, uv)
 `install.sh --doctor` checks `unzip`, `npm` and the system python's `venv`
 directly, so this class of failure surfaces without reading the log.
 
+### Do not duplicate what an astrocommunity pack installs
+
+The imported packs install their own tooling and gate it by architecture:
+`pack.cpp` adds `codelldb` always and `clangd` only when not linux-arm,
+`pack.lua` adds `lua-language-server` and `stylua` always and `selene` only
+when not aarch64, `pack.rust` adds `codelldb`.
+
+Naming any of those in `mason.lua` as well overrides the gate and forces a
+mason install on ARM, where no upstream build exists. Verified by unzipping the
+releases: selene's `linux` asset is `ELF 64-bit x86-64`, and clangd publishes
+no ARM build either. On ARM, `pack.cpp` instead expects `clangd` on PATH, so
+install the distro package there (`apt install clangd`).
+
 Architecture is the one it cannot fix: several mason tools ship x86_64 binaries
 only, and on ARM they will keep failing. Those are worth removing from
 `ensure_installed` on that machine rather than retrying every start.
