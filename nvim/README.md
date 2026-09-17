@@ -30,6 +30,32 @@ Declarative list of tools Mason keeps installed across machines — avoids manua
 
 Notable entries: `clangd`, `codelldb`, `cpptools`, `jdtls`, `java-debug-adapter`, `typescript-language-server`.
 
+#### Future considerations
+
+Deliberate deferrals, recorded so they are not rediscovered from scratch:
+
+- **`veridian` for SystemVerilog.** `verible` is installed and covers formatting
+  and linting well, but its semantic analysis is thin — no go-to-definition or
+  cross-module completion. `veridian` provides those. It is not packaged in
+  Mason and needs a manual Rust build plus an `install.sh` dependency entry, so
+  it is deferred until there is an actual hardware project to justify it.
+
+- **`tsgo` (TypeScript 7, Go-native).** Would eliminate the Node/V8 language
+  server entirely. As of TypeScript 7.0 RC the language *service* is not at
+  parity with `tsc`, and there is an open upstream report of runaway memory
+  under Neovim specifically, so `ts_ls` remains primary.
+
+- **`vtsls` is intentionally absent.** Its Mason `bin` entry is a symlink to an
+  npm `sh` shim that derives `basedir` from `$0` without dereferencing the
+  symlink, so it resolved to `mason/@vtsls/...` and died with MODULE_NOT_FOUND
+  on every start. `typescript-language-server` ships the real JS file in `.bin`
+  and is unaffected.
+
+- **Automatic type acquisition is left enabled.** Disabling it would remove a
+  persistent ~108 MB `typingsInstaller` process, but ATA only benefits plain
+  JavaScript, and this tree contains considerably more hand-written JavaScript
+  than TypeScript.
+
 ### DAP / Debugging (`lua/plugins/dap-attach.lua`)
 
 Custom DAP behavior on top of the cpp community pack:
