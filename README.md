@@ -3,16 +3,22 @@
 Personal dev environment configuration, symlinked into place by an install
 script. Supports macOS, Linux/WSL, and native Windows (Git Bash).
 
+The install is idempotent, reports what the machine is missing rather than
+failing on it, and keeps one checkout authoritative when a machine has two.
+
 ## Includes
 
-- Neovim (AstroNvim v6)
-- Bash (per-OS, see below)
-- Tmux
-- Git
-- SSH (connection multiplexing)
-- Ccache
-- Ghostty (macOS/Linux) and WezTerm (Windows)
-- Claude Code: `CLAUDE.md`, memory, skills
+| Area | What |
+|---|---|
+| [Neovim](nvim/README.md) | AstroNvim v6, LSP and debugger setup, Python/TypeScript/C++/Java tooling |
+| [Bash](bash/README.md) | Per-OS `bashrc` and `bash_profile` over a shared `common.sh` |
+| Terminals | kitty (Linux/WSL), Ghostty (macOS/Linux), WezTerm (Windows) |
+| Tmux | `C-Space` prefix, plugins, status bar, nested-session passthrough |
+| Git | Config and a global gitignore |
+| SSH | Connection multiplexing; host-specific settings stay machine-local |
+| Ccache | Compiler cache configuration |
+| [Claude Code](claude/README.md) | `CLAUDE.md`, always-loaded rules, and skills |
+| `bin/` | Small helpers the configs call -- tmux session attach, kitty/nvim glue, MCP launchers |
 
 ## Install
 
@@ -22,92 +28,15 @@ script. Supports macOS, Linux/WSL, and native Windows (Git Bash).
 
 The script detects the platform and links only what applies. Existing **real**
 files are moved to `<name>.bak` first; existing symlinks are replaced silently.
-It finishes by reporting any missing system packages, so a fresh machine is
-told what it lacks without having to ask.
+It finishes by reporting any missing system packages, so a fresh machine is told
+what it lacks without having to ask.
 
-On Windows, run the PowerShell installer from the Windows clone instead:
+On Windows, run `.\install.ps1` from the Windows clone instead. It needs no
+elevation and adapts to whether Developer Mode is on -- see
+[docs/windows.md](docs/windows.md) for the link mechanisms it chooses between
+and the traps that come with them.
 
-```powershell
-.\install.ps1
-```
-
-It runs without elevation. Developer Mode (Settings > System > For developers)
-improves the result but is not required -- the script probes for symlink
-permission and adapts.
-
-Three mechanisms, chosen per target rather than uniformly:
-
-| Target | Mechanism | Why |
-|---|---|---|
-| directories (`nvim`, `bash`, `claude/memory`) | junction | Reads identically to a symlink but needs no privilege, so these keep working even if Developer Mode is later turned off. A symlink buys nothing here. |
-| `.bashrc`, `.bash_profile`, `.wezterm.lua`, `CLAUDE.md` | symlink, falling back to a shim | Read-only from the consumer's side, so transparency is a pure win, and it drops any dependency on include syntax. |
-| `.gitconfig` | `[include]` shim, always | Git writes config by write-and-rename, which would replace a symlink with a regular file and silently strand the mirror. |
-
-Two things worth knowing:
-
-- **`git config --global ...` on Windows appends to the shim**, after the
-  `[include]` line, so it overrides the repo value and is not tracked. That is
-  correct for machine-local settings, but it is not obvious.
-- **Never remove a junction with `Remove-Item -Recurse`.** PowerShell 5.1
-  follows the junction and deletes the *target* -- the repo itself. Use
-  `(Get-Item x -Force).Delete()` or `fsutil reparsepoint delete`.
-
-Note that PowerShell 5.1's `New-Item -ItemType SymbolicLink` omits the
-`ALLOW_UNPRIVILEGED_CREATE` flag that Developer Mode unlocks, so the installer
-calls `CreateSymbolicLinkW` directly rather than using it.
-
-## Claude skills
-
-`claude/skills/` is linked to `~/.claude/skills`. A skill's `description` is
-its trigger -- Claude matches the task against it -- so descriptions are
-written with the phrases that should invoke them, not as summaries.
-
-| Skill | Triggers on |
-|---|---|
-| `web-browsing` | Reading, searching, or interacting with a page; routes between WebFetch and chrome-devtools rather than reaching for a browser first |
-| `todo-capture` | "create a todo", "add a task", "remind me to" -- captures into TickTick instead of replying that it was noted |
-| `dotfiles-change` | Editing anything this repo manages; covers the steps that fail silently, like a running tmux server never re-reading its config |
-| `introspection` | Reviewing a finished session for what worked |
-| `skill-forge` | Writing or revising a skill |
-| `git-workflow` | Commits, branches, PRs -- the habits easy to skip under momentum |
-| `doc-lookup` | Library and API questions; caches hard-won answers, tombstones dead ones |
-| `calendar-check` | Availability and scheduling |
-| `memory-write` | "always", "never", "from now on" -- persists rather than just complying |
-| `research-log` | Evidence bearing on the SELF-GENERATION open questions |
-
-`skill-forge`, `introspection` and `memory-write` pin `model: opus` with raised
-`effort` in their frontmatter, so meta-work runs on the strongest model
-regardless of the session setting.
-
-`claude/rules/` is linked to `~/.claude/rules`. Rules load every session, one
-file per topic, and support `paths:` frontmatter to load only alongside matching
-files -- the right home for always-true behaviour that should stay in separate
-files rather than being merged into `CLAUDE.md`.
-
-[claude/SELF-GENERATION.md](claude/SELF-GENERATION.md) covers the design behind
-these: why a description is permanent context cost while a body is not, the
-procedure-vs-shim distinction, and where a lesson belongs (skill, memory, or
-`CLAUDE.md`).
-
-`claude/memory/` was removed. It symlinked to `~/.claude/memory/`, which nothing
-reads -- auto-memory lives in `~/.claude/projects/<slug>/memory/`, which is
-machine-local and not trackable. The behavioural files moved to `claude/rules/`;
-the rest was either a duplicate of `CLAUDE.md` or already covered by a skill.
-See SELF-GENERATION.md.
-
-## Keybindings
-
-[KEYBINDINGS.md](KEYBINDINGS.md) documents every binding this repo defines, and
-the three defaults it deliberately breaks -- the tmux prefix (`C-b` ->
-`C-Space`), tmux's `last-window` (`l` -> `a`), and kitty's URL opener
-(`ctrl+shift+e` -> `ctrl+shift+p o`, because TickTick holds that combination as
-a Windows global hotkey).
-
-## Dependencies
-
-`packages/apt.txt` lists every system package with the reason it is needed;
-`packages/manual.md` covers what apt cannot provide -- kitty, its terminfo, the
-Nerd Font, and `wsl-notify-send.exe`.
+## Checking a machine
 
 ```bash
 ./install.sh --doctor        # report what is missing, change nothing
@@ -115,54 +44,53 @@ Nerd Font, and `wsl-notify-send.exe`.
 ./install.sh --install-deps  # actually install them (needs sudo)
 ```
 
-`--doctor` checks more than binaries: terminfo entries, whether a Nerd Font is
-installed, whether the tmux plugins are actually present, whether the *running*
-tmux server has `allow-passthrough` on, and whether Mesa can reach the d3d12
-driver rather than falling back to software rendering. Those are the failures
-that produce no error message -- glyphs render as boxes, images hang, the
-terminal quietly runs on CPU.
+`--doctor` deliberately checks more than whether binaries exist. Most of what
+breaks in a setup like this fails *silently*: glyphs render as boxes, images
+hang, the terminal quietly drops to software rendering, a language server stops
+attaching. So it also verifies terminfo entries, Nerd Font presence, tmux plugin
+installation, whether the *running* tmux server has `allow-passthrough` on, and
+whether Mesa can reach the d3d12 driver.
+
+It doubles as a guard against stale documentation. Where a config comment
+asserts something that could quietly stop being true, `--doctor` checks it.
+
+## Dependencies
+
+`packages/apt.txt` lists every system package with the reason it is needed.
+`packages/manual.md` covers what apt cannot provide -- kitty, its terminfo, the
+Nerd Font, and `wsl-notify-send.exe`.
+
+## Keybindings
+
+[KEYBINDINGS.md](KEYBINDINGS.md) documents every binding this repo defines, and
+the three defaults it deliberately breaks: the tmux prefix (`C-b` ->
+`C-Space`), tmux's `last-window` (`l` -> `a`), and kitty's URL opener
+(`ctrl+shift+e` -> `ctrl+shift+p o`, because TickTick holds that combination as
+a Windows global hotkey).
 
 ## Two checkouts, one source of truth
 
-The WSL checkout at `~/projects/ConfigMe` is the **source of truth**. The
-Windows checkout is a **read-only mirror** — never edit it directly.
+The WSL checkout is the **source of truth**. The Windows checkout is a
+**read-only mirror** -- never edit it directly.
 
 ```
 edit in WSL -> commit -> push -> (on Windows) git pull -> .\install.ps1
 ```
 
-The mirror exists for speed. Symlinking Windows at the ext4 checkout via
+The mirror exists for speed. Pointing Windows at the ext4 checkout via
 `\\wsl.localhost` would give a single source of truth with no sync step, but
 every Windows read then crosses the 9p bridge, which costs roughly an order of
 magnitude per file operation. Neovim opens dozens of files at startup and
 lazy.nvim touches thousands during a sync, so the penalty is obvious in
-practice. A native clone also keeps Windows working while the WSL VM is
-stopped.
+practice. A native clone also keeps Windows working while the WSL VM is stopped.
 
 `.gitattributes` pins LF on everything a shell or Neovim reads, so the Windows
 clone does not end up with CRLF scripts that bash refuses to execute.
 
-## Bash layout
+## Local overrides
 
-Bash config is split by platform, because a single file cannot serve Homebrew
-on macOS, apt/nvm on WSL, and MinGW on Windows:
-
-| File | Used on |
-|---|---|
-| `bash/common.sh` | all — PATH, aliases, `EDITOR`, ccache. Linked to `~/.config/dotfiles/common.sh` and sourced by each of the below. |
-| `bash/bashrc.darwin`, `bash/bash_profile.darwin` | macOS (Homebrew, Rancher Desktop) |
-| `bash/bashrc.linux`, `bash/bash_profile.linux` | Linux and WSL (nvm, cargo, `~/.local/bin`) |
-| `bash/bashrc.windows`, `bash/bash_profile.windows` | Git Bash / MSYS2 |
-
-Anything platform-specific belongs in the per-OS file, never in `common.sh`.
-
-## WezTerm
-
-`config.default_prog` drops straight into WSL with tmux. Git Bash, plain WSL,
-and PowerShell remain available from the launcher — the tab-bar dropdown, or
-`ALT+SHIFT+L`.
-
-## Future considerations
-
-- Ninja
-- nvim LSPs
+Nothing here assumes it is the only config on the machine. Each area has a
+machine-local escape hatch that is not tracked: `~/.ssh/config.local`,
+`kitty/local/*.conf`, and `git config --global` writing through an `[include]`
+shim. Host names, keys, and anything else specific to one machine belong there
+rather than in the repo.
