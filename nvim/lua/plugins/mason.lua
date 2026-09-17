@@ -27,6 +27,11 @@ return {
         "eslint-lsp",
         "yaml-language-server",
 
+        -- hardware / shading languages
+        "verible", -- systemverilog: formatter + linter + LSP
+        "glsl_analyzer",
+        "wgsl-analyzer",
+
         -- debuggers
         "cpptools",
         "java-debug-adapter",

@@ -8,7 +8,7 @@ local config = wezterm.config_builder()
 -- `wsl.exe` with a trailing command runs that command inside the default WSL
 -- distro; if you switch to a non-default distro, add `"-d", "<distro-name>"`
 -- before "tmux" below.
-config.default_prog = { "wsl.exe", "tmux", "new-session" }
+config.default_prog = { "wsl.exe", "--", "bash", "-lc", "exec ~/.local/bin/tmux-attach-or-new" }
 
 -- Git Bash stays reachable for the occasional native-Windows task (MinGW
 -- toolchains, anything that must see C:\ as a real filesystem rather than
@@ -16,7 +16,7 @@ config.default_prog = { "wsl.exe", "tmux", "new-session" }
 config.launch_menu = {
   {
     label = "WSL + tmux",
-    args = { "wsl.exe", "tmux", "new-session" },
+    args = { "wsl.exe", "--", "bash", "-lc", "exec ~/.local/bin/tmux-attach-or-new" },
   },
   {
     label = "WSL (no tmux)",
