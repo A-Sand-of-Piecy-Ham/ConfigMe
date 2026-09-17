@@ -13,12 +13,10 @@ return {
       indent = true, -- enable/disable treesitter based indentation
       auto_install = true, -- enable/disable automatic installation of detected languages
       -- Merged with what AstroNvim and the imported packs already request, not
-      -- replacing it -- verified.
+      -- replacing it. Listed explicitly rather than left to auto_install so a
+      -- fresh machine fetches them up front instead of on first open.
       ensure_installed = {
-        -- auto_install above covers filetypes Neovim already recognises; these
-        -- are listed because the parser name does not match the filetype (a
-        -- .sv file is filetype systemverilog but parser "verilog").
-        "verilog", -- systemverilog
+        "systemverilog",
         "glsl",
         "wgsl",
       },
