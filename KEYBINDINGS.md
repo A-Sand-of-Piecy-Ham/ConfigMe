@@ -162,9 +162,26 @@ documented upstream.
 | `<Leader><Leader>m` | Harpoon: toggle menu |
 | `<Leader><Leader>1`..`4` | Harpoon: jump to slot |
 | `<Leader><Leader>s` | Harpoon: search with Telescope |
-| `<Leader>us` | Toggle spellcheck (starts and stops `harper_ls`) |
+| `<Leader>us` | Toggle spellcheck — shows/hides `harper_ls` diagnostics; the server stays running, so toggling on is instant rather than a cold restart |
 | `<Leader>lR` | LSP references in Telescope |
+| `<Leader>lp` | Live preview: start (HTML/CSS/JS, opens a browser) |
+| `<Leader>lP` | Live preview: stop |
 | `<Leader>gv` | Diffview (which-key group) |
+
+All of the above carry a `desc`, so which-key lists them when you hold the
+prefix.
+
+### Not defined here, but worth knowing
+
+| Key | Action |
+|---|---|
+| `<C-S>` *(insert)* | Signature help. The float shows documentation, and **`<C-s>` inside it cycles overloads** with an `(n/total)` counter |
+
+A Neovim default, not something this repo sets. It is listed because it is easy
+to miss: which-key does not surface insert-mode control bindings, and the
+mapping carries no `desc`, so nothing in the UI advertises it. It is also the
+reason blink.cmp's passive signature window is left disabled — that one shows
+only the active signature and cannot cycle.
 
 ## Shell aliases
 
