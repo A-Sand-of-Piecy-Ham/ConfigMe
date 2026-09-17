@@ -51,10 +51,14 @@ Deliberate deferrals, recorded so they are not rediscovered from scratch:
   on every start. `typescript-language-server` ships the real JS file in `.bin`
   and is unaffected.
 
-- **Automatic type acquisition is left enabled.** Disabling it would remove a
-  persistent ~108 MB `typingsInstaller` process, but ATA only benefits plain
-  JavaScript, and this tree contains considerably more hand-written JavaScript
-  than TypeScript.
+- **Automatic type acquisition stays enabled, deliberately.** It keeps a
+  persistent ~108 MB `typingsInstaller` process alive, and disabling it was
+  considered and rejected: the saving is negligible against available memory,
+  and JavaScript support is kept at full strength regardless of how little
+  hand-written JavaScript happens to be checked in at any moment. ATA benefits
+  plain JavaScript using third-party libraries that ship no types; browser and
+  DOM APIs come from TypeScript's own `lib.dom.d.ts` and are unaffected either
+  way.
 
 ### DAP / Debugging (`lua/plugins/dap-attach.lua`)
 
