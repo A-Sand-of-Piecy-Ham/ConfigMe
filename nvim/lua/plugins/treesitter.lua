@@ -17,7 +17,12 @@ return {
       ensure_installed = {
         "lua",
         "vim",
-        -- add more arguments for adding more treesitter parsers
+        -- auto_install above covers filetypes Neovim already recognises; these
+        -- are listed because the parser name does not match the filetype (a
+        -- .sv file is filetype systemverilog but parser "verilog").
+        "verilog", -- systemverilog
+        "glsl",
+        "wgsl",
       },
     },
   },

@@ -10,7 +10,9 @@ return {
   opts = {
     -- Configuration table of features provided by AstroLSP
     features = {
-      codelens = true, -- enable/disable codelens refresh on start
+      -- codelens is left to AstroNvim, which computes it per Neovim version:
+      -- it disables codelens on 0.12.0 - 0.12.1 where upstream is broken.
+      -- Forcing it true here overrode that guard.
       inlay_hints = false, -- enable/disable inlay hints on start
       semantic_tokens = true, -- enable/disable semantic token highlighting
     },
@@ -79,15 +81,12 @@ return {
         cond = "textDocument/codeLens",
         -- cond = function(client, bufnr) return client.name == "lua_ls" end,
         -- list of auto commands to set
-        {
-          -- events to trigger
-          event = { "InsertLeave", "BufEnter" },
-          -- the rest of the autocmd options (:h nvim_create_autocmd)
-          desc = "Refresh codelens (buffer)",
-          callback = function(args)
-            if require("astrolsp").config.features.codelens then vim.lsp.codelens.enable(true, { bufnr = args.buf }) end
-          end,
-        },
+        -- Codelens refresh is deliberately NOT handled here. astrolsp already
+        -- does it, and does it safely: vim.lsp.codelens.enable does not exist
+        -- on every Neovim (it is absent on 0.12.0-dev), so astrolsp falls back
+        -- to vim.lsp.codelens.refresh and guards every call. The copy that used
+        -- to live here called .enable unguarded and threw E5108 on BufEnter for
+        -- any buffer whose server publishes codelens, such as JavaScript.
       },
     },
     -- mappings to be set up on attaching of a language server

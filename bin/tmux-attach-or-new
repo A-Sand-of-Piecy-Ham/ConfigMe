@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Attach an abandoned tmux session if there is one; create a session only when
+# there is nothing to reattach to.
+#
+# Plain `tmux new-session` made a fresh session for every terminal window, so
+# closing a window left its session running detached and the next window made
+# another -- sessions accumulated indefinitely. Plain `tmux attach` fixes the
+# pileup but mirrors every window onto one session.
+#
+# Attaching only to a DETACHED session gives both: a reopened terminal reclaims
+# the session the last one left behind, while two windows open at once still get
+# one each, because the first window's session is attached and therefore skipped.
+set -uo pipefail
+
+if ! command -v tmux >/dev/null 2>&1; then
+    exec "${SHELL:-/bin/bash}" -l
+fi
+
+target="$(tmux list-sessions -F '#{session_attached} #{session_name}' 2>/dev/null \
+          | awk '$1 == 0 { print $2; exit }')"
+
+if [ -n "${target:-}" ]; then
+    exec tmux attach-session -t "$target"
+fi
+exec tmux new-session
