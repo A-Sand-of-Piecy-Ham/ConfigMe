@@ -69,6 +69,20 @@ return {
     handlers = {
       -- jdtls is configured manually in plugins/jdtls.lua to pass debug/test bundles
       jdtls = false,
+      -- Python attaches ty, not basedpyright. Rationale: both are type checkers
+      -- and language servers covering the same ground, but basedpyright runs on
+      -- a bundled Node and is by a wide margin the most memory-hungry server in
+      -- this config, while ty is a single Rust binary. ty also delegates
+      -- formatting to ruff, which is already attached.
+      --
+      -- basedpyright is deliberately still installed, not removed. It is the
+      -- stricter checker and ty is pre-1.0, so `:LspStart basedpyright` is the
+      -- escape hatch for a second opinion on any buffer.
+      --
+      -- A `false` handler means astrolsp never calls vim.lsp.enable for it; see
+      -- astrolsp.lsp_setup. Run `./install.sh --doctor` to re-measure the
+      -- memory and capability claims above against what is actually installed.
+      basedpyright = false,
     },
     -- Configure buffer local auto commands to add when attaching a language server
     autocmds = {
