@@ -237,6 +237,34 @@ doctor() {
         fi
     fi
 
+    echo "==> python lsp"
+    # These checks exist to keep the comments in nvim/lua/plugins/astrolsp.lua
+    # honest. That file says Python attaches ty and that basedpyright is kept
+    # installed-but-disabled as an on-demand second opinion. Both halves are
+    # invariants: drop basedpyright from mason.lua and the documented
+    # ":LspStart basedpyright" escape hatch silently stops working, with nothing
+    # else to catch it.
+    _mason_bin="$HOME/.local/share/nvim/mason/bin"
+    if [ -x "$_mason_bin/ty" ]; then
+        ok "ty ($("$_mason_bin/ty" --version 2>/dev/null || echo unknown))"
+    else
+        bad "ty missing -- no type checking or completion on Python buffers"
+        fix "nvim -c 'MasonInstall ty' -c qa"
+    fi
+    if [ -x "$_mason_bin/basedpyright-langserver" ]; then
+        if grep -q 'basedpyright = false' "$DOTFILES/nvim/lua/plugins/astrolsp.lua" 2>/dev/null; then
+            ok "basedpyright installed, not auto-attached (:LspStart basedpyright)"
+        else
+            warn "basedpyright installed AND auto-attaching -- it and ty will both"
+            warn "  report diagnostics, and basedpyright alone costs a few hundred MB"
+        fi
+    else
+        warn "basedpyright absent -- the on-demand strict checker documented in"
+        warn "  astrolsp.lua is unavailable; :LspStart basedpyright will fail"
+        fix "nvim -c 'MasonInstall basedpyright' -c qa"
+    fi
+    unset _mason_bin
+
     echo "==> terminfo"
     for t in tmux-256color xterm-kitty; do
         if infocmp "$t" >/dev/null 2>&1; then

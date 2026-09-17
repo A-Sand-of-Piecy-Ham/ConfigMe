@@ -30,6 +30,36 @@ Declarative list of tools Mason keeps installed across machines — avoids manua
 
 Notable entries: `clangd`, `codelldb`, `cpptools`, `jdtls`, `java-debug-adapter`, `typescript-language-server`.
 
+### Python LSP (`lua/plugins/astrolsp.lua`)
+
+Python buffers attach **ty** (Astral, Rust) for type checking and language
+intelligence, plus **ruff** for lint and formatting. They are designed to pair:
+ty delegates formatting to ruff rather than duplicating it.
+
+**basedpyright is installed but does not attach.** It is the stricter checker
+and ty is pre-1.0, so it is kept as an on-demand second opinion via
+`:LspStart basedpyright`. It is disabled through a `false` handler in
+astrolsp's `handlers` table, the same mechanism used for jdtls.
+
+The reason it does not attach by default is cost: basedpyright is pyright, which
+is TypeScript, and ships a bundled Node runtime. It is the largest language
+server in this configuration by a wide margin. ty is a single Rust binary.
+
+`./install.sh --doctor` verifies both halves of this arrangement, because the
+arrangement is what the comments in `astrolsp.lua` describe and comments cannot
+check themselves.
+
+### File renames (`lua/plugins/neo-tree.lua`)
+
+Renaming or moving a file in neo-tree sends `workspace/willRenameFiles` to the
+attached language servers, so imports and references are rewritten rather than
+silently broken. Neovim does not do this on its own -- the request has to come
+from whatever performed the rename, and while snacks.nvim implements the client
+half, nothing subscribes it to neo-tree's events by default.
+
+Servers that do not implement the request simply do not answer it, so this is
+safe regardless of which are attached.
+
 #### Future considerations
 
 Deliberate deferrals, recorded so they are not rediscovered from scratch:

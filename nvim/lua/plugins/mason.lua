@@ -17,7 +17,12 @@ return {
         -- language servers
         "harper-ls", -- grammar; toggled in astrocore.lua
         "bash-language-server",
-        "basedpyright", -- python: the most-used language here and previously absent
+        -- Python: ty is the attaching server; basedpyright stays installed but
+        -- is not auto-enabled (see astrolsp.lua handlers). Keeping it installed
+        -- means `:LspStart basedpyright` is always one command away for the
+        -- stricter second opinion and for go-to-implementation, which ty lacks.
+        "ty", -- python type checker + LSP (Rust)
+        "basedpyright", -- python: stricter checker, started on demand
         "json-lsp",
         "jdtls",
         "marksman", -- markdown
