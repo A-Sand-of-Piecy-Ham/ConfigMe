@@ -62,33 +62,41 @@ safe regardless of which are attached.
 
 #### Future considerations
 
-Deliberate deferrals, recorded so they are not rediscovered from scratch:
+Deliberate deferrals, recorded so they are not rediscovered from scratch.
 
-- **`veridian` for SystemVerilog.** `verible` is installed and covers formatting
-  and linting well, but its semantic analysis is thin — no go-to-definition or
-  cross-module completion. `veridian` provides those. It is not packaged in
-  Mason and needs a manual Rust build plus an `install.sh` dependency entry, so
-  it is deferred until there is an actual hardware project to justify it.
+Each entry is stamped with what it was true of. These are claims about
+third-party software that moves independently of this repo, so treat a stamp
+older than the version you have installed as unverified rather than as fact --
+re-check before acting on it.
 
-- **`tsgo` (TypeScript 7, Go-native).** Would eliminate the Node/V8 language
-  server entirely. As of TypeScript 7.0 RC the language *service* is not at
-  parity with `tsc`, and there is an open upstream report of runaway memory
-  under Neovim specifically, so `ts_ls` remains primary.
+- **`veridian` for SystemVerilog** *(as of verible 0.0-3946, 2026-09)*.
+  `verible` is installed and covers formatting and linting well, but its
+  semantic analysis is thin -- no go-to-definition or cross-module completion.
+  `veridian` provides those. It is not packaged in Mason and needs a manual Rust
+  build plus an `install.sh` dependency entry, so it is deferred until there is
+  a hardware project to justify it.
 
-- **`vtsls` is intentionally absent.** Its Mason `bin` entry is a symlink to an
-  npm `sh` shim that derives `basedir` from `$0` without dereferencing the
-  symlink, so it resolved to `mason/@vtsls/...` and died with MODULE_NOT_FOUND
-  on every start. `typescript-language-server` ships the real JS file in `.bin`
-  and is unaffected.
+- **`tsgo` (TypeScript 7, Go-native)** *(as of TypeScript 7.0 RC, 2026-09)*.
+  Would eliminate the Node/V8 language server entirely. At the time of writing
+  the language *service* is not at parity with `tsc`, and there is an open
+  upstream report of runaway memory under Neovim specifically, so `ts_ls`
+  remains primary.
 
-- **Automatic type acquisition stays enabled, deliberately.** It keeps a
-  persistent ~108 MB `typingsInstaller` process alive, and disabling it was
-  considered and rejected: the saving is negligible against available memory,
-  and JavaScript support is kept at full strength regardless of how little
-  hand-written JavaScript happens to be checked in at any moment. ATA benefits
-  plain JavaScript using third-party libraries that ship no types; browser and
-  DOM APIs come from TypeScript's own `lib.dom.d.ts` and are unaffected either
-  way.
+- **`vtsls` is intentionally absent** *(as of mason-registry 2026-08-28)*. Its
+  Mason `bin` entry is a symlink to an npm `sh` shim that derives `basedir` from
+  `$0` without dereferencing the symlink, so it resolved to `mason/@vtsls/...`
+  and died with MODULE_NOT_FOUND on every start. `typescript-language-server`
+  ships the real JS file in `.bin` and is unaffected. This is a packaging bug,
+  so it may simply be fixed upstream.
+
+- **Automatic type acquisition stays enabled, deliberately** *(decided
+  2026-09)*. It keeps a persistent `typingsInstaller` process alive, on the
+  order of 100 MB. Disabling it was considered and rejected: the saving is
+  negligible against available memory, and JavaScript support is kept at full
+  strength regardless of how little hand-written JavaScript happens to be
+  checked in at any moment. ATA benefits plain JavaScript using third-party
+  libraries that ship no types; browser and DOM APIs come from TypeScript's own
+  `lib.dom.d.ts` and are unaffected either way.
 
 ### DAP / Debugging (`lua/plugins/dap-attach.lua`)
 
