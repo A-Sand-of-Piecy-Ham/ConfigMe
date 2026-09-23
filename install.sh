@@ -265,6 +265,19 @@ doctor() {
     fi
     unset _mason_bin
 
+    echo "==> paste"
+    # kitty.conf lists `filter` in paste_actions. If paste-actions.py is not
+    # beside it, kitty pastes unfiltered with no visible error and CRLF text
+    # from Windows arrives with a ^M on every line again.
+    if grep -q '^paste_actions.*filter' "$DOTFILES/kitty/kitty.conf" 2>/dev/null; then
+        if [ -r "$XDG/kitty/paste-actions.py" ]; then
+            ok "kitty paste filter linked"
+        else
+            bad "kitty paste filter missing -- pasted Windows text keeps its CRs"
+            fix "./install.sh"
+        fi
+    fi
+
     echo "==> terminfo"
     for t in tmux-256color xterm-kitty; do
         if infocmp "$t" >/dev/null 2>&1; then
@@ -549,6 +562,8 @@ if [ "$OS" = windows ]; then
     echo "  skipped -- kitty has no Windows build"
 else
     link "$DOTFILES/kitty/kitty.conf" "$XDG/kitty/kitty.conf"
+    # kitty looks for the paste filter beside kitty.conf, by fixed name.
+    link "$DOTFILES/kitty/paste-actions.py" "$XDG/kitty/paste-actions.py"
 
     if [ "$IS_WSL" = 1 ]; then
         # Windows Start Menu integration.
