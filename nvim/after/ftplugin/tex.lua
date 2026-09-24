@@ -3,10 +3,12 @@
 -- (:h vimtex-syntax-conceal), but concealing is a window option that vimtex
 -- leaves alone, and at the default of 0 none of it is displayed.
 --
--- 2 hides the markup and shows the replacement character where there is one.
--- The line under the cursor is always shown raw (concealcursor is empty), so
--- the source is visible exactly where it is being edited.
+-- 1 shows the replacement character where there is one and a single space
+-- where there is not, so hidden markup such as the $ delimiters still takes up
+-- a column; 2 would remove those spaces. The line under the cursor is always
+-- shown raw (concealcursor is empty), so the source is visible exactly where
+-- it is being edited.
 --
 -- Individual categories -- such as math_bounds, which hides the $ delimiters
 -- -- can be turned off through g:vimtex_syntax_conceal in plugins/vimtex.lua.
-vim.opt_local.conceallevel = 2
+vim.opt_local.conceallevel = 1

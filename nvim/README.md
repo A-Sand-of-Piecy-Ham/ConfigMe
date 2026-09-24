@@ -92,7 +92,9 @@ Two settings exist to route around quiet failures:
 
 Markup is concealed into what it typesets to -- `\delta` shows as δ, `\leq`
 as ≤, `x_1^2` as x₁² -- through vimtex's conceal support, enabled by
-`after/ftplugin/tex.lua`. The cursor line always shows the raw source.
+`after/ftplugin/tex.lua` at level 1, so markup with no replacement character,
+such as the `$` delimiters, still leaves a space. The cursor line always shows
+the raw source.
 
 The viewer is vimtex's `zathura_simple`, not `zathura`: the latter finds its
 window with xdotool, which cannot see the Wayland clients that WSLg and
