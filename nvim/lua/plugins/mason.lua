@@ -32,6 +32,8 @@ return {
         -- Not via astrocommunity.pack.astro: it imports pack.typescript,
         -- which installs vtsls and runs it beside ts_ls. See astrolsp.lua.
         "astro-language-server",
+        "html-lsp", -- VS Code's HTML server: tag/attribute completion, hover, href/src links
+        "css-lsp", -- VS Code's CSS server: completion, validation, color swatches
         "eslint-lsp",
         "yaml-language-server",
         "texlab", -- latex: \ref/\cite/label completion, chktex diagnostics

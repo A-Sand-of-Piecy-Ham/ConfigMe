@@ -55,14 +55,29 @@ check themselves.
 
 ### File renames (`lua/plugins/neo-tree.lua`)
 
-Renaming or moving a file in neo-tree sends `workspace/willRenameFiles` to the
-attached language servers, so imports and references are rewritten rather than
-silently broken. Neovim does not do this on its own -- the request has to come
-from whatever performed the rename, and while snacks.nvim implements the client
-half, nothing subscribes it to neo-tree's events by default.
+Renaming or moving a file in neo-tree asks the running language servers to
+rewrite whatever referenced it (`workspace/willRenameFiles`). Neovim never
+sends that request on its own; it has to come from whatever performed the
+rename.
 
-Servers that do not implement the request simply do not answer it, so this is
-safe regardless of which are attached.
+The edited files are **left unsaved** and listed in a notification, since many
+of them will be buffers that are not on screen. Review, then `:wa`. A server
+that does not answer within 5s is named in a warning rather than skipped.
+
+Whether anything is rewritten depends on the servers, and three limits follow
+from that:
+
+- **Only running servers answer.** A server that has not attached to anything
+  in the project yet cannot update it.
+- **A server only updates files it knows about.** For JavaScript that means a
+  `jsconfig.json` or `tsconfig.json`: without one, tsserver sees only the files
+  that are open and what they import, and misses other importers.
+- **Some languages have no server that does this at all**, HTML and CSS among
+  them -- not VS Code's own servers either. `src`, `href` and `url()`
+  references are not rewritten.
+
+To follow an `href` or `src` to its file, use `gf`. The HTML server exposes
+those paths as document links, which Neovim does not wire to `gd`.
 
 ### LaTeX (`lua/plugins/vimtex.lua`)
 
