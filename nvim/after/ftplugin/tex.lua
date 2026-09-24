@@ -1,0 +1,12 @@
+-- Show LaTeX as what it typesets to: \delta as δ, \leq as ≤, x_1^2 as x₁²,
+-- \textbf{bold} as bold text. vimtex defines all of this in its syntax engine
+-- (:h vimtex-syntax-conceal), but concealing is a window option that vimtex
+-- leaves alone, and at the default of 0 none of it is displayed.
+--
+-- 2 hides the markup and shows the replacement character where there is one.
+-- The line under the cursor is always shown raw (concealcursor is empty), so
+-- the source is visible exactly where it is being edited.
+--
+-- Individual categories -- such as math_bounds, which hides the $ delimiters
+-- -- can be turned off through g:vimtex_syntax_conceal in plugins/vimtex.lua.
+vim.opt_local.conceallevel = 2
