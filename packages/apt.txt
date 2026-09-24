@@ -49,4 +49,23 @@ libnotify-bin       # notify-send, for testing and for scripts
 # download; bash/common.sh exports PUPPETEER_EXECUTABLE_PATH.
 # Chrome is not in the Ubuntu archive -- see packages/manual.md if absent.
 
+# --- LaTeX (vimtex + texlab) ---
+# The practical TeX Live set, about 700 MB with dependencies against 7 GB for
+# texlive-full. pdfLaTeX is the engine Overleaf, arXiv and the IEEE/ACM
+# templates are built against, which is why documents compile with this rather
+# than tectonic; tectonic stays only for snacks.image's inline math. TikZ comes
+# in as a dependency (texlive-pictures). If a template needs a .sty this lacks,
+# `apt-file search <name>.sty` names the collection that provides it.
+latexmk                    # vimtex compiler -- rebuilds on every save
+texlive-latex-recommended  # core classes plus booktabs, microtype, hyperref
+texlive-latex-extra        # the long tail real templates pull in: cleveref, tcolorbox, geometry
+texlive-fonts-recommended  # fonts standard templates assume
+texlive-publishers         # journal and conference classes: IEEEtran, acmart
+texlive-bibtex-extra       # biblatex and extra bibliography styles
+texlive-science            # siunitx, algorithm2e, algorithmicx, pgfplots
+biber                      # biblatex backend; bibtex alone cannot drive biblatex
+chktex                     # LaTeX linter, surfaced as texlab diagnostics
+zathura                    # vimtex PDF viewer, synctex in both directions
+zathura-pdf-poppler        # zathura's PDF backend -- it opens nothing without one
+
 # tectonic and mmdc are NOT apt packages. See packages/manual.md.

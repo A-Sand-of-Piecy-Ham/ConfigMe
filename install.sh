@@ -265,6 +265,25 @@ doctor() {
     fi
     unset _mason_bin
 
+    echo "==> latex"
+    # Optional: nothing else depends on these, but each fails in its own way.
+    # Without latexmk, `,ll` errors. Without chktex, texlab simply reports no
+    # lint findings. Without zathura, vimtex falls back to xdg-open and loses
+    # synctex jumping.
+    check_cmd latexmk "vimtex cannot compile (,ll)" no "./install.sh --install-deps"
+    check_cmd chktex  "texlab reports no LaTeX lint findings" no "./install.sh --install-deps"
+    check_cmd zathura "vimtex views through xdg-open, without synctex" no "./install.sh --install-deps"
+    # zathura loads each format from a plugin. Without the PDF one it opens a
+    # window and shows nothing, with no error, which reads as a vimtex bug.
+    if command -v zathura >/dev/null 2>&1; then
+        if ls /usr/lib/*/zathura/libpdf-*.so >/dev/null 2>&1; then
+            ok "zathura PDF backend"
+        else
+            bad "zathura has no PDF backend -- it opens PDFs as blank windows"
+            fix "./install.sh --install-deps   (zathura-pdf-poppler)"
+        fi
+    fi
+
     echo "==> paste"
     # kitty.conf lists `filter` in paste_actions. If paste-actions.py is not
     # beside it, kitty pastes unfiltered with no visible error and CRLF text

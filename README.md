@@ -10,7 +10,7 @@ failing on it, and keeps one checkout authoritative when a machine has two.
 
 | Area | What |
 |---|---|
-| [Neovim](nvim/README.md) | AstroNvim v6, LSP and debugger setup, Python/TypeScript/C++/Java tooling |
+| [Neovim](nvim/README.md) | AstroNvim v6, LSP and debugger setup; Python, TypeScript, Astro, C++, Java and LaTeX tooling |
 | [Bash](bash/README.md) | Per-OS `bashrc` and `bash_profile` over a shared `common.sh` |
 | Terminals | kitty (Linux/WSL), Ghostty (macOS/Linux), WezTerm (Windows) |
 | Tmux | `C-Space` prefix, plugins, status bar, nested-session passthrough |

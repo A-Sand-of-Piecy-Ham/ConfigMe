@@ -29,8 +29,12 @@ return {
         "nginx-language-server",
         "taplo", -- toml
         "typescript-language-server",
+        -- Not via astrocommunity.pack.astro: it imports pack.typescript,
+        -- which installs vtsls and runs it beside ts_ls. See astrolsp.lua.
+        "astro-language-server",
         "eslint-lsp",
         "yaml-language-server",
+        "texlab", -- latex: \ref/\cite/label completion, chktex diagnostics
 
         -- hardware / shading languages
         "verible", -- systemverilog: formatter + linter + LSP
@@ -45,6 +49,7 @@ return {
 
         -- formatters / linters
         "ruff", -- python lint + format
+        "tex-fmt", -- latex/bibtex formatter, run through texlab (see astrolsp.lua)
 
         -- other
         "ast-grep",

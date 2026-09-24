@@ -183,6 +183,30 @@ mapping carries no `desc`, so nothing in the UI advertises it. It is also the
 reason blink.cmp's passive signature window is left disabled — that one shows
 only the active signature and cannot cycle.
 
+### LaTeX (vimtex)
+
+vimtex's own defaults on `<LocalLeader>`, which is `,` here. They are not
+defined by this repo; they are listed because they are the whole interface to
+compiling and viewing. which-key shows descriptions for all of them under `,l`.
+
+| Key | Action |
+|---|---|
+| `,ll` | Start/stop continuous compile -- latexmk then rebuilds on every save |
+| `,lv` | View the PDF in zathura, scrolled to the cursor's line |
+| *ctrl+click* in zathura | Jump back to that line in Neovim |
+| `,le` | Errors and warnings in the quickfix list |
+| `,lt` | Table of contents |
+| `,lk` | Stop the compiler |
+| `,lc` | Remove auxiliary files (`.aux`, `.log`, ...) |
+| `i$` / `a$` | Text object: inside / around math |
+| `ie` / `ae` | Text object: inside / around an environment |
+| `ic` / `ac` | Text object: inside / around a command |
+| `dse` / `cse` | Delete / change the surrounding environment |
+| `ts$` | Cycle inline, display, and numbered math |
+| `[[` / `]]` | Previous / next section |
+
+Formatting is the usual `<Leader>lf`, which runs through texlab to tex-fmt.
+
 ## Shell aliases
 
 Not keybindings, but the other half of the kitten setup. Defined in
