@@ -15,3 +15,9 @@
 # macOS Finder folder-metadata file — created in every directory Finder
 # touches, never meaningful to share.
 .DS_Store
+
+# Python bytecode cache — written into __pycache__/ beside any .py file that
+# Python imports, so running a test or a REPL against a repo's own Python
+# leaves compiled files in the working tree. Machine-specific build output.
+__pycache__/
+*.py[cod]
