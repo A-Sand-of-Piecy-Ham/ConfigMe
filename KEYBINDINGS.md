@@ -175,13 +175,14 @@ prefix.
 
 | Key | Action |
 |---|---|
+| `gf` | Open the file path under the cursor, relative to the current file -- the way to follow an HTML `href`/`src`, since `gd` does not |
 | `<C-S>` *(insert)* | Signature help. The float shows documentation, and **`<C-s>` inside it cycles overloads** with an `(n/total)` counter |
 
-A Neovim default, not something this repo sets. It is listed because it is easy
-to miss: which-key does not surface insert-mode control bindings, and the
-mapping carries no `desc`, so nothing in the UI advertises it. It is also the
-reason blink.cmp's passive signature window is left disabled — that one shows
-only the active signature and cannot cycle.
+Both are Neovim defaults, not something this repo sets; they are listed because
+nothing in the UI advertises them. `<C-S>` is especially easy to miss:
+which-key does not surface insert-mode control bindings, and the mapping
+carries no `desc`. It is also the reason blink.cmp's passive signature window
+is left disabled — that one shows only the active signature and cannot cycle.
 
 ### LaTeX (vimtex)
 
