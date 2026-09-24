@@ -20,9 +20,13 @@ bash ~/projects/dotfiles/install.sh
 | Pack | Purpose |
 |------|---------|
 | `astrocommunity.pack.lua` | Lua LSP + tooling |
-| `astrocommunity.motion.harpoon` | Harpoon2 base (overridden below) |
 | `astrocommunity.pack.cpp` | clangd + codelldb for C/C++ |
 | `astrocommunity.pack.rust` | rust-analyzer + codelldb for Rust |
+| `astrocommunity.markdown-and-latex.vimtex` | vimtex, plus which-key descriptions for its maps |
+
+Harpoon is deliberately *not* imported from its community module; it is
+configured entirely in `lua/plugins/harpoon.lua`. Neither is `pack.astro` --
+see Astro below.
 
 ### Mason Tool Installer (`lua/plugins/mason.lua`)
 
@@ -60,7 +64,46 @@ half, nothing subscribes it to neo-tree's events by default.
 Servers that do not implement the request simply do not answer it, so this is
 safe regardless of which are attached.
 
-#### Future considerations
+### LaTeX (`lua/plugins/vimtex.lua`)
+
+Three pieces with separate jobs. **vimtex** compiles with latexmk, views in
+zathura with synctex in both directions, and provides the LaTeX motions and
+text objects. **texlab** provides language features: completion for `\ref`,
+`\cite` and labels, and chktex lint as diagnostics. **tex-fmt** formats,
+invoked through texlab. texlab's own build and forward-search settings are left
+unset so it does not duplicate vimtex. Keys are in
+[KEYBINDINGS.md](../KEYBINDINGS.md#latex-vimtex).
+
+Documents compile with TeX Live's pdfLaTeX (see `packages/apt.txt`), because
+that is what Overleaf, arXiv and the IEEE/ACM templates target. tectonic is
+still installed, but only for snacks.image's inline math.
+
+Two settings exist to route around quiet failures:
+
+- **Treesitter highlighting is off for LaTeX.** vimtex's math text objects find
+  math through vimtex's own syntax groups, which do not exist while treesitter
+  highlights the buffer, so `i$` / `a$` silently stop working. The community
+  module tries to disable it through an option AstroNvim v6 no longer reads, so
+  it is done in `lua/plugins/treesitter.lua` instead. The parser is still
+  installed; snacks.image parses with it.
+- **`tex_flavor = "latex"`.** Otherwise a file without `\documentclass`, such
+  as a chapter pulled in with `\input`, is detected as `plaintex` and vimtex
+  does not load for it.
+
+The viewer is vimtex's `zathura_simple`, not `zathura`: the latter finds its
+window with xdotool, which cannot see the Wayland clients that WSLg and
+current Raspberry Pi OS produce.
+
+### Astro
+
+The language server and treesitter parsers are added directly, not through
+`astrocommunity.pack.astro`. That pack imports `pack.typescript`, which
+installs vtsls and runs it alongside `ts_ls` -- see Future considerations for
+why vtsls is absent. When a project has no TypeScript of its own, the server
+falls back to the copy bundled with astro-language-server; mason-lspconfig
+handles that, so there is nothing to configure here.
+
+### Future considerations
 
 Deliberate deferrals, recorded so they are not rediscovered from scratch.
 

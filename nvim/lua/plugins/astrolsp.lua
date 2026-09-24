@@ -64,6 +64,22 @@ return {
           },
         }
       },
+      -- texlab supplies the language features. Compiling and viewing belong to
+      -- vimtex (plugins/vimtex.lua), so texlab's own build and forward-search
+      -- settings are deliberately left unset rather than duplicating it.
+      texlab = {
+        settings = {
+          texlab = {
+            -- tex-fmt is a single Rust binary from Mason; the default,
+            -- latexindent, is a Perl script and far slower on each format.
+            latexFormatter = "tex-fmt",
+            bibtexFormatter = "tex-fmt",
+            -- chktex lint findings as ordinary diagnostics. Needs chktex from
+            -- packages/apt.txt; without it this reports nothing.
+            chktex = { onOpenAndSave = true },
+          },
+        },
+      },
     },
     -- customize how language servers are attached
     handlers = {
