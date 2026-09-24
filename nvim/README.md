@@ -90,6 +90,10 @@ Two settings exist to route around quiet failures:
   as a chapter pulled in with `\input`, is detected as `plaintex` and vimtex
   does not load for it.
 
+Markup is concealed into what it typesets to -- `\delta` shows as δ, `\leq`
+as ≤, `x_1^2` as x₁² -- through vimtex's conceal support, enabled by
+`after/ftplugin/tex.lua`. The cursor line always shows the raw source.
+
 The viewer is vimtex's `zathura_simple`, not `zathura`: the latter finds its
 window with xdotool, which cannot see the Wayland clients that WSLg and
 current Raspberry Pi OS produce.
