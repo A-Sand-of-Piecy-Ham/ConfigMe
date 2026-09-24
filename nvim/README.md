@@ -53,28 +53,43 @@ server in this configuration by a wide margin. ty is a single Rust binary.
 arrangement is what the comments in `astrolsp.lua` describe and comments cannot
 check themselves.
 
-### File renames (`lua/plugins/neo-tree.lua`)
+### File renames (`lua/rename_refs.lua`)
 
-Renaming or moving a file in neo-tree asks the running language servers to
-rewrite whatever referenced it (`workspace/willRenameFiles`). Neovim never
-sends that request on its own; it has to come from whatever performed the
-rename.
+Renaming or moving a file -- in neo-tree, or the current buffer's with
+`<Leader>R` -- rewrites whatever referenced it, in two ways:
 
-The edited files are **left unsaved** and listed in a notification, since many
-of them will be buffers that are not on screen. Review, then `:wa`. A server
-that does not answer within 5s is named in a warning rather than skipped.
+- **Language servers**, through AstroNvim. astrolsp sends
+  `workspace/willRenameFiles` before the move, honouring each server's declared
+  file filters, with a 10s timeout. This is AstroNvim's own wiring, not this
+  config's. It updates JS/TS imports, Lua, Rust, and whatever else a running
+  server implements.
+- **HTML and CSS references**, through `lua/rename_refs.lua`. No HTML or CSS
+  server implements the request -- VS Code's own do not either -- so this
+  rewrites `src`, `href`, `poster`, `srcset`, `url()` and `@import` itself,
+  after the move. It handles relative paths, root-relative paths (resolved from
+  the git root), folder renames, a moved file's own outgoing references, and
+  keeps `?query` / `#fragment` and `%20`-style encoding intact.
 
-Whether anything is rewritten depends on the servers, and three limits follow
-from that:
+Every file either one rewrote is **left unsaved** and listed in one
+notification, since many will be buffers that are not on screen. Review, then
+`:wa`.
 
-- **Only running servers answer.** A server that has not attached to anything
-  in the project yet cannot update it.
-- **A server only updates files it knows about.** For JavaScript that means a
-  `jsconfig.json` or `tsconfig.json`: without one, tsserver sees only the files
-  that are open and what they import, and misses other importers.
-- **Some languages have no server that does this at all**, HTML and CSS among
-  them -- not VS Code's own servers either. `src`, `href` and `url()`
-  references are not rewritten.
+`rename_refs.lua` works by wrapping astrolsp's `willRenameFiles` /
+`didRenameFiles` rather than listening to neo-tree itself; an earlier version
+of this config did the latter and sent every server the request twice.
+
+Limits:
+
+- **Only running servers answer**, and a server only updates files it knows
+  about. For JavaScript that means a `jsconfig.json` or `tsconfig.json`;
+  without one, tsserver sees only open files and their imports. A server that
+  times out is skipped silently -- astrolsp does not report it.
+- **The HTML/CSS updater only rewrites what it can resolve with confidence.**
+  URLs with a scheme, template syntax (`{{`, `${`), and references to files
+  that do not exist -- such as an `href` that is really a route -- are left as
+  written. Paths assembled at runtime in JS cannot be seen at all, and Vite
+  `public/` assets written as `/logo.png` do not resolve from the git root, so
+  they are missed rather than mis-rewritten.
 
 To follow an `href` or `src` to its file, use `gf`. The HTML server exposes
 those paths as document links, which Neovim does not wire to `gd`.
