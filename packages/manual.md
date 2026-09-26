@@ -315,5 +315,8 @@ Deliberately not managed here, since each has its own version manager and
 pinning them in a dotfiles repo fights those tools:
 
 - Node: `nvm` (`bash/bashrc.linux` sources it)
-- Rust: `rustup`
+- Rust: `rustup`. The default profile brings `clippy` and `rustfmt`; add
+  `rustup component add rust-src` as well, which rust-analyzer needs for
+  std-library completion, hover and go-to-definition and which is not in
+  the default profile. rust-analyzer itself comes from Mason, not rustup.
 - Python: `uv`
