@@ -6,6 +6,8 @@ package at all. `install.sh --doctor` checks for each of these.
 
 ## kitty
 
+Only needed with the `kitty` feature on (off by default).
+
 Ubuntu 24.04 ships 0.32.2, which is well behind. The graphics protocol is the
 reason kitty is here at all, so running a current build matters.
 

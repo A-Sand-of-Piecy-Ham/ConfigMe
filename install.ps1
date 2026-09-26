@@ -223,6 +223,32 @@ function New-FileLink {
     }
 }
 
+# Optional features: the same files and rules as install.sh. features.md holds
+# the defaults, the per-machine copy overrides them line by line, and an id
+# neither file mentions counts as on. %USERPROFILE%\.config is also where
+# Neovim's features.lua looks on Windows, since it falls back to ~/.config.
+$FeaturesLocal = if ($env:CONFIGME_FEATURES) { $env:CONFIGME_FEATURES } `
+                 else { Join-Path $env:USERPROFILE '.config\configme\features.md' }
+
+function Read-Features {
+    param([string]$Path, [hashtable]$Into)
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        if ($line -match '^\s*[-*]\s+\[([ xX])\]\s+([a-z][a-z0-9-]*)') {
+            $Into[$Matches[2]] = ($Matches[1] -ne ' ')
+        }
+    }
+}
+
+$Features = @{}
+Read-Features -Path (Join-Path $Dotfiles 'features.md') -Into $Features
+Read-Features -Path $FeaturesLocal -Into $Features
+
+function Test-Feature {
+    param([string]$Name)
+    -not $Features.ContainsKey($Name) -or $Features[$Name]
+}
+
 Write-Host "==> dotfiles: $Dotfiles"
 Write-Host "==> target:   $env:USERPROFILE"
 Write-Host ("==> file links: " + $(if ($CanSymlink) { 'symlinks' } else { 'shims (no symlink privilege)' }))
@@ -266,47 +292,70 @@ New-Shim -Destination (Join-Path $env:USERPROFILE '.gitconfig') -Content @"
 "@
 
 Write-Host '==> wezterm'
-New-FileLink -Source (Join-Path $Dotfiles 'wezterm\wezterm.lua') `
-             -Destination (Join-Path $env:USERPROFILE '.wezterm.lua') `
-             -Shim @"
+if (Test-Feature 'wezterm') {
+    New-FileLink -Source (Join-Path $Dotfiles 'wezterm\wezterm.lua') `
+                 -Destination (Join-Path $env:USERPROFILE '.wezterm.lua') `
+                 -Shim @"
 -- managed by ConfigMe -- edit $DotfilesPosix/wezterm/wezterm.lua instead
 return dofile("$DotfilesPosix/wezterm/wezterm.lua")
 "@
+} else {
+    Write-Host '  skipped -- wezterm feature off (features.md)' -ForegroundColor DarkGray
+}
 
 Write-Host '==> claude'
-# Rules load every session and were previously WSL-only, so every behavioural
-# rule in this repo silently did not apply on Windows.
-New-DirLink -Source (Join-Path $Dotfiles 'claude\rules') -Destination (Join-Path $env:USERPROFILE '.claude\rules')
+if (Test-Feature 'claude') {
+    # Rules load every session and were previously WSL-only, so every behavioural
+    # rule in this repo silently did not apply on Windows.
+    New-DirLink -Source (Join-Path $Dotfiles 'claude\rules') -Destination (Join-Path $env:USERPROFILE '.claude\rules')
 
-# .claude\skills is a real directory of per-skill links into
-# %USERPROFILE%\.agents, managed separately. Junctioning the whole directory
-# would destroy those, so link each of this repo's skills individually
-# alongside them. Same reason the loop removes only links it previously made:
-# a stale ConfigMe skill should go, an .agents link must not.
-$skillsDir = Join-Path $env:USERPROFILE '.claude\skills'
-if (-not (Test-Path -LiteralPath $skillsDir)) {
-    New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
-}
-$repoSkills = Join-Path $Dotfiles 'claude\skills'
-$wanted = @{}
-foreach ($skill in Get-ChildItem -LiteralPath $repoSkills -Directory) {
-    $wanted[$skill.Name] = $true
-    New-DirLink -Source $skill.FullName -Destination (Join-Path $skillsDir $skill.Name)
-}
-foreach ($existing in Get-ChildItem -LiteralPath $skillsDir -Force) {
-    if (-not ($existing.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
-    if ($wanted.ContainsKey($existing.Name)) { continue }
-    if ($existing.Target -and ($existing.Target -join ' ') -like "*$repoSkills*") {
-        Write-Host ("  removing stale " + $existing.Name) -ForegroundColor DarkYellow
-        $existing.Delete()
+    # .claude\skills is a real directory of per-skill links into
+    # %USERPROFILE%\.agents, managed separately. Junctioning the whole directory
+    # would destroy those, so link each of this repo's skills individually
+    # alongside them. Same reason the loop removes only links it previously made:
+    # a stale ConfigMe skill should go, an .agents link must not.
+    $skillsDir = Join-Path $env:USERPROFILE '.claude\skills'
+    if (-not (Test-Path -LiteralPath $skillsDir)) {
+        New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
     }
-}
-New-FileLink -Source (Join-Path $Dotfiles 'claude\CLAUDE.md') `
-             -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md') `
-             -Shim @"
+    $repoSkills = Join-Path $Dotfiles 'claude\skills'
+    $wanted = @{}
+    foreach ($skill in Get-ChildItem -LiteralPath $repoSkills -Directory) {
+        $wanted[$skill.Name] = $true
+        New-DirLink -Source $skill.FullName -Destination (Join-Path $skillsDir $skill.Name)
+    }
+    foreach ($existing in Get-ChildItem -LiteralPath $skillsDir -Force) {
+        if (-not ($existing.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+        if ($wanted.ContainsKey($existing.Name)) { continue }
+        if ($existing.Target -and ($existing.Target -join ' ') -like "*$repoSkills*") {
+            Write-Host ("  removing stale " + $existing.Name) -ForegroundColor DarkYellow
+            $existing.Delete()
+        }
+    }
+    New-FileLink -Source (Join-Path $Dotfiles 'claude\CLAUDE.md') `
+                 -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md') `
+                 -Shim @"
 <!-- managed by ConfigMe -- edit $DotfilesPosix/claude/CLAUDE.md instead -->
 @$DotfilesPosix/claude/CLAUDE.md
 "@
+} else {
+    Write-Host '  skipped -- claude feature off (features.md)' -ForegroundColor DarkGray
+}
+
+Write-Host '==> features'
+# Created with only a header, as install.sh does, so it is there to find.
+if (-not (Test-Path -LiteralPath $FeaturesLocal)) {
+    New-Item -ItemType Directory -Path (Split-Path $FeaturesLocal) -Force | Out-Null
+    Set-Content -LiteralPath $FeaturesLocal -Encoding ASCII -Value @"
+# Feature overrides for this machine
+
+Lines here override $DotfilesPosix/features.md on this machine only.
+Copy a feature's line from that file and change its box: [x] on, [ ] off.
+"@
+    Write-Host "  created $FeaturesLocal"
+}
+$off = @($Features.Keys | Where-Object { -not $Features[$_] } | Sort-Object)
+Write-Host ("  off: " + $(if ($off.Count) { $off -join ' ' } else { 'none' }) + "   (edit $FeaturesLocal to change)")
 
 Write-Host ''
 Write-Host 'Done.' -ForegroundColor Green

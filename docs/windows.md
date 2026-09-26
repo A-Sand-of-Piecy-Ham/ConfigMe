@@ -6,6 +6,12 @@ Run the PowerShell installer from the Windows clone:
 .\install.ps1
 ```
 
+It honours [features.md](../features.md) like `install.sh` does, with the
+per-machine override at `%USERPROFILE%\.config\configme\features.md` -- the
+same path Neovim reads there. On Windows that decides whether `.wezterm.lua`
+and the Claude Code files are linked; WezTerm is off by default, so tick it in
+the override on a machine that uses it.
+
 It runs without elevation. Developer Mode (Settings > System > For developers)
 improves the result but is not required -- the script probes for symlink
 permission and adapts.

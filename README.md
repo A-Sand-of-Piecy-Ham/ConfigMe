@@ -38,12 +38,13 @@ and the traps that come with them.
 
 ## Optional features
 
-Heavier additions are optional, listed as a checklist in
-[features.md](features.md) -- LaTeX editing, for instance, pulls in about
-700 MB of TeX Live and is off by default. Each machine can override any box in
-`~/.config/configme/features.md`, so the Pi and a workstation need not carry
-the same things. A feature that is off is left out everywhere: its system
-packages, its doctor checks, its Mason tools and its Neovim plugins.
+Heavier additions and per-application configs are optional, listed as a
+checklist in [features.md](features.md) -- LaTeX editing, for instance, pulls
+in about 700 MB of TeX Live and is off by default, as are the terminal configs.
+Each machine can override any box in `~/.config/configme/features.md`, so the
+Pi and a workstation need not carry the same things. A feature that is off is
+left out everywhere: its config links, system packages, doctor checks, Mason
+tools and Neovim plugins. `install.ps1` reads the same files on Windows.
 
 ## Checking a machine
 
