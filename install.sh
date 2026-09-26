@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# Must be executed, never sourced. Sourced, this runs inside the calling shell:
+# `set -euo pipefail` below would switch that shell to exit on its next failing
+# command, and the `exit` that ends every mode would exit it outright. Inside
+# tmux either one closes the pane, and the terminal window with it when it is
+# the last one. `return` only succeeds in a sourced file, which makes it the test.
+if (return 0 2>/dev/null); then
+    echo "install.sh must be run, not sourced:  ./install.sh $*" >&2
+    return 1
+fi
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
