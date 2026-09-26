@@ -324,3 +324,9 @@ pinning them in a dotfiles repo fights those tools:
   std-library completion, hover and go-to-definition and which is not in
   the default profile. rust-analyzer itself comes from Mason, not rustup.
 - Python: `uv`
+- Java (only with the `java` feature on): a JDK **21 or newer** -- jdtls
+  refuses anything older. On Ubuntu 24.04 that is
+  `sudo apt install openjdk-21-jdk-headless`; where the distro has no 21,
+  SDKMAN! (`sdk install java 21-tem`). Kept out of `apt.txt` because
+  `--install-deps` installs in a single apt call, and one package the
+  distro lacks would fail all of them.
