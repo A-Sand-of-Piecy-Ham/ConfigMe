@@ -53,6 +53,13 @@ server in this configuration by a wide margin. ty is a single Rust binary.
 arrangement is what the comments in `astrolsp.lua` describe and comments cannot
 check themselves.
 
+**Compiled modules show a signature but no docs on `K`** -- cv2 is the usual
+case. Their documentation exists only at runtime (`__doc__` inside the `.so`),
+and every static checker, basedpyright included, reads the bundled `.pyi`
+instead. Per project, `uv add --dev opencv-stubs` supplies stubs with the
+docstrings copied in; it targets OpenCV 4.x, so 5.x-only APIs may type-check
+as unknown.
+
 ### File renames (`lua/rename_refs.lua`)
 
 Renaming or moving a file -- in neo-tree, or the current buffer's with
