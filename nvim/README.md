@@ -21,7 +21,7 @@ bash ~/projects/dotfiles/install.sh
 |------|---------|
 | `astrocommunity.pack.lua` | Lua LSP + tooling |
 | `astrocommunity.pack.cpp` | clangd + codelldb for C/C++ |
-| `astrocommunity.pack.rust` | rust-analyzer + codelldb for Rust |
+| `astrocommunity.pack.rust` | Rust: rustaceanvim (drives rust-analyzer), codelldb, crates.nvim -- see Rust below |
 | `astrocommunity.markdown-and-latex.vimtex` | vimtex, plus which-key descriptions for its maps |
 
 Harpoon is deliberately *not* imported from its community module; it is
@@ -138,6 +138,26 @@ installs vtsls and runs it alongside `ts_ls` -- see Future considerations for
 why vtsls is absent. When a project has no TypeScript of its own, the server
 falls back to the copy bundled with astro-language-server; mason-lspconfig
 handles that, so there is nothing to configure here.
+
+### Rust (`lua/plugins/rust.lua`)
+
+Comes almost entirely from `astrocommunity.pack.rust`: rustaceanvim runs
+rust-analyzer (from Mason) and adds the `:RustLsp` commands, codelldb handles
+debugging, and crates.nvim adds version completion and hover in `Cargo.toml`.
+Formatting is rustfmt through `<Leader>lf`. The toolchain itself comes from
+rustup -- see `packages/manual.md` for the components rust-analyzer depends on.
+
+`lua/plugins/rust.lua` exists for one fix. The pack configures clippy as the
+checker but the setting never reached rust-analyzer: the pack snapshots its
+LSP config when rustaceanvim loads, before astrolsp has registered that
+setting, and it also switches off rustaceanvim's own clippy default. The result
+was plain `cargo check` with no clippy lints and no sign anything was missing.
+Re-enabling rustaceanvim's default restores clippy at server start.
+
+Useful `:RustLsp` subcommands: `runnables` and `testables` (pick and run),
+`debuggables` (same, under codelldb), `expandMacro`, `explainError`,
+`renderDiagnostic` (the full rustc output), `openCargo`, `openDocs`, and
+`hover actions` (hover with runnable actions such as "Run" or "Go to impl").
 
 ### Future considerations
 

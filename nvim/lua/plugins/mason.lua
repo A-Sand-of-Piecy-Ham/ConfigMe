@@ -37,6 +37,10 @@ return {
         "eslint-lsp",
         "yaml-language-server",
         "texlab", -- latex: \ref/\cite/label completion, chktex diagnostics
+        -- pack.rust installs codelldb but not the server, and rustup's
+        -- /usr/bin/rust-analyzer is a placeholder that errors unless the
+        -- rust-analyzer component is added, so a fresh machine had no Rust LSP.
+        "rust-analyzer",
 
         -- hardware / shading languages
         "verible", -- systemverilog: formatter + linter + LSP

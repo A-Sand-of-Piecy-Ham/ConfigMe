@@ -265,6 +265,22 @@ doctor() {
     fi
     unset _mason_bin
 
+    echo "==> rust"
+    # Optional, but each piece fails silently. Without cargo, rust-analyzer
+    # cannot load a project. Without cargo-clippy it checks with plain
+    # `cargo check`. Without rust-src there is no std completion, hover or
+    # go-to-definition, and no error saying why.
+    check_cmd cargo        "rust-analyzer cannot load a Cargo project" no "rustup -- see packages/manual.md"
+    if command -v cargo >/dev/null 2>&1; then
+        check_cmd cargo-clippy "rust-analyzer checks without clippy lints" no "rustup component add clippy"
+        if [ -d "$(rustc --print sysroot 2>/dev/null)/lib/rustlib/src/rust" ]; then
+            ok "rust-src"
+        else
+            warn "rust-src missing -- no std completion, hover or go-to-definition"
+            fix "rustup component add rust-src"
+        fi
+    fi
+
     echo "==> latex"
     # Optional: nothing else depends on these, but each fails in its own way.
     # Without latexmk, `,ll` errors. Without chktex, texlab simply reports no
