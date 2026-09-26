@@ -26,9 +26,6 @@ local spec = {
       -- replacing it. Listed explicitly rather than left to auto_install so a
       -- fresh machine fetches them up front instead of on first open.
       ensure_installed = {
-        "systemverilog",
-        "glsl",
-        "wgsl",
         -- auto_install fetches a buffer's own language, never the ones
         -- injected into it, so a fresh machine opening an .astro file first
         -- would get no highlighting in its frontmatter or <style> blocks.
@@ -44,6 +41,7 @@ local spec = {
 -- Optional features (features.md): parsers only a feature needs.
 local feature = require("features").on
 local parsers = spec.opts.treesitter.ensure_installed
+if feature "hardware" then vim.list_extend(parsers, { "systemverilog", "glsl", "wgsl" }) end
 if feature "latex" then
   -- latex is parsed for snacks.image math even though vimtex highlights it;
   -- bibtex is highlighted normally.

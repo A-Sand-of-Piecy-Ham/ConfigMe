@@ -36,11 +36,6 @@ local tools = {
   -- rust-analyzer component is added, so a fresh machine had no Rust LSP.
   "rust-analyzer",
 
-  -- hardware / shading languages
-  "verible", -- systemverilog: formatter + linter + LSP
-  "glsl_analyzer",
-  "wgsl-analyzer",
-
   -- debuggers
   "cpptools",
   "java-debug-adapter",
@@ -58,6 +53,13 @@ local tools = {
 -- Optional features (features.md). A feature that is off is simply not
 -- requested; anything already installed is left alone.
 local feature = require("features").on
+if feature "hardware" then
+  vim.list_extend(tools, {
+    "verible", -- systemverilog: formatter + linter + LSP
+    "glsl_analyzer",
+    "wgsl-analyzer",
+  })
+end
 if feature "latex" then
   vim.list_extend(tools, {
     "texlab", -- latex: \ref/\cite/label completion, chktex diagnostics
