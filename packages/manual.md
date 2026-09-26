@@ -319,10 +319,15 @@ Deliberately not managed here, since each has its own version manager and
 pinning them in a dotfiles repo fights those tools:
 
 - Node: `nvm` (`bash/bashrc.linux` sources it)
-- Rust: `rustup`. The default profile brings `clippy` and `rustfmt`; add
-  `rustup component add rust-src` as well, which rust-analyzer needs for
-  std-library completion, hover and go-to-definition and which is not in
-  the default profile. rust-analyzer itself comes from Mason, not rustup.
+- Rust (only with the `rust` feature on): `rustup`, the exception here --
+  `./install.sh` installs it on Linux when missing, with a stable default
+  toolchain and the `rust-src` and `rust-analyzer` components. Neither is in
+  the default profile: rust-src gives std-library completion, hover and
+  go-to-definition, and nvim runs the toolchain's own rust-analyzer so that
+  projects pinned to an older toolchain still get a server that supports it.
+  An existing rustup, apt's included, is used as is; a distro `cargo`/`rustc`
+  ahead of it on PATH is not (`--doctor` flags it). It does not update the
+  toolchain: `rustup update` when you want to.
 - Python: `uv`
 - Java (only with the `java` feature on): a JDK **21 or newer** -- jdtls
   refuses anything older. On Ubuntu 24.04 that is
