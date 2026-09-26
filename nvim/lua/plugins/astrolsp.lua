@@ -169,6 +169,10 @@ local spec = {
 -- astrolsp never calls vim.lsp.enable for that server.
 local feature = require("features").on
 if not feature "latex" then spec.opts.handlers.texlab = false end
+-- pack.rust normally sets this, so rustaceanvim alone drives rust-analyzer.
+-- With rust off the pack is skipped, and an installed rust-analyzer would
+-- otherwise be started through plain lspconfig.
+if not feature "rust" then spec.opts.handlers.rust_analyzer = false end
 if not feature "hardware" then
   for _, server in ipairs { "verible", "glsl_analyzer", "wgsl_analyzer" } do
     spec.opts.handlers[server] = false

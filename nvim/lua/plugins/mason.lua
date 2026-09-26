@@ -19,7 +19,6 @@ local tools = {
   "ty", -- python type checker + LSP (Rust)
   "basedpyright", -- python: stricter checker, started on demand
   "json-lsp",
-  "jdtls",
   "marksman", -- markdown
   "nginx-language-server",
   "taplo", -- toml
@@ -31,16 +30,9 @@ local tools = {
   "css-lsp", -- VS Code's CSS server: completion, validation, color swatches
   "eslint-lsp",
   "yaml-language-server",
-  -- pack.rust installs codelldb but not the server, and rustup's
-  -- /usr/bin/rust-analyzer is a placeholder that errors unless the
-  -- rust-analyzer component is added, so a fresh machine had no Rust LSP.
-  "rust-analyzer",
 
   -- debuggers
   "cpptools",
-  "java-debug-adapter",
-  "java-test",
-  "vscode-spring-boot-tools",
 
   -- formatters / linters
   "ruff", -- python lint + format
@@ -53,6 +45,20 @@ local tools = {
 -- Optional features (features.md). A feature that is off is simply not
 -- requested; anything already installed is left alone.
 local feature = require("features").on
+if feature "java" then
+  vim.list_extend(tools, {
+    "jdtls",
+    "java-debug-adapter",
+    "java-test",
+    "vscode-spring-boot-tools",
+  })
+end
+if feature "rust" then
+  -- pack.rust installs codelldb but not the server, and rustup's
+  -- /usr/bin/rust-analyzer is a placeholder that errors unless the
+  -- rust-analyzer component is added, so a fresh machine had no Rust LSP.
+  table.insert(tools, "rust-analyzer")
+end
 if feature "hardware" then
   vim.list_extend(tools, {
     "verible", -- systemverilog: formatter + linter + LSP

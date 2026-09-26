@@ -14,10 +14,19 @@
 -- applies only when no `check` is configured and cargo-clippy is installed, so
 -- it cannot conflict once the pack is fixed upstream.
 
+-- Optional feature (features.md). Both of the pack's plugins are declared
+-- here with `enabled`, so while rust is off -- and the pack itself is
+-- skipped -- lazy still knows them and keeps their lazy-lock.json pins.
+local rust = require("features").on "rust"
+
 ---@type LazySpec
 return {
-  "mrcjkb/rustaceanvim",
-  opts = function(_, opts)
-    opts.tools = vim.tbl_extend("force", opts.tools or {}, { enable_clippy = true })
-  end,
+  { "Saecki/crates.nvim", enabled = rust },
+  {
+    "mrcjkb/rustaceanvim",
+    enabled = rust,
+    opts = function(_, opts)
+      opts.tools = vim.tbl_extend("force", opts.tools or {}, { enable_clippy = true })
+    end,
+  },
 }

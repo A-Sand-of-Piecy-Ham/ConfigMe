@@ -347,19 +347,40 @@ doctor() {
     fi
     unset _mason_bin
 
-    echo "==> rust"
-    # Optional, but each piece fails silently. Without cargo, rust-analyzer
-    # cannot load a project. Without cargo-clippy it checks with plain
-    # `cargo check`. Without rust-src there is no std completion, hover or
-    # go-to-definition, and no error saying why.
-    check_cmd cargo        "rust-analyzer cannot load a Cargo project" no "rustup -- see packages/manual.md"
-    if command -v cargo >/dev/null 2>&1; then
-        check_cmd cargo-clippy "rust-analyzer checks without clippy lints" no "rustup component add clippy"
-        if [ -d "$(rustc --print sysroot 2>/dev/null)/lib/rustlib/src/rust" ]; then
-            ok "rust-src"
+    if feature_on rust; then
+        echo "==> rust"
+        # Optional, but each piece fails silently. Without cargo, rust-analyzer
+        # cannot load a project. Without cargo-clippy it checks with plain
+        # `cargo check`. Without rust-src there is no std completion, hover or
+        # go-to-definition, and no error saying why.
+        check_cmd cargo        "rust-analyzer cannot load a Cargo project" no "rustup -- see packages/manual.md"
+        if command -v cargo >/dev/null 2>&1; then
+            check_cmd cargo-clippy "rust-analyzer checks without clippy lints" no "rustup component add clippy"
+            if [ -d "$(rustc --print sysroot 2>/dev/null)/lib/rustlib/src/rust" ]; then
+                ok "rust-src"
+            else
+                warn "rust-src missing -- no std completion, hover or go-to-definition"
+                fix "rustup component add rust-src"
+            fi
+        fi
+    fi
+
+    if feature_on java; then
+        echo "==> java"
+        # jdtls's launcher refuses anything below 21, and does so only when a
+        # .java file is first opened -- not when Mason installs it.
+        if command -v java >/dev/null 2>&1; then
+            _jv="$(java -version 2>&1 | sed -nE '1s/.*version "([0-9]+).*/\1/p')"
+            if [ "${_jv:-0}" -ge 21 ]; then
+                ok "java $_jv"
+            else
+                bad "java ${_jv:-?} is below 21 -- jdtls will refuse to start"
+                fix "JDK 21+ -- see packages/manual.md (Language toolchains)"
+            fi
+            unset _jv
         else
-            warn "rust-src missing -- no std completion, hover or go-to-definition"
-            fix "rustup component add rust-src"
+            bad "no JDK -- jdtls cannot start, so Java files get no language server"
+            fix "JDK 21+ -- see packages/manual.md (Language toolchains)"
         fi
     fi
 

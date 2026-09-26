@@ -17,5 +17,7 @@ Switching one off does **not** uninstall anything already installed.
 After changing a box, restart Neovim and re-run `./install.sh --deps`.
 
 - [ ] latex -- LaTeX editing: vimtex (compile, view, motions, conceal), texlab, tex-fmt, latex/bibtex parsers; TeX Live, chktex and zathura from apt (~700 MB)
+- [x] java -- Java: jdtls with debugging and test running (nvim-jdtls, java-debug-adapter, java-test) and Spring Boot tools. Needs a JDK 21+, installed separately -- see packages/manual.md
+- [x] rust -- Rust: rustaceanvim driving rust-analyzer with clippy, crates.nvim for Cargo.toml. The toolchain comes from rustup -- see packages/manual.md
 - [x] hardware -- SystemVerilog (verible) and the GLSL and WGSL shader languages: their language servers and treesitter parsers
 - [x] diagrams -- Rendered images beyond plain pictures: Mermaid diagrams (mmdc plus a Chrome install), LaTeX math in documents (tectonic), PDF previews (ghostscript). Plain images are always on.

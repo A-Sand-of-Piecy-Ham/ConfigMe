@@ -1,6 +1,8 @@
 return {
   {
     "mfussenegger/nvim-jdtls",
+    -- Optional feature (features.md); `enabled` keeps the lock pin when off.
+    enabled = require("features").on "java",
     ft = "java",
     config = function()
       local jdtls = require "jdtls"

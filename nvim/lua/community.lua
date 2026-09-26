@@ -13,7 +13,11 @@ return {
   -- import/override with your plugins folder
   -- Install your specific language adapter pack
   { import = "astrocommunity.pack.cpp" }, -- Configures CodeLLDB for C/C++
-  { import = "astrocommunity.pack.rust" }, -- Alternative for Rust
+  -- TOML on its own, since pack.rust (which also imports it) is optional.
+  { import = "astrocommunity.pack.toml" },
+  -- Skipped while the rust feature is off (features.md). The pins of its
+  -- plugins survive through the disabled specs in plugins/rust.lua.
+  { import = "astrocommunity.pack.rust", cond = require("features").on "rust" },
   -- vimtex plus which-key descriptions for its maps. Its treesitter
   -- highlight exclusion is a no-op under AstroNvim v6 and is redone in
   -- plugins/treesitter.lua; settings live in plugins/vimtex.lua.

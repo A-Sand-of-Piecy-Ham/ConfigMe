@@ -144,6 +144,9 @@ handles that, so there is nothing to configure here.
 
 ### Rust (`lua/plugins/rust.lua`)
 
+An optional feature, **on by default** -- untick `rust` in
+[features.md](../features.md) or this machine's override to leave it out.
+
 Comes almost entirely from `astrocommunity.pack.rust`: rustaceanvim runs
 rust-analyzer (from Mason) and adds the `:RustLsp` commands, codelldb handles
 debugging, and crates.nvim adds version completion and hover in `Cargo.toml`.
@@ -161,6 +164,18 @@ Useful `:RustLsp` subcommands: `runnables` and `testables` (pick and run),
 `debuggables` (same, under codelldb), `expandMacro`, `explainError`,
 `renderDiagnostic` (the full rustc output), `openCargo`, `openDocs`, and
 `hover actions` (hover with runnable actions such as "Run" or "Go to impl").
+
+### Java (`lua/plugins/jdtls.lua`)
+
+An optional feature, **on by default** -- untick `java` in
+[features.md](../features.md) or this machine's override to leave it out.
+
+nvim-jdtls starts jdtls itself, so astrolsp's handler for it is switched off.
+The debug and test bundles from Mason (java-debug-adapter, java-test) are
+loaded into jdtls, which enables DAP launch configurations and the buffer-local
+`<Leader>jt` (test nearest method), `<Leader>jT` (test class) and `<Leader>jo`
+(organize imports). jdtls needs a JDK 21 or newer on `PATH`, which nothing here
+installs -- see `packages/manual.md`; `./install.sh --doctor` reports it.
 
 ### Future considerations
 
