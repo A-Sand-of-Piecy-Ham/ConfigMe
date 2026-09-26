@@ -123,6 +123,8 @@ by name.
 
 ## tectonic
 
+*Only needed with the `diagrams` feature on (features.md).*
+
 LaTeX engine used by snacks.image to render math. Not packaged for Ubuntu
 24.04. A static binary from the release page is enough:
 
@@ -137,6 +139,8 @@ The first compile downloads its TeX bundle over the network, so it is slow once
 and fast afterwards. No system TeX installation is involved.
 
 ## mmdc (mermaid-cli)
+
+*Only needed with the `diagrams` feature on (features.md).*
 
 Renders Mermaid diagrams for snacks.image. An npm package, not a system one:
 

@@ -36,6 +36,15 @@ elevation and adapts to whether Developer Mode is on -- see
 [docs/windows.md](docs/windows.md) for the link mechanisms it chooses between
 and the traps that come with them.
 
+## Optional features
+
+Heavier additions are optional, listed as a checklist in
+[features.md](features.md) -- LaTeX editing, for instance, pulls in about
+700 MB of TeX Live and is off by default. Each machine can override any box in
+`~/.config/configme/features.md`, so the Pi and a workstation need not carry
+the same things. A feature that is off is left out everywhere: its system
+packages, its doctor checks, its Mason tools and its Neovim plugins.
+
 ## Checking a machine
 
 ```bash

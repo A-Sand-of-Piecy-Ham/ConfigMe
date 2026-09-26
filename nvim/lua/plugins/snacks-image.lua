@@ -42,13 +42,46 @@ local function patch_data_uri_cache()
   end
 end
 
+-- The diagrams feature (features.md) covers everything past plain images:
+-- Mermaid through mmdc, LaTeX math through tectonic, PDF through ghostscript.
+-- With it off, none of those tools is required, so snacks must not try them --
+-- convert.notify is on, and each attempt without the tool would be an error.
+--
+-- Math and PDF have switches: math.enabled, and dropping "pdf" from formats.
+-- Mermaid has none; snacks matches mermaid code blocks with a treesitter query
+-- and converts every match. So _img, which builds each image found in a
+-- document, is wrapped to decline mermaid ones before anything is written,
+-- the same way snacks itself declines math images when math is disabled.
+local function skip_mermaid()
+  local ok, doc = pcall(require, "snacks.image.doc")
+  if not ok or type(doc._img) ~= "function" then return end -- upstream reshaped it
+  local orig = doc._img
+  doc._img = function(ctx, ...)
+    local ext = ctx and ctx.meta and ctx.meta["image.ext"]
+    if type(ext) == "string" and ext:match "%.mmd$" then return nil end
+    return orig(ctx, ...)
+  end
+end
+
+-- snacks' default formats (as of snacks 2.31.0) without "pdf". Only used while
+-- diagrams is off; a list replaces snacks' own rather than merging with it.
+local FORMATS_WITHOUT_PDF = {
+  "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "heic", "avif",
+  "mp4", "mov", "avi", "mkv", "webm", "icns",
+}
+
+local diagrams = require("features").on "diagrams"
+
 return {
   {
     "folke/snacks.nvim",
     opts = function(_, opts)
       patch_data_uri_cache()
+      if not diagrams then skip_mermaid() end
       return vim.tbl_deep_extend("force", opts, {
         image = {
+          math = { enabled = diagrams },
+          formats = not diagrams and FORMATS_WITHOUT_PDF or nil,
           enabled = true,
           doc = {
             enabled = true,

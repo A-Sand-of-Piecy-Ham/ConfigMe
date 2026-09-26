@@ -9,6 +9,9 @@
 ---@type LazySpec
 return {
   "lervag/vimtex",
+  -- Optional feature (features.md). `enabled` rather than skipping the spec,
+  -- so a machine with latex off keeps vimtex's pin in lazy-lock.json.
+  enabled = require("features").on "latex",
   init = function()
     -- Without this, a .tex file with no \documentclass -- a chapter pulled in
     -- with \input from a main document -- is detected as plaintex, and vimtex

@@ -1,5 +1,7 @@
 # System packages, one per line, with the reason it is needed.
 # Consumed by `install.sh --deps`; comments and blank lines are ignored.
+# A `# @feature <id>` line ties the rest of its section to a feature in
+# features.md; while that feature is off, those packages are not requested.
 #
 # Keep the reason column filled in. The friction this file exists to remove is
 # not installing things, it is not knowing something was required in the first
@@ -19,7 +21,10 @@ bash-completion     # sourced by bash/bashrc.linux
 # ImageMagick 6 is what Ubuntu ships. It provides convert/identify but no
 # `magick` binary; snacks.image detects this and falls back, so 6 is enough.
 imagemagick         # snacks.image -- without it images never decode
-ghostscript         # snacks.image: PDF rendering (optional)
+
+# --- nvim: snacks.image extras ---
+# @feature diagrams
+ghostscript         # snacks.image: PDF previews
 
 # --- mason (nvim LSP/DAP/tool installer) ---
 # Mason downloads prebuilt tools and builds others, and it fails per-package
@@ -50,6 +55,7 @@ libnotify-bin       # notify-send, for testing and for scripts
 # Chrome is not in the Ubuntu archive -- see packages/manual.md if absent.
 
 # --- LaTeX (vimtex + texlab) ---
+# @feature latex
 # The practical TeX Live set, about 700 MB with dependencies against 7 GB for
 # texlive-full. pdfLaTeX is the engine Overleaf, arXiv and the IEEE/ACM
 # templates are built against, which is why documents compile with this rather

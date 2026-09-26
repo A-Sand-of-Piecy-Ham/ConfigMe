@@ -124,10 +124,60 @@ case "${1:-}" in
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
 esac
 
-# Package names in packages/apt.txt are followed by a `# reason` comment.
+# ---------------------------------------------------------------- features ---
+# features.md at the repo root is a checklist of optional features, and
+# $FEATURES_LOCAL overrides it per machine. nvim/lua/features.lua reads the
+# same files the same way; keep the two parsers in step.
+FEATURES_FILE="$DOTFILES/features.md"
+FEATURES_LOCAL="${CONFIGME_FEATURES:-$XDG/configme/features.md}"
+
+# on / off for feature $1 as set in file $2, or nothing if the file is silent.
+# The last matching line wins.
+_feature_in() {
+    [ -f "$2" ] || return 0
+    sed -nE "s/^[[:space:]]*[-*][[:space:]]+\[([ xX])\][[:space:]]+$1([^a-z0-9-].*)?$/\1/p" "$2" \
+        | tail -n 1 | sed -e 's/[xX]/on/' -e 's/^ $/off/'
+}
+
+# Every feature id declared in features.md.
+feature_ids() {
+    sed -nE 's/^[[:space:]]*[-*][[:space:]]+\[[ xX]\][[:space:]]+([a-z][a-z0-9-]*).*/\1/p' "$FEATURES_FILE"
+}
+
+# Where feature $1's setting comes from: "local" if this machine overrides it.
+feature_source() {
+    if [ -n "$(_feature_in "$1" "$FEATURES_LOCAL")" ]; then echo local; else echo default; fi
+}
+
+# True when feature $1 is on. An id missing from both files counts as on, so a
+# typo can never silently drop something.
+feature_on() {
+    local state
+    state="$(_feature_in "$1" "$FEATURES_LOCAL")"
+    [ -n "$state" ] || state="$(_feature_in "$1" "$FEATURES_FILE")"
+    [ "${state:-on}" = on ]
+}
+
+# Space-separated ids of the features that are off.
+features_off() {
+    local id
+    for id in $(feature_ids); do
+        feature_on "$id" || printf '%s ' "$id"
+    done
+}
+
+# Package names in packages/apt.txt are followed by a `# reason` comment. A
+# `# @feature <id>` line tags the rest of its `# ---` section with a feature,
+# and packages in the section are skipped while that feature is off.
 apt_packages() {
-    sed -e 's/#.*//' -e '/^[[:space:]]*$/d' -e 's/[[:space:]]*$//' \
-        "$DOTFILES/packages/apt.txt"
+    awk -v off=" $(features_off)" '
+        /^#[[:space:]]*---/ { feature = ""; next }
+        /^#[[:space:]]*@feature[[:space:]]/ { feature = $3; next }
+        { sub(/#.*/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, "") }
+        $0 == "" { next }
+        feature != "" && index(off " ", " " feature " ") { next }
+        { print }
+    ' "$DOTFILES/packages/apt.txt"
 }
 
 PASS=0; WARN=0; FAIL=0
@@ -158,6 +208,26 @@ check_cmd() {
 }
 
 doctor() {
+    echo "==> features  (features.md; overrides in $FEATURES_LOCAL)"
+    local id
+    for id in $(feature_ids); do
+        if feature_on "$id"; then
+            printf '    %-10s on   (%s)\n' "$id" "$(feature_source "$id")"
+        else
+            printf '    %-10s off  (%s)\n' "$id" "$(feature_source "$id")"
+        fi
+    done
+    # A misspelt id in the override file would otherwise be silently ignored.
+    if [ -f "$FEATURES_LOCAL" ]; then
+        local unknown
+        unknown="$(sed -nE 's/^[[:space:]]*[-*][[:space:]]+\[[ xX]\][[:space:]]+([a-z][a-z0-9-]*).*/\1/p' "$FEATURES_LOCAL" \
+            | grep -vxF -f <(feature_ids) | tr '\n' ' ' || true)"
+        if [ -n "$unknown" ]; then
+            warn "unknown feature id(s) in $FEATURES_LOCAL: ${unknown% } -- ignored"
+            fix "use an id listed in features.md"
+        fi
+    fi
+
     echo "==> commands"
     check_cmd git    "everything" yes "./install.sh --install-deps"
     check_cmd tmux   "tmux/.tmux.conf" yes "./install.sh --install-deps"
@@ -180,27 +250,30 @@ doctor() {
         fix "./install.sh --install-deps"
     fi
     check_cmd entr      "tmux-autoreload; the plugin loads but does nothing" no "./install.sh --install-deps"
-    check_cmd gs        "snacks.image PDF rendering" no "./install.sh --install-deps"
-    check_cmd tectonic  "snacks.image LaTeX math rendering" no "static binary from the release page -- see packages/manual.md"
-    check_cmd mmdc      "snacks.image Mermaid diagrams" no "PUPPETEER_SKIP_DOWNLOAD=true npm install -g @mermaid-js/mermaid-cli"
-    # mmdc without a browser path fails at launch rather than degrading, so a
-    # present binary is not on its own enough to call this working. Test for a
-    # browser rather than for PUPPETEER_EXECUTABLE_PATH being set: common.sh
-    # exports that from an interactive shell, which this script is not, so
-    # reading the variable here would report the caller's environment instead
-    # of the configuration.
-    if command -v mmdc >/dev/null 2>&1; then
-        _browser=""
-        for _b in /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser; do
-            [ -x "$_b" ] && { _browser="$_b"; break; }
-        done
-        if [ -n "$_browser" ]; then
-            ok "puppeteer browser ($_browser)"
-        else
-            bad "mmdc installed but no browser found -- puppeteer will fail at launch"
-            fix "install Chrome or Chromium; common.sh sets PUPPETEER_EXECUTABLE_PATH from it"
+    # Everything past plain images belongs to the diagrams feature.
+    if feature_on diagrams; then
+        check_cmd gs        "snacks.image PDF rendering" no "./install.sh --install-deps"
+        check_cmd tectonic  "snacks.image LaTeX math rendering" no "static binary from the release page -- see packages/manual.md"
+        check_cmd mmdc      "snacks.image Mermaid diagrams" no "PUPPETEER_SKIP_DOWNLOAD=true npm install -g @mermaid-js/mermaid-cli"
+        # mmdc without a browser path fails at launch rather than degrading, so a
+        # present binary is not on its own enough to call this working. Test for a
+        # browser rather than for PUPPETEER_EXECUTABLE_PATH being set: common.sh
+        # exports that from an interactive shell, which this script is not, so
+        # reading the variable here would report the caller's environment instead
+        # of the configuration.
+        if command -v mmdc >/dev/null 2>&1; then
+            _browser=""
+            for _b in /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser; do
+                [ -x "$_b" ] && { _browser="$_b"; break; }
+            done
+            if [ -n "$_browser" ]; then
+                ok "puppeteer browser ($_browser)"
+            else
+                bad "mmdc installed but no browser found -- puppeteer will fail at launch"
+                fix "install Chrome or Chromium; common.sh sets PUPPETEER_EXECUTABLE_PATH from it"
+            fi
+            unset _browser _b
         fi
-        unset _browser _b
     fi
 
     echo "==> nvim plugins"
@@ -290,22 +363,24 @@ doctor() {
         fi
     fi
 
-    echo "==> latex"
-    # Optional: nothing else depends on these, but each fails in its own way.
-    # Without latexmk, `,ll` errors. Without chktex, texlab simply reports no
-    # lint findings. Without zathura, vimtex falls back to xdg-open and loses
-    # synctex jumping.
-    check_cmd latexmk "vimtex cannot compile (,ll)" no "./install.sh --install-deps"
-    check_cmd chktex  "texlab reports no LaTeX lint findings" no "./install.sh --install-deps"
-    check_cmd zathura "vimtex views through xdg-open, without synctex" no "./install.sh --install-deps"
-    # zathura loads each format from a plugin. Without the PDF one it opens a
-    # window and shows nothing, with no error, which reads as a vimtex bug.
-    if command -v zathura >/dev/null 2>&1; then
-        if ls /usr/lib/*/zathura/libpdf-*.so >/dev/null 2>&1; then
-            ok "zathura PDF backend"
-        else
-            bad "zathura has no PDF backend -- it opens PDFs as blank windows"
-            fix "./install.sh --install-deps   (zathura-pdf-poppler)"
+    if feature_on latex; then
+        echo "==> latex"
+        # Optional: nothing else depends on these, but each fails in its own way.
+        # Without latexmk, `,ll` errors. Without chktex, texlab simply reports no
+        # lint findings. Without zathura, vimtex falls back to xdg-open and loses
+        # synctex jumping.
+        check_cmd latexmk "vimtex cannot compile (,ll)" no "./install.sh --install-deps"
+        check_cmd chktex  "texlab reports no LaTeX lint findings" no "./install.sh --install-deps"
+        check_cmd zathura "vimtex views through xdg-open, without synctex" no "./install.sh --install-deps"
+        # zathura loads each format from a plugin. Without the PDF one it opens a
+        # window and shows nothing, with no error, which reads as a vimtex bug.
+        if command -v zathura >/dev/null 2>&1; then
+            if ls /usr/lib/*/zathura/libpdf-*.so >/dev/null 2>&1; then
+                ok "zathura PDF backend"
+            else
+                bad "zathura has no PDF backend -- it opens PDFs as blank windows"
+                fix "./install.sh --install-deps   (zathura-pdf-poppler)"
+            fi
         fi
     fi
 
@@ -465,8 +540,10 @@ missing_packages() {
 }
 
 deps() {
-    local missing
+    local missing off
     mapfile -t missing < <(missing_packages)
+    off="$(features_off)"
+    [ -n "$off" ] && echo "features off, their packages not requested: ${off% } (see features.md)"
     if [ ${#missing[@]} -eq 0 ]; then
         echo "all packages in packages/apt.txt are installed"
         return 0
@@ -747,6 +824,24 @@ echo "==> claude"
 link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
 link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
 link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+
+echo "==> features"
+# Created empty so it is there to find; features.md stays the list of what
+# exists, and this file only ever holds the lines a machine changes.
+if [ ! -f "$FEATURES_LOCAL" ]; then
+    mkdir -p "$(dirname "$FEATURES_LOCAL")"
+    cat > "$FEATURES_LOCAL" <<FEATURESEOF
+# Feature overrides for this machine
+
+Lines here override $FEATURES_FILE on this machine only.
+Copy a feature's line from that file and change its box: [x] on, [ ] off.
+FEATURESEOF
+    echo "  created $FEATURES_LOCAL"
+fi
+_off="$(features_off)"
+_off="${_off% }"
+echo "  off: ${_off:-none}   (edit $FEATURES_LOCAL to change)"
+unset _off
 
 echo "==> packages"
 if [ "$OS" != linux ]; then
