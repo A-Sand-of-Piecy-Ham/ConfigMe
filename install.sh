@@ -417,21 +417,25 @@ doctor() {
         fi
     fi
 
-    echo "==> paste"
-    # kitty.conf lists `filter` in paste_actions. If paste-actions.py is not
-    # beside it, kitty pastes unfiltered with no visible error and CRLF text
-    # from Windows arrives with a ^M on every line again.
-    if grep -q '^paste_actions.*filter' "$DOTFILES/kitty/kitty.conf" 2>/dev/null; then
-        if [ -r "$XDG/kitty/paste-actions.py" ]; then
-            ok "kitty paste filter linked"
-        else
-            bad "kitty paste filter missing -- pasted Windows text keeps its CRs"
-            fix "./install.sh"
+    if feature_on kitty; then
+        echo "==> paste"
+        # kitty.conf lists `filter` in paste_actions. If paste-actions.py is not
+        # beside it, kitty pastes unfiltered with no visible error and CRLF text
+        # from Windows arrives with a ^M on every line again.
+        if grep -q '^paste_actions.*filter' "$DOTFILES/kitty/kitty.conf" 2>/dev/null; then
+            if [ -r "$XDG/kitty/paste-actions.py" ]; then
+                ok "kitty paste filter linked"
+            else
+                bad "kitty paste filter missing -- pasted Windows text keeps its CRs"
+                fix "./install.sh"
+            fi
         fi
     fi
 
     echo "==> terminfo"
-    for t in tmux-256color xterm-kitty; do
+    _terms=tmux-256color
+    feature_on kitty && _terms="$_terms xterm-kitty"
+    for t in $_terms; do
         if infocmp "$t" >/dev/null 2>&1; then
             ok "$t"
         else
@@ -443,6 +447,7 @@ doctor() {
             fi
         fi
     done
+    unset _terms
 
     echo "==> fonts"
     if command -v fc-list >/dev/null 2>&1; then
@@ -484,7 +489,7 @@ doctor() {
         fi
     fi
 
-    if [ "$OS" != windows ]; then
+    if [ "$OS" != windows ] && feature_on kitty; then
         echo "==> kitty"
         if [ -x "$HOME/.local/kitty.app/bin/kitty" ]; then
             ok "kitty $("$HOME/.local/kitty.app/bin/kitty" --version 2>/dev/null | awk '{print $2}')"
@@ -513,12 +518,14 @@ doctor() {
         [ -f "$XDG/environment.d/wslg.conf" ] \
             && ok "WSLg env persisted for systemd (dunst)" \
             || { bad "environment.d/wslg.conf missing -- dunst will fail to start"; fix "./install.sh"; }
-        command -v wsl-notify-send.exe >/dev/null 2>&1 \
-            && ok "wsl-notify-send.exe" \
-            || { warn "wsl-notify-send.exe missing -- kitty command-finish notifications disabled"; fix "see packages/manual.md (wsl-notify-send)"; }
-        [ -f /usr/share/applications/kitty.desktop ] \
-            && ok "kitty Start Menu entry installed" \
-            || { warn "kitty.desktop not in /usr/share/applications -- no Start Menu entry"; fix "sudo cp $XDG/kitty/kitty.desktop.staged /usr/share/applications/kitty.desktop"; }
+        if feature_on kitty; then
+            command -v wsl-notify-send.exe >/dev/null 2>&1 \
+                && ok "wsl-notify-send.exe" \
+                || { warn "wsl-notify-send.exe missing -- kitty command-finish notifications disabled"; fix "see packages/manual.md (wsl-notify-send)"; }
+            [ -f /usr/share/applications/kitty.desktop ] \
+                && ok "kitty Start Menu entry installed" \
+                || { warn "kitty.desktop not in /usr/share/applications -- no Start Menu entry"; fix "sudo cp $XDG/kitty/kitty.desktop.staged /usr/share/applications/kitty.desktop"; }
+        fi
     fi
 
     echo "==> ssh"
@@ -534,24 +541,26 @@ doctor() {
         fix "./install.sh"
     fi
 
-    echo "==> claude"
-    for d in skills rules; do
-        if [ -L "$HOME/.claude/$d" ] && [ -d "$HOME/.claude/$d" ]; then
-            ok "$d linked ($(find -L "$HOME/.claude/$d" -maxdepth 1 -mindepth 1 | wc -l) entries)"
+    if feature_on claude; then
+        echo "==> claude"
+        for d in skills rules; do
+            if [ -L "$HOME/.claude/$d" ] && [ -d "$HOME/.claude/$d" ]; then
+                ok "$d linked ($(find -L "$HOME/.claude/$d" -maxdepth 1 -mindepth 1 | wc -l) entries)"
+            else
+                bad "~/.claude/$d not linked -- skills or rules will not load"
+                fix "./install.sh"
+            fi
+        done
+        [ -L "$HOME/.claude/CLAUDE.md" ] && ok "CLAUDE.md linked" || bad "~/.claude/CLAUDE.md not linked"
+        if command -v github-mcp >/dev/null 2>&1; then
+            gh auth status >/dev/null 2>&1 && ok "github-mcp (gh authenticated)" \
+                                           || bad "github-mcp present but gh not logged in"
         else
-            bad "~/.claude/$d not linked -- skills or rules will not load"
-            fix "./install.sh"
+            warn "github-mcp missing -- GitHub MCP server unavailable"
+            fix "./install.sh   (links bin/github-mcp)"
         fi
-    done
-    [ -L "$HOME/.claude/CLAUDE.md" ] && ok "CLAUDE.md linked" || bad "~/.claude/CLAUDE.md not linked"
-    if command -v github-mcp >/dev/null 2>&1; then
-        gh auth status >/dev/null 2>&1 && ok "github-mcp (gh authenticated)" \
-                                       || bad "github-mcp present but gh not logged in"
-    else
-        warn "github-mcp missing -- GitHub MCP server unavailable"
-        fix "./install.sh   (links bin/github-mcp)"
-    fi
 
+    fi
     echo
     printf 'ok %s, warnings %s, problems %s\n' "$PASS" "$WARN" "$FAIL"
     [ "$FAIL" -eq 0 ]
@@ -692,15 +701,21 @@ else
 fi
 
 echo "==> ghostty"
-case "$OS" in
-    darwin)  link "$DOTFILES/ghostty/config.ghostty" \
-                  "$HOME/Library/Application Support/com.mitchellh.ghostty/config" ;;
-    linux)   link "$DOTFILES/ghostty/config.ghostty" "$XDG/ghostty/config" ;;
-    windows) echo "  skipped — Ghostty is macOS/Linux only" ;;
-esac
+if ! feature_on ghostty; then
+    echo "  skipped -- ghostty feature off (features.md)"
+else
+    case "$OS" in
+        darwin)  link "$DOTFILES/ghostty/config.ghostty" \
+                      "$HOME/Library/Application Support/com.mitchellh.ghostty/config" ;;
+        linux)   link "$DOTFILES/ghostty/config.ghostty" "$XDG/ghostty/config" ;;
+        windows) echo "  skipped — Ghostty is macOS/Linux only" ;;
+    esac
+fi
 
 echo "==> wezterm"
-if [ "$IS_WSL" = 1 ]; then
+if ! feature_on wezterm; then
+    echo "  skipped -- wezterm feature off (features.md)"
+elif [ "$IS_WSL" = 1 ]; then
     # WezTerm is a Windows application here; its config belongs in the Windows
     # profile and is installed by install.ps1. A copy inside the WSL home would
     # never be read.
@@ -714,6 +729,8 @@ fi
 echo "==> kitty"
 if [ "$OS" = windows ]; then
     echo "  skipped -- kitty has no Windows build"
+elif ! feature_on kitty; then
+    echo "  skipped -- kitty feature off (features.md)"
 else
     link "$DOTFILES/kitty/kitty.conf" "$XDG/kitty/kitty.conf"
     # kitty looks for the paste filter beside kitty.conf, by fixed name.
@@ -854,9 +871,13 @@ case "$OS" in
 esac
 
 echo "==> claude"
-link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
-link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
-link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+if feature_on claude; then
+    link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
+    link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
+    link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+else
+    echo "  skipped -- claude feature off (features.md)"
+fi
 
 echo "==> features"
 # Created empty so it is there to find; features.md stays the list of what
