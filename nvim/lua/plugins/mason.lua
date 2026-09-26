@@ -54,9 +54,9 @@ if feature "java" then
   })
 end
 if feature "rust" then
-  -- pack.rust installs codelldb but not the server, and rustup's
-  -- /usr/bin/rust-analyzer is a placeholder that errors unless the
-  -- rust-analyzer component is added, so a fresh machine had no Rust LSP.
+  -- The fallback only: rust.lua prefers rustup's toolchain-matched
+  -- rust-analyzer and starts this one when rustup is absent or cannot add
+  -- the component (offline).
   table.insert(tools, "rust-analyzer")
 end
 if feature "hardware" then

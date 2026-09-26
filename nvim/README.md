@@ -148,12 +148,19 @@ An optional feature, **on by default** -- untick `rust` in
 [features.md](../features.md) or this machine's override to leave it out.
 
 Comes almost entirely from `astrocommunity.pack.rust`: rustaceanvim runs
-rust-analyzer (from Mason) and adds the `:RustLsp` commands, codelldb handles
-debugging, and crates.nvim adds version completion and hover in `Cargo.toml`.
-Formatting is rustfmt through `<Leader>lf`. The toolchain itself comes from
-rustup -- see `packages/manual.md` for the components rust-analyzer depends on.
+rust-analyzer and adds the `:RustLsp` commands, codelldb handles debugging,
+and crates.nvim adds version completion and hover in `Cargo.toml`. Formatting
+is rustfmt through `<Leader>lf`. The toolchain comes from rustup, which
+`install.sh` installs -- see `packages/manual.md`.
 
-`lua/plugins/rust.lua` exists for one fix. The pack configures clippy as the
+rust-analyzer is the project toolchain's own, through rustup, rather than
+Mason's. Mason's is always the newest release, and that refuses toolchains
+more than a few versions old -- including one a project pins in
+`rust-toolchain.toml`, which upgrading stable does nothing about. A toolchain
+without the component gets it added on first use. Mason's build is the
+fallback when rustup is missing or the add fails offline (after about 30 s).
+
+`lua/plugins/rust.lua` also fixes clippy. The pack configures clippy as the
 checker but the setting never reached rust-analyzer: the pack snapshots its
 LSP config when rustaceanvim loads, before astrolsp has registered that
 setting, and it also switches off rustaceanvim's own clippy default. The result

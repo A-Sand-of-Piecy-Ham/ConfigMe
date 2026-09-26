@@ -353,8 +353,20 @@ doctor() {
         # cannot load a project. Without cargo-clippy it checks with plain
         # `cargo check`. Without rust-src there is no std completion, hover or
         # go-to-definition, and no error saying why.
-        check_cmd cargo        "rust-analyzer cannot load a Cargo project" no "rustup -- see packages/manual.md"
+        check_cmd cargo        "rust-analyzer cannot load a Cargo project" no "./install.sh   (installs rustup)"
         if command -v cargo >/dev/null 2>&1; then
+            # A distro cargo ahead of rustup's on PATH shadows every toolchain
+            # pin, and is usually too old for rust-analyzer.
+            case "$(readlink -f "$(command -v cargo)")" in
+                */rustup|"$HOME"/.rustup/*) ;;
+                *) warn "cargo is $(command -v cargo), not rustup's -- toolchain pins are ignored"
+                   fix "sudo apt remove cargo rustc   (then ./install.sh)" ;;
+            esac
+            if command -v rustup >/dev/null 2>&1; then
+                rustup which rust-analyzer >/dev/null 2>&1 \
+                    && ok "rust-analyzer component" \
+                    || { warn "no rust-analyzer component -- nvim falls back to Mason's, which rejects older toolchains"; fix "rustup component add rust-analyzer"; }
+            fi
             check_cmd cargo-clippy "rust-analyzer checks without clippy lints" no "rustup component add clippy"
             if [ -d "$(rustc --print sysroot 2>/dev/null)/lib/rustlib/src/rust" ]; then
                 ok "rust-src"
@@ -863,6 +875,34 @@ _off="$(features_off)"
 _off="${_off% }"
 echo "  off: ${_off:-none}   (edit $FEATURES_LOCAL to change)"
 unset _off
+
+if feature_on rust && [ "$OS" = linux ]; then
+    echo "==> rust"
+    # rustup rather than a distro's rustc/cargo: rust-analyzer supports only
+    # recent toolchains, projects pin their own in rust-toolchain.toml, and
+    # rustup handles both where apt's rustc lags a year or more behind. An
+    # existing rustup -- apt's `rustup` package included -- is used as is.
+    [ -x "$HOME/.cargo/bin/rustup" ] && ! command -v rustup >/dev/null 2>&1 \
+        && PATH="$HOME/.cargo/bin:$PATH"
+    if ! command -v rustup >/dev/null 2>&1; then
+        echo "  installing rustup..."
+        # --no-modify-path: bash/common.sh already puts ~/.cargo/bin on PATH.
+        # No toolchain here; the default is set below, for both cases.
+        if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+                | sh -s -- -y --no-modify-path --default-toolchain none >/dev/null; then
+            PATH="$HOME/.cargo/bin:$PATH"
+        else
+            echo "  rustup install failed -- see packages/manual.md"
+        fi
+    fi
+    if command -v rustup >/dev/null 2>&1; then
+        rustup default >/dev/null 2>&1 || rustup default stable 2>&1 | sed 's/^/  /'
+        # rust-src and rust-analyzer are outside the default profile. nvim's
+        # launcher adds rust-analyzer to other toolchains on first use.
+        rustup component add rust-src rust-analyzer 2>&1 | sed 's/^/  /'
+        echo "  $(rustc --version 2>/dev/null)"
+    fi
+fi
 
 echo "==> packages"
 if [ "$OS" != linux ]; then
