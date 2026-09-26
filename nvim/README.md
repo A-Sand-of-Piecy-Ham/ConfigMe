@@ -96,6 +96,9 @@ those paths as document links, which Neovim does not wire to `gd`.
 
 ### LaTeX (`lua/plugins/vimtex.lua`)
 
+An optional feature, **off by default** -- tick `latex` in
+[features.md](../features.md) or this machine's override to include it.
+
 Three pieces with separate jobs. **vimtex** compiles with latexmk, views in
 zathura with synctex in both directions, and provides the LaTeX motions and
 text objects. **texlab** provides language features: completion for `\ref`,

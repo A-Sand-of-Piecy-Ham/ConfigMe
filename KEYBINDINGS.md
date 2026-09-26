@@ -186,6 +186,9 @@ is left disabled — that one shows only the active signature and cannot cycle.
 
 ### LaTeX (vimtex)
 
+Only present with the `latex` feature on -- it is off by default; see
+[features.md](features.md).
+
 vimtex's own defaults on `<LocalLeader>`, which is `,` here. They are not
 defined by this repo; they are listed because they are the whole interface to
 compiling and viewing. which-key shows descriptions for all of them under `,l`.

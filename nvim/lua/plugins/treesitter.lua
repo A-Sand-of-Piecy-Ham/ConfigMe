@@ -3,8 +3,7 @@
 -- Treesitter customizations are handled with AstroCore
 -- as nvim-treesitter simply provides a download utility for parsers
 
----@type LazySpec
-return {
+local spec = {
   "AstroNvim/astrocore",
   ---@type AstroCoreOpts
   opts = {
@@ -37,11 +36,19 @@ return {
         "typescript",
         "tsx",
         "css",
-        -- latex is parsed for snacks.image math even though vimtex
-        -- highlights it; bibtex is highlighted normally.
-        "latex",
-        "bibtex",
       },
     },
   },
 }
+
+-- Optional features (features.md): parsers only a feature needs.
+local feature = require("features").on
+local parsers = spec.opts.treesitter.ensure_installed
+if feature "latex" then
+  -- latex is parsed for snacks.image math even though vimtex highlights it;
+  -- bibtex is highlighted normally.
+  vim.list_extend(parsers, { "latex", "bibtex" })
+end
+
+---@type LazySpec
+return spec

@@ -11,4 +11,8 @@
 --
 -- Individual categories -- such as math_bounds, which hides the $ delimiters
 -- -- can be turned off through g:vimtex_syntax_conceal in plugins/vimtex.lua.
+-- Part of the latex feature (features.md); without it .tex files are left as
+-- plain text.
+if not require("features").on "latex" then return end
+
 vim.opt_local.conceallevel = 1

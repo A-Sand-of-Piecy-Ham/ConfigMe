@@ -17,7 +17,11 @@ return {
   -- vimtex plus which-key descriptions for its maps. Its treesitter
   -- highlight exclusion is a no-op under AstroNvim v6 and is redone in
   -- plugins/treesitter.lua; settings live in plugins/vimtex.lua.
-  { import = "astrocommunity.markdown-and-latex.vimtex" },
+  --
+  -- Skipped while the latex feature is off (features.md), which also drops
+  -- its which-key fragments. vimtex's lock pin survives regardless: the
+  -- spec in plugins/vimtex.lua still declares vimtex, disabled.
+  { import = "astrocommunity.markdown-and-latex.vimtex", cond = require("features").on "latex" },
   -- NOT pack.astro: it imports pack.typescript, which installs vtsls and
   -- runs it beside ts_ls. Astro is wired directly in mason.lua and
   -- treesitter.lua instead.

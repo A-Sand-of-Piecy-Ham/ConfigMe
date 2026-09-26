@@ -4,7 +4,7 @@
 --       as this provides autocomplete and documentation while editing
 
 ---@type LazySpec
-return {
+local spec = {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
   opts = {
@@ -163,6 +163,14 @@ return {
     end,
   },
 }
+
+-- Optional features (features.md). Turning one off stops its servers from
+-- attaching even where they are already installed; a `false` handler means
+-- astrolsp never calls vim.lsp.enable for that server.
+local feature = require("features").on
+if not feature "latex" then spec.opts.handlers.texlab = false end
+
+return spec
 
 
 -- return {
