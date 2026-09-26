@@ -169,6 +169,11 @@ local spec = {
 -- astrolsp never calls vim.lsp.enable for that server.
 local feature = require("features").on
 if not feature "latex" then spec.opts.handlers.texlab = false end
+if not feature "hardware" then
+  for _, server in ipairs { "verible", "glsl_analyzer", "wgsl_analyzer" } do
+    spec.opts.handlers[server] = false
+  end
+end
 
 return spec
 

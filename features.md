@@ -17,4 +17,5 @@ Switching one off does **not** uninstall anything already installed.
 After changing a box, restart Neovim and re-run `./install.sh --deps`.
 
 - [ ] latex -- LaTeX editing: vimtex (compile, view, motions, conceal), texlab, tex-fmt, latex/bibtex parsers; TeX Live, chktex and zathura from apt (~700 MB)
+- [x] hardware -- SystemVerilog (verible) and the GLSL and WGSL shader languages: their language servers and treesitter parsers
 - [x] diagrams -- Rendered images beyond plain pictures: Mermaid diagrams (mmdc plus a Chrome install), LaTeX math in documents (tectonic), PDF previews (ghostscript). Plain images are always on.
