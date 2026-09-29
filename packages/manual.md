@@ -95,6 +95,25 @@ own, use `:Lazy restore`, which checks out the commits in the lockfile.
 `install.sh --doctor` reports a dirty lock, and distinguishes ordinary version
 bumps from dropped entries -- deletions are the ones that matter.
 
+## bottom and lazygit
+
+Neither is in Ubuntu 24.04's archive. AstroNvim only creates their mappings
+when the binary is on PATH at startup: bottom (`btm`) gives `<Leader>tt`,
+lazygit (optional) gives `<Leader>gg` and `<Leader>tl`. `--doctor` checks both.
+
+```bash
+# bottom -- the unversioned tarball, so latest/download resolves
+arch=$(uname -m)   # x86_64, or aarch64 on the Pi
+curl -sL "https://github.com/ClementTsang/bottom/releases/latest/download/bottom_${arch}-unknown-linux-gnu.tar.gz" \
+    | tar -xz -C ~/.local/bin btm
+
+# lazygit -- asset names carry the version, so look it up first
+v=$(curl -s https://api.github.com/repos/jesseduffield/lazygit/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+la=$([ "$(uname -m)" = aarch64 ] && echo arm64 || echo x86_64)
+curl -sL "https://github.com/jesseduffield/lazygit/releases/download/v${v}/lazygit_${v}_linux_${la}.tar.gz" \
+    | tar -xz -C ~/.local/bin lazygit
+```
+
 ## Nerd Font
 
 AstroNvim's statusline and file tree, and the tmux status line, use glyphs no

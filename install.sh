@@ -250,6 +250,12 @@ doctor() {
         fix "./install.sh --install-deps"
     fi
     check_cmd entr      "tmux-autoreload; the plugin loads but does nothing" no "./install.sh --install-deps"
+    # AstroNvim maps these only when the tool is on PATH at startup, so a
+    # missing one silently removes the keys rather than erroring.
+    check_cmd rg      "no <Leader>fw / <Leader>fW (find words)" yes "./install.sh --install-deps"
+    check_cmd gdu     "no <Leader>tu (disk usage)" yes "./install.sh --install-deps"
+    check_cmd btm     "no <Leader>tt (system monitor)" yes "see packages/manual.md (bottom)"
+    check_cmd lazygit "no <Leader>gg / <Leader>tl (lazygit)" no "see packages/manual.md (lazygit)"
     # Everything past plain images belongs to the diagrams feature.
     if feature_on diagrams; then
         check_cmd gs        "snacks.image PDF rendering" no "./install.sh --install-deps"
