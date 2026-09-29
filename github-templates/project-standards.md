@@ -134,6 +134,7 @@ Docs exist to get information across, not to store it. Write each doc for one re
 - Explain why, briefly. A rule whose reason is known survives cases the rule didn't anticipate.
 - Precise terms for technical readers; none for editors.
 - Jokes and jabs are welcome in comments, docs, and content (e.g. "so no one gets hurt fee-fees :P"). A review or cleanup pass keeps them: don't reword them into formal prose or strip them as noise. Fix only a joke that's factually wrong or hides the point.
+- Reader- and editor-facing prose should be enjoyable to read, and a joke is often what gets people to read it at all. Contributor docs can joke too, but function comes first. Details in the `docs-audience` skill.
 
 ### Comments
 
