@@ -11,14 +11,9 @@ session, so they are not restated here beyond one reminder: **approval to push
 once is not approval to push again.** Branch first if on the default branch.
 
 Repo conventions -- branch naming, CI expectations, versioning, review norms --
-live in `github-templates/project-standards.md`. Read that when setting up or
-assessing a repo rather than duplicating it here. This skill covers only the
-mechanics of making a change land.
-
-When a new repo is being set up, or an existing one grows collaborators,
-suggest copying `github-templates/pull_request_template.md` into `.github/` and
-applying the standards proportionally to project size. Flag when a growing
-project would benefit from branch protection or CI it does not yet have.
+live in `github-templates/project-standards.md`; setting up or assessing a repo
+against them is the `project-setup` skill. This skill covers only the mechanics
+of making a change land.
 
 ## Commit messages
 
