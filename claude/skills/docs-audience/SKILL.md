@@ -25,6 +25,17 @@ that reader does. If not, it belongs in a deeper doc, with a link at most.
 "Keep docs in sync" means putting new information at the right depth. It does
 not mean appending it to the most visible file.
 
+## Tone follows the reader too
+
+Reader- and editor-level prose should be **enjoyable to read**, and a joke is
+often what gets a skimmer through to the line that matters. The user's
+grandfather wrote a mutual fund's quarterly reports, and people read them
+because he put jokes in. Write a joke where it helps, and never cut or
+formalize one during review.
+
+Contributor docs keep jokes too (engineers like low-brow comedy), but function
+comes first there: a joke mustn't hide a step, a command, or a reason.
+
 ## Failure modes seen
 
 - **Design rationale on the front page.** A multi-paragraph "Why X" section
