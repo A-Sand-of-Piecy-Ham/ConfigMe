@@ -133,6 +133,7 @@ Docs exist to get information across, not to store it. Write each doc for one re
 - Plain, direct, conversational. No legalese or RFC-style MUST/SHALL; say "never" or "always" when it matters.
 - Explain why, briefly. A rule whose reason is known survives cases the rule didn't anticipate.
 - Precise terms for technical readers; none for editors.
+- Jokes and jabs are welcome in comments, docs, and content (e.g. "so no one gets hurt fee-fees :P"). A review or cleanup pass keeps them: don't reword them into formal prose or strip them as noise. Fix only a joke that's factually wrong or hides the point.
 
 ### Comments
 
