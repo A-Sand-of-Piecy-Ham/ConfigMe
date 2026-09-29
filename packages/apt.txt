@@ -17,6 +17,13 @@ tmux                # tmux/.tmux.conf
 ccache              # ccache/ccache.conf, USE_CCACHE in bash/common.sh
 bash-completion     # sourced by bash/bashrc.linux
 
+# --- nvim: AstroNvim tools ---
+# AstroNvim creates these mappings only when the tool is on PATH at startup, so
+# a missing one removes the keys with no error. lazygit (<Leader>gg) and
+# bottom (btm, <Leader>tt) are not in Ubuntu 24.04's archive -- see
+# packages/manual.md.
+ripgrep             # <Leader>fw / <Leader>fW (find words); snacks grep pickers
+gdu                 # <Leader>tu (disk usage)
 # --- nvim: snacks.image ---
 # ImageMagick 6 is what Ubuntu ships. It provides convert/identify but no
 # `magick` binary; snacks.image detects this and falls back, so 6 is enough.
