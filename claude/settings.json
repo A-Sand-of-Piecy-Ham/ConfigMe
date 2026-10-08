@@ -24,6 +24,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-version-watch",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "enableWorkflows": true,

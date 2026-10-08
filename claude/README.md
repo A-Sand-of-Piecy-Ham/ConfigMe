@@ -48,6 +48,7 @@ rather than Claude remembering it:
 |---|---|
 | `InstructionsLoaded` → `bin/log-instructions-loaded` | Logs every instruction file that loads, so "do rules actually load?" is checkable |
 | `PreToolUse` on `Edit\|Write` → `bin/docs-audience-hook` | Editing a project doc injects "load docs-audience first". The skill's trigger alone missed doc edits made in passing during code changes |
+| `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt. Once per version |
 
 Hook commands use `$HOME`, not absolute paths, so the file works on any machine.
 Permission approvals granted mid-session go to `~/.claude/settings.local.json`,
