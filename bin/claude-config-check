@@ -26,6 +26,8 @@ MEMORY_INDEX_MAX_LINES = 200
 DESCRIPTION_MAX_CHARS = 1536
 # A session that started this long after the last logged load means hooks didn't fire.
 LOG_STALE_SECONDS = 15 * 60
+# How many patch releases the terminal CLI and desktop app may differ before it's drift.
+VERSION_LAG_TOLERANCE = 5
 
 
 def out(level, msg, fix=""):
@@ -116,6 +118,24 @@ def check_observed_loads():
     out("ok", f"CLAUDE.md and rules loaded in the last session ({len(loaded)} files)")
 
 
+def check_versions():
+    """The terminal CLI and the desktop app's bundled CLI update separately; flag a lagging one."""
+    found = {}
+    for label, d in (("terminal CLI", HOME / ".local/share/claude/versions"), ("desktop app", CLAUDE / "remote/ccd-cli")):
+        versions = [p.name for p in d.glob("*") if re.match(r"^\d+\.\d+\.\d+$", p.name)] if d.is_dir() else []
+        if versions:
+            found[label] = max(versions, key=lambda v: tuple(map(int, v.split("."))))
+    # The two update on their own schedules, so a release or two apart is normal; flag real drift.
+    key = lambda k: tuple(map(int, found[k].split(".")))
+    if len(found) == 2 and abs(key("terminal CLI")[2] - key("desktop app")[2]) > VERSION_LAG_TOLERANCE or (
+            len(found) == 2 and key("terminal CLI")[:2] != key("desktop app")[:2]):
+        older = min(found, key=lambda k: tuple(map(int, found[k].split("."))))
+        out("warn", f"Claude Code versions differ: terminal {found['terminal CLI']}, desktop {found['desktop app']} -- the {older} lags",
+            "claude update" if older == "terminal CLI" else "update the desktop app")
+    elif found:
+        out("ok", "Claude Code " + ", ".join(f"{k} {v}" for k, v in found.items()))
+
+
 def check_skills():
     problems = []
     for skill in sorted((CLAUDE / "skills").glob("*/SKILL.md")):
@@ -167,7 +187,7 @@ def main():
     if not CLAUDE.is_dir():
         out("bad", "~/.claude missing -- Claude Code not set up")
         return 0
-    for check in (check_settings, check_observed_loads, check_skills, check_memory):
+    for check in (check_settings, check_observed_loads, check_versions, check_skills, check_memory):
         try:
             check()
         except Exception as e:  # a broken check must not hide the others

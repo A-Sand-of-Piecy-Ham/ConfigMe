@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""SessionStart hook: when Claude Code has updated since the last session, tell Claude to check
+what changed and whether ConfigMe should adopt it.
+
+Claude Code ships features quickly (hook events, settings, tools), and ConfigMe only benefits if
+someone notices. A rule saying "keep up with Claude Code" never fires at the moment an update
+lands; this does. Injects context only, once per new version; never blocks, always exits 0.
+"""
+import json
+import re
+import sys
+from pathlib import Path
+
+HOME = Path.home()
+STATE = HOME / ".local/state/configme/claude-version"
+# Installs to compare: the terminal CLI and the one bundled with the desktop app.
+INSTALL_DIRS = [HOME / ".local/share/claude/versions", HOME / ".claude/remote/ccd-cli"]
+CHANGELOG = "https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"
+
+
+def version_key(v):
+    return tuple(int(p) for p in re.findall(r"\d+", v))
+
+
+def newest_installed():
+    versions = [p.name for d in INSTALL_DIRS if d.is_dir() for p in d.iterdir() if re.match(r"^\d+\.\d+\.\d+$", p.name)]
+    return max(versions, key=version_key, default=None)
+
+
+def main():
+    try:
+        current = newest_installed()
+        if not current:
+            return
+        previous = STATE.read_text().strip() if STATE.exists() else None
+        if previous == current:
+            return
+        STATE.parent.mkdir(parents=True, exist_ok=True)
+        STATE.write_text(current + "\n")
+        if previous is None:
+            return  # first run: record a baseline, nothing to compare against
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "SessionStart",
+            "additionalContext": (
+                f"Claude Code updated {previous} -> {current} since the last session. At a natural "
+                f"break (not before the user's request), skim the changelog ({CHANGELOG}) for new "
+                "hook events, settings, tools, or skill/memory features, and tell the user in a "
+                "line or two which would improve ConfigMe (claude/settings.json, rules, skills, "
+                "bin/ hooks) or retire something it does by hand. Say nothing if none apply."
+            ),
+        }}))
+    except Exception:
+        pass
+
+
+if __name__ == "__main__":
+    main()
+    sys.exit(0)
