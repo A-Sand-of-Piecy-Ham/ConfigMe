@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""Check that Claude Code's configuration is well-formed and actually loading.
+
+Run by `install.sh --doctor`; also usable alone. Prints one line per finding:
+`ok|warn|bad<TAB>message[<TAB>fix]`, which the doctor renders.
+
+Two kinds of evidence:
+- Static: files parse, links resolve, hook commands exist, memory indexes match their files.
+- Observed: ~/.claude/instructions-loaded.log (written by the InstructionsLoaded hook) shows
+  what Claude Code really loaded. That proves CLAUDE.md and rules load, and that settings.json
+  hooks fire. Auto-memory is not reported by that hook, so memory gets static checks only.
+"""
+import json
+import os
+import re
+import shlex
+import sys
+from pathlib import Path
+
+HOME = Path.home()
+CLAUDE = HOME / ".claude"
+LOG = CLAUDE / "instructions-loaded.log"
+# Claude Code reads only the first 200 lines of a MEMORY.md index.
+MEMORY_INDEX_MAX_LINES = 200
+# Skill descriptions longer than this are truncated in the skill listing (skillListingMaxDescChars).
+DESCRIPTION_MAX_CHARS = 1536
+# A session that started this long after the last logged load means hooks didn't fire.
+LOG_STALE_SECONDS = 15 * 60
+
+
+def out(level, msg, fix=""):
+    print(f"{level}\t{msg}" + (f"\t{fix}" if fix else ""))
+
+
+def frontmatter(path):
+    """Top-level `key: value` pairs of a file's YAML frontmatter, or None if it has none."""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    m = re.match(r"---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        return None
+    return dict(re.findall(r"^(\w[\w-]*):\s*(.*)$", m.group(1), re.M))
+
+
+def check_settings():
+    path = CLAUDE / "settings.json"
+    try:
+        settings = json.loads(path.read_text())
+    except (OSError, ValueError) as e:
+        out("bad", f"settings.json unreadable ({e.__class__.__name__}) -- Claude Code ignores the whole file")
+        return
+    missing = []
+    for event, entries in settings.get("hooks", {}).items():
+        for entry in entries:
+            for hook in entry.get("hooks", []):
+                if hook.get("type") != "command":
+                    continue
+                cmd = os.path.expandvars(shlex.split(hook["command"])[0])
+                if not os.access(cmd, os.X_OK):
+                    missing.append(f"{event}: {cmd}")
+    if missing:
+        out("bad", "hook commands missing or not executable: " + "; ".join(missing), "./install.sh (links bin/)")
+    else:
+        out("ok", "settings.json hooks resolve")
+
+
+def load_log():
+    """Logged load events, oldest first, as (epoch seconds, event dict)."""
+    from datetime import datetime
+    events = []
+    try:
+        lines = LOG.read_text().splitlines()
+    except OSError:
+        return events
+    for line in lines:
+        try:
+            rec = json.loads(line)
+            events.append((datetime.fromisoformat(rec["at"]).timestamp(), rec["event"] or {}))
+        except (ValueError, KeyError, TypeError):
+            continue
+    return events
+
+
+def check_observed_loads():
+    events = load_log()
+    if not events:
+        out("bad", "no instruction-load log -- the InstructionsLoaded hook has never fired", "check settings.json is linked, then start a session")
+        return
+    last_at = events[-1][0]
+    # Every session since the log began should appear in it; one that doesn't means the hook
+    # (and so settings.json) wasn't active for it. A transcript's name is its session id.
+    logged = {e.get("session_id") for _, e in events}
+    first_at = events[0][0]
+    recent = sorted((CLAUDE / "projects").glob("*/*.jsonl"), key=lambda t: t.stat().st_mtime)[-10:]
+    unlogged = [t.stem for t in recent
+                if t.stem not in logged and t.stat().st_mtime > first_at + LOG_STALE_SECONDS]
+    if unlogged:
+        out("bad", f"{len(unlogged)} recent session(s) never logged a load -- settings.json hooks weren't firing")
+    else:
+        out("ok", "settings.json hooks firing (every recent session logged its loads)")
+
+    # The most recent session_start batch: what a fresh session loads.
+    sid = next((e.get("session_id") for _, e in reversed(events) if e.get("load_reason") == "session_start"), None)
+    loaded = {e.get("file_path") for _, e in events if e.get("session_id") == sid}
+    session_started = min((t for t, e in events if e.get("session_id") == sid), default=last_at)
+    for f in [CLAUDE / "CLAUDE.md", *sorted((CLAUDE / "rules").glob("*.md"))]:
+        real = str(f.resolve())
+        if str(f) in loaded or real in loaded:
+            continue
+        fm = frontmatter(f) or {}
+        if "paths" in fm:
+            continue  # path-scoped rules load only next to matching files
+        if f.stat().st_mtime > session_started:
+            out("warn", f"{f.name} is newer than the last session -- start one to confirm it loads")
+        else:
+            out("bad", f"{f.name} exists but did not load in the last session")
+    out("ok", f"CLAUDE.md and rules loaded in the last session ({len(loaded)} files)")
+
+
+def check_skills():
+    problems = []
+    for skill in sorted((CLAUDE / "skills").glob("*/SKILL.md")):
+        fm = frontmatter(skill)
+        name = skill.parent.name
+        if fm is None:
+            problems.append(f"{name}: no frontmatter")
+        elif not fm.get("description"):
+            problems.append(f"{name}: no description (it can never trigger)")
+        elif fm.get("name") and fm["name"] != name:
+            problems.append(f"{name}: name '{fm['name']}' doesn't match its folder")
+        elif len(fm["description"]) > DESCRIPTION_MAX_CHARS:
+            problems.append(f"{name}: description over {DESCRIPTION_MAX_CHARS} chars, truncated in the listing")
+    if problems:
+        out("bad", "skills: " + "; ".join(problems))
+    else:
+        out("ok", "skills have valid frontmatter")
+
+
+def check_memory():
+    for mem in sorted((CLAUDE / "projects").glob("*/memory")):
+        project = mem.parent.name
+        index = mem / "MEMORY.md"
+        files = {p.name for p in mem.glob("*.md")} - {"MEMORY.md"}
+        if not index.exists():
+            if files:
+                out("warn", f"memory {project}: {len(files)} files but no MEMORY.md index, so none load at session start")
+            continue
+        lines = index.read_text().splitlines()
+        linked = set(re.findall(r"\]\(([^)]+\.md)\)", index.read_text()))
+        problems = []
+        if len(lines) > MEMORY_INDEX_MAX_LINES:
+            problems.append(f"index is {len(lines)} lines; only the first {MEMORY_INDEX_MAX_LINES} load")
+        if broken := sorted(linked - files):
+            problems.append("index links missing files: " + ", ".join(broken))
+        if unindexed := sorted(files - linked):
+            problems.append("files not in the index (never recalled): " + ", ".join(unindexed))
+        for f in sorted(files & linked):
+            fm = frontmatter(mem / f)
+            if not fm or not fm.get("description"):
+                problems.append(f"{f}: missing frontmatter description")
+        if problems:
+            out("warn", f"memory {project}: " + "; ".join(problems))
+        else:
+            out("ok", f"memory {project}: {len(files)} entries indexed")
+
+
+def main():
+    if not CLAUDE.is_dir():
+        out("bad", "~/.claude missing -- Claude Code not set up")
+        return 0
+    for check in (check_settings, check_observed_loads, check_skills, check_memory):
+        try:
+            check()
+        except Exception as e:  # a broken check must not hide the others
+            out("bad", f"{check.__name__} crashed: {e!r}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
