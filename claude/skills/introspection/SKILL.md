@@ -1,14 +1,14 @@
 ---
 name: introspection
 description: >
-  Analyze a completed interaction to identify what response patterns worked well versus caused friction, and commit findings to the user's interaction style memory. Suggest invoking when the user expresses satisfaction with a session.
+  Analyze a completed interaction to identify what response patterns worked well versus caused friction, and file each finding where it belongs (interaction style, engineering practice, a skill, or project standards). Suggest invoking when the user expresses satisfaction with a session.
 model: opus
 effort: high
 ---
 
 ## Token budget
 
-This skill runs often. Findings must be brief — one terse paragraph appended to the `## From introspection` section of `interaction_style.md`. No headers, bullets, or named subsections per finding. Project-specific details belong in project memory, not here. New additions must not drown out the established guidelines.
+This skill runs often. Findings must be brief: one terse paragraph or bullet per finding, in the file it belongs to (Step 5). No headers, bullets, or named subsections per finding. Project-specific details belong in project memory, not here. New additions must not drown out the established guidelines.
 
 ---
 
@@ -50,9 +50,19 @@ Generalizable patterns only — no project-specific details. Terse, traceable to
 
 ---
 
-## Step 5 — Commit to memory
+## Step 5 — File each finding where it belongs
 
-Append to `## From introspection` in `~/projects/ConfigMe/claude/memory/interaction_style.md`. Update or reinforce existing entries rather than duplicating. Update `MEMORY.md` index only if a new top-level section was added.
+Classify first. `interaction-style.md` is only for the user and how to work *with* them; most lessons about the work itself go elsewhere.
+
+| Finding is about | Goes in |
+|---|---|
+| The user: preferences, how they communicate, what to ask vs. do, reading intent | `~/projects/ConfigMe/claude/rules/interaction-style.md`, `## From introspection` |
+| How to do engineering work: verification, safe edits, cleanup depth | `~/projects/ConfigMe/claude/rules/engineering-practice.md` |
+| A workflow a skill already covers (docs, git, project setup, …) | That skill's `SKILL.md` (use `skill-forge` for anything beyond a line) |
+| A convention every repo should follow | `~/projects/ConfigMe/github-templates/project-standards.md` |
+| One project only | That project's memory or docs |
+
+Check the destination for an existing entry and update it rather than duplicating. If a finding is already covered where it belongs, add nothing.
 
 ---
 
