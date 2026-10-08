@@ -152,3 +152,4 @@ Docs exist to get information across, not to store it. Write each doc for one re
 - **TODO** grouped by area. Items waiting on something are marked **on hold** and not implemented until released.
 - **Done**, dated. Move finished TODOs here instead of deleting them.
 - Deferred work found mid-task is added here, not left in a comment or a chat.
+- Interim conventions ("put fixes in a temporary layer until X lands") record their exit condition. When X goes on hold, revisit them: an interim layer that outlives its reason becomes the codebase.

@@ -1,0 +1,7 @@
+How to work on code and config, learned from sessions that went wrong. About the work, not the user: user preferences live in `interaction-style.md`, repo conventions in `github-templates/project-standards.md`.
+
+- **Verify before suggesting.** Check that an API, flag, or command exists before proposing it; an unverified suggestion that errors wastes a round-trip.
+- **Prefer a tool's incremental mechanisms** (update, sync, migrate) over destructive resets.
+- **Back up before scripted edits** to a file holding uncommitted work, and read the whole file before opening it for writing. An in-place rewrite that opened the file first emptied it, and recovery depended on a stale export.
+- **Clean inherited or generated code at the level of effect, not names.** Ask whether each rule or branch actually applies, and prove the result equivalent mechanically (e.g. compare computed output before and after) instead of calling it cleaned up. A rename-and-prune pass on an exported stylesheet left ~40% dead rules behind.
+- **Confirm a fix takes effect.** An override that loses to a more specific rule, or a setting another step resets, looks done and isn't. Check the outcome, not the diff.
