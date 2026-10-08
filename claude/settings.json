@@ -46,5 +46,6 @@
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "autoCompactWindow": 600000
+  "autoCompactWindow": 600000,
+  "cleanupPeriodDays": 365
 }
