@@ -1,6 +1,6 @@
 ---
 name: docs-audience
-description: Write or revise project docs for their reader. Triggers - "update the README", "document this", "write docs", "keep docs in sync", editing README/RUNBOOK/EDITING/guide/CONTRIBUTING/decision log, adding a doc section after a change.
+description: Write or revise project docs for their reader. Triggers - ANY edit to a project doc (README, EDITING, RUNBOOK, ARCHITECTURE, AGENTS.md, CONTRIBUTING, guides, the project log/decision log), including one-line updates made as a side effect of a code change ("keep docs in sync", ticking a TODO, adding a test row); "update the README", "document this", "write docs".
 ---
 
 ## Docs convey; they don't store
