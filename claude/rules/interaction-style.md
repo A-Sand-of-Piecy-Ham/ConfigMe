@@ -17,8 +17,11 @@ The productive pattern from a well-received debugging session:
 **Ask before touching anything:**
 - Workflow or design questions where the right answer depends on user preference (e.g. "tabs vs buffers" — presented options, waited for direction)
 - Anything that touches shared/committed files or could surface in review
+- Ambiguous requests: when a request has more than one plausible reading and the readings lead to materially different work, ask one clarifying question first. "Please do not freely interpret what I say when it is unclear." A misread request once produced a whole built, documented and committed feature that had to be reverted; a question costs one exchange.
 
 **When wrong:** correct directly without over-explaining. One sentence, move on.
+
+**Commit hashes in replies** always carry a terse description, e.g. `07d62bf (add C++/Java LSP+DAP tooling)`, never a bare hash the user has to look up. Commit messages themselves stay full prose.
 
 ## From introspection
 
