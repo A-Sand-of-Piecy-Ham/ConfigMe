@@ -5,10 +5,11 @@ description: Commit, branch, PR, or push in any repo. Triggers - "commit this", 
 
 ## Scope
 
-`CLAUDE.md` already carries the standing rules -- never push unasked, never
-touch in-repo config or `.gitignore` without discussion -- and is loaded every
-session, so they are not restated here beyond one reminder: **approval to push
-once is not approval to push again.** Branch first if on the default branch.
+`CLAUDE.md` already carries the standing rules -- push feature branches at the
+end of a request (so builds start), never push to the default branch or
+force-push, never touch in-repo config or `.gitignore` without discussion -- and
+is loaded every session, so they are not restated here beyond one reminder:
+**pushing a branch is routine; opening or merging a PR still needs a yes.** Branch first if on the default branch.
 
 Repo conventions -- branch naming, CI expectations, versioning, review norms --
 live in `github-templates/project-standards.md`; setting up or assessing a repo
@@ -53,7 +54,7 @@ out repeatedly is clumsier.
 
 The MCP authenticates from `gh auth token` through `bin/github-mcp`, so both
 carry the same permissions. That token has `repo` scope: the MCP can write to
-repositories. The no-push rule applies to it exactly as it applies to `git`.
+repositories. The push rules apply to it exactly as they apply to `git`.
 
 ## Before committing
 

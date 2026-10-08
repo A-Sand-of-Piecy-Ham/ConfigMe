@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/log-instructions-loaded"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/docs-audience-hook",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "enableWorkflows": true,
+  "effortLevel": "medium",
+  "askUserQuestionTimeout": "never",
+  "theme": "auto",
+  "editorMode": "vim",
+  "preferredNotifChannel": "auto",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "autoCompactWindow": 600000
+}
