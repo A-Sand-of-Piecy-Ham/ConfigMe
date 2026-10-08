@@ -30,6 +30,8 @@ Doc upkeep drifted into archiving: the most visible doc collected rationale, int
 
 Before a scripted edit to a file holding the user's uncommitted work, copy it somewhere safe first. An in-place rewrite that opened the file for writing before reading it emptied the file, and recovery depended on a stale export.
 
+Inherited generated code got a name-level cleanup (renames, unused classes pruned), was called "cleaned up", then frozen behind an append-only "interim" override layer because a rewrite was planned; the rewrite stalled, the layer became permanent, and some overrides never took effect. When cleaning inherited code, work at the level of effect (does each rule or branch actually apply?) and prove equivalence mechanically; give every interim convention an exit condition and revisit it when its blocker stalls; confirm a fix wins rather than assuming it does. For config requests, state the resulting behavior in one line before changing anything: a literal "remove the setting" was really "make the dashboard authoritative", and the heavier fix it implied was declined.
+
 **Personal preferences / pet peeves section forthcoming** — user intends to draft separately.
 
 <!-- TODO: user to draft personal preferences / pet peeves section -->
