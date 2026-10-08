@@ -55,6 +55,13 @@ which stays machine-local and untracked. Changing a setting in `/config`
 rewrites the linked file, so it shows up as a diff here; `install.sh --doctor`
 flags it if Claude Code ever replaces the link with a plain file.
 
+`bin/claude-config-check` (run by the doctor) checks what actually loads, not just
+what's linked: the load log must show `CLAUDE.md` and every rule in the last
+session, every recent session must have logged loads (proof the hooks fire),
+skills need a description, and each auto-memory folder needs a `MEMORY.md` index
+that matches its files. Auto-memory itself isn't reported by the load hook, so
+memory only gets the static checks.
+
 ## Memory
 
 `claude/memory/` was removed. It symlinked to `~/.claude/memory/`, which nothing

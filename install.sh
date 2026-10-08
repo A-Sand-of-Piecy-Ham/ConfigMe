@@ -570,6 +570,22 @@ doctor() {
             bad "~/.claude/settings.json is not linked -- hooks and preferences are untracked"
             fix "diff it against claude/settings.json, merge any changes into the repo, then ./install.sh"
         fi
+        # Content and load evidence (bin/claude-config-check): settings parse and hooks resolve,
+        # CLAUDE.md and rules showed up in the last session's load log, skills and memory indexes
+        # are well-formed.
+        if command -v claude-config-check >/dev/null 2>&1; then
+            while IFS=$'\t' read -r level msg hint; do
+                case "$level" in
+                    ok) ok "$msg" ;;
+                    warn) warn "$msg" ;;
+                    *) bad "$msg" ;;
+                esac
+                [ -n "${hint:-}" ] && fix "$hint"
+            done < <(claude-config-check)
+        else
+            warn "claude-config-check missing -- config content and loading not verified"
+            fix "./install.sh   (links bin/claude-config-check)"
+        fi
         if command -v github-mcp >/dev/null 2>&1; then
             gh auth status >/dev/null 2>&1 && ok "github-mcp (gh authenticated)" \
                                            || bad "github-mcp present but gh not logged in"
