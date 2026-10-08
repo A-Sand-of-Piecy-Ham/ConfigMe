@@ -44,6 +44,7 @@ comes first there: a joke mustn't hide a step, a command, or a reason.
 - **Maintainer reminders in reader-facing text.** A note like "(keep this
   accurate when…)" in a README table is an instruction to maintainers or agents.
   Move it to the contributor or agent guidance.
+- **Code that exists described as code that works.** A README listing a full pipeline as commands, when several stages had never run on real data, misled every later reader. Mark a WIP project as WIP near the top, and split functionality into works / written but unverified / planned, naming the blocker for anything incomplete.
 - **Unbuilt features described next to built ones.** Asides like "this isn't
   built yet; see the log" make readers unsure what works today. Describe only
   what exists. Put planned work in its own clearly labelled section, and only

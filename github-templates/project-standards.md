@@ -126,6 +126,7 @@ Docs exist to get information across, not to store it. Write each doc for one re
 | `AGENTS.md` | AI agents | Conventions and hard rules, with a "keep this and the docs above in sync in the same change" clause |
 
 - Only describe what exists. Planned work is labelled as planned, in its own section.
+- A work-in-progress project says so near the top of its README, and separates what works from what's written but unverified ("code exists" isn't "code has run").
 - Keep docs in sync **in the same change** that makes them wrong.
 
 ### Writing style

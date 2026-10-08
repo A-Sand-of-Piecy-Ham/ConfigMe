@@ -28,19 +28,14 @@ one, is not.
 Wrap the body at ~72 characters. Backticks in a bash heredoc get
 command-substituted, so avoid them or use a quoted heredoc.
 
-End with:
-
-```
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-```
+End with the attribution lines Claude Code supplies for the session (a
+system reminder gives the exact `Co-Authored-By:` trailer). Don't hard-code
+them here: the model name changes with each release, and a copied trailer goes
+stale silently.
 
 ## PRs
 
-Body ends with:
-
-```
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-```
+Body ends with the PR attribution line Claude Code supplies for the session.
 
 Reference issues and PRs as full markdown links using the owner/repo from the
 actual remote. Never a bare `#123`, and never assume a default repository.
