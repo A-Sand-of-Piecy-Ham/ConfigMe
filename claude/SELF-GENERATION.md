@@ -122,6 +122,12 @@ For the paper, and for experiments here:
   is, are open.
 - **Transfer.** Do skills written for one project help another, or does
   specificity make them dead weight elsewhere?
+- **Task-framed vs. action-framed triggers.** A description matches the task as
+  Claude frames it ("I'm fixing the CSS"), not each action inside it ("I'm editing
+  RUNBOOK.md"). Skills whose subject is an *object* (a file type, a doc) rather
+  than a task may need a harness hook on the action, not a better description.
+  Does an action-worded description ("ANY edit to a project doc") fire on
+  side-effect edits by itself, or only with a hook?
 
 ## Observations
 
@@ -161,6 +167,23 @@ loaded. The user rejected this correctly: an absent directory cannot load. The
 real test needed the directory recreated with a canary. Bears on nothing in the
 open list directly, but worth recording as a failure mode: **verification run
 after a change cannot establish what was true before it.**
+
+**2026-10-08 — docs-audience never fired on side-effect doc edits.** In one
+session AGENTS.md, RUNBOOK.md and PROJECT_LOG.md were edited about six times as
+"keep docs in sync" steps of code changes; the skill loaded zero times. Its
+description named doc-writing as the task ("update the README", "write docs"),
+and the task was always framed as code. The lesson it encodes had been recorded
+twice (in interaction-style, and in the skill itself) and still didn't apply,
+since neither location triggers on the action. Moving the always-loaded copy out
+of interaction-style made it worse: the lesson then lived only in the skill that
+wasn't firing. Bears on trigger precision (a false negative with a clear cause)
+and on where lessons go. Changes made together, so their effects can't be
+separated yet: description reworded to "ANY edit to a project doc, including
+side-effect updates", and a PreToolUse hook (`bin/docs-audience-hook`, Edit|Write
+on README/EDITING/AGENTS/CONTRIBUTING/docs/*.md) that injects a reminder. The
+hook was verified firing on a test write. Suggests the new open question above.
+To check later: in sessions with side-effect doc edits, does the skill load
+before the hook's reminder appears?
 
 ## Prior art to check
 
