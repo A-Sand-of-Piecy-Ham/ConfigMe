@@ -1,8 +1,9 @@
 # Claude Code configuration
 
-Linked into `~/.claude/` by the installer. Three pieces: instructions that load
-every session, rules that load every session as separate files, and skills that
-load only when their description matches the task.
+Linked into `~/.claude/` by the installer. Four pieces: instructions that load
+every session, rules that load every session as separate files, skills that
+load only when their description matches the task, and settings, whose hooks
+run whether or not Claude remembers anything.
 
 ## Skills
 
@@ -36,6 +37,23 @@ regardless of the session setting.
 file per topic, and support `paths:` frontmatter to load only alongside matching
 files. This is the right home for always-true behaviour that should stay in
 separate files rather than being merged into `CLAUDE.md`.
+
+## Settings and hooks
+
+`claude/settings.json` is linked to `~/.claude/settings.json`: preferences
+(theme, vim mode, effort) and hooks. Hooks are the harness enforcing something
+rather than Claude remembering it:
+
+| Hook | Does |
+|---|---|
+| `InstructionsLoaded` → `bin/log-instructions-loaded` | Logs every instruction file that loads, so "do rules actually load?" is checkable |
+| `PreToolUse` on `Edit\|Write` → `bin/docs-audience-hook` | Editing a project doc injects "load docs-audience first". The skill's trigger alone missed doc edits made in passing during code changes |
+
+Hook commands use `$HOME`, not absolute paths, so the file works on any machine.
+Permission approvals granted mid-session go to `~/.claude/settings.local.json`,
+which stays machine-local and untracked. Changing a setting in `/config`
+rewrites the linked file, so it shows up as a diff here; `install.sh --doctor`
+flags it if Claude Code ever replaces the link with a plain file.
 
 ## Memory
 

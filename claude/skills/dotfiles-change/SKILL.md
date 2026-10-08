@@ -73,4 +73,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\install.ps1"
 Re-running `install.ps1` is only needed when the change affects a Windows
 target. nvim is a junction, so nvim changes are live there after the pull alone.
 
-Never push without being asked.
+Never push without being asked: this repo commits straight to `main`, and the default branch is never pushed unasked.

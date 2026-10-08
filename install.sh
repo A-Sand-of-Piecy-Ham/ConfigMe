@@ -558,6 +558,18 @@ doctor() {
             fi
         done
         [ -L "$HOME/.claude/CLAUDE.md" ] && ok "CLAUDE.md linked" || bad "~/.claude/CLAUDE.md not linked"
+        # Claude Code rewrites settings.json when a setting changes in /config; if it ever
+        # replaces the symlink with a plain file, the change silently stops reaching the repo.
+        if [ -L "$HOME/.claude/settings.json" ]; then
+            if python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$HOME/.claude/settings.json" 2>/dev/null; then
+                ok "settings.json linked"
+            else
+                bad "settings.json is not valid JSON -- Claude Code ignores the whole file"
+            fi
+        else
+            bad "~/.claude/settings.json is not linked -- hooks and preferences are untracked"
+            fix "diff it against claude/settings.json, merge any changes into the repo, then ./install.sh"
+        fi
         if command -v github-mcp >/dev/null 2>&1; then
             gh auth status >/dev/null 2>&1 && ok "github-mcp (gh authenticated)" \
                                            || bad "github-mcp present but gh not logged in"
@@ -881,6 +893,9 @@ if feature_on claude; then
     link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
     link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
     link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+    # Shared settings: preferences and hooks. Approvals granted mid-session go to
+    # ~/.claude/settings.local.json, which stays machine-local.
+    link "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
 else
     echo "  skipped -- claude feature off (features.md)"
 fi
