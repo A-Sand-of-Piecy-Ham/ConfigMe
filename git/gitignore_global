@@ -21,3 +21,6 @@
 # leaves compiled files in the working tree. Machine-specific build output.
 __pycache__/
 *.py[cod]
+
+# Windows "downloaded from the internet" markers created when copying into WSL
+*:Zone.Identifier
