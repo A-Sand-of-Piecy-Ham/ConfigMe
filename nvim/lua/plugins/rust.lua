@@ -58,6 +58,16 @@ local function server_cmd()
   return { "sh", "-c", LAUNCHER, "sh", dir, mason ~= "" and mason or "rust-analyzer", "--log-file", logfile }
 end
 
+-- Clippy lints that are style opinions rather than findings. These apply only
+-- to rust-analyzer's check: `cargo clippy` in a terminal or CI still reports
+-- them. There is no user-wide clippy config for lint levels, and a project can
+-- set its own in its [lints] table.
+local CLIPPY_ARGS = {
+  "--",
+  "-A", "clippy::needless_return", -- "unneeded `return` statement"
+  "-A", "clippy::needless_late_init", -- "unneeded late initialization"
+}
+
 ---@type LazySpec
 return {
   { "Saecki/crates.nvim", enabled = rust },
@@ -66,7 +76,21 @@ return {
     enabled = rust,
     opts = function(_, opts)
       opts.tools = vim.tbl_extend("force", opts.tools or {}, { enable_clippy = true })
-      opts.server = vim.tbl_extend("force", opts.server or {}, { cmd = server_cmd })
+      local settings = opts.server and opts.server.settings
+      opts.server = vim.tbl_extend("force", opts.server or {}, {
+        cmd = server_cmd,
+        -- Applied after rustaceanvim decides on clippy, so a machine without
+        -- cargo-clippy keeps falling back to plain `cargo check`. The copy
+        -- keeps a server restart from appending the flags to its own output.
+        settings = function(root, defaults)
+          local result = vim.deepcopy(type(settings) == "function" and settings(root, defaults) or settings or {})
+          local check = vim.tbl_get(result, "rust-analyzer", "check")
+          if check and check.command == "clippy" then
+            check.extraArgs = vim.list_extend(check.extraArgs or {}, CLIPPY_ARGS)
+          end
+          return result
+        end,
+      })
     end,
   },
 }

@@ -174,6 +174,10 @@ setting, and it also switches off rustaceanvim's own clippy default. The result
 was plain `cargo check` with no clippy lints and no sign anything was missing.
 Re-enabling rustaceanvim's default restores clippy at server start.
 
+It also silences two style lints in the editor, `needless_return` and
+`needless_late_init` -- add others to `CLIPPY_ARGS`. This covers rust-analyzer
+only; `cargo clippy` in a terminal or CI still reports them.
+
 Useful `:RustLsp` subcommands: `runnables` and `testables` (pick and run),
 `debuggables` (same, under codelldb), `expandMacro`, `explainError`,
 `renderDiagnostic` (the full rustc output), `openCargo`, `openDocs`, and
