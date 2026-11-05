@@ -167,6 +167,7 @@ documented upstream.
 | `<Leader>lp` | Live preview: start (HTML/CSS/JS, opens a browser) |
 | `<Leader>lP` | Live preview: stop |
 | `<Leader>gv` | Diffview (which-key group) |
+| `+` / `-` / `=` | In an image buffer: zoom in, zoom out, reset. Overrides `+`, `-` and `=` there, which do nothing useful in an image |
 
 All of the above carry a `desc`, so which-key lists them when you hold the
 prefix.
