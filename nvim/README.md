@@ -140,6 +140,24 @@ The viewer is vimtex's `zathura_simple`, not `zathura`: the latter finds its
 window with xdotool, which cannot see the Wayland clients that WSLg and
 current Raspberry Pi OS produce.
 
+### JavaScript (`lua/plugins/astrolsp.lua`)
+
+ts_ls runs with `checkJs` on, so plain JS gets undefined names and bad property
+accesses rather than only syntax errors. Its annotation and null complaints are
+filtered out of JS files; TypeScript files keep them.
+
+Two results to expect:
+
+- **Globals from another `<script>`** show as undefined unless that file is
+  open, because without a project ts_ls sees only open files. Add a
+  `jsconfig.json` (`{ "compilerOptions": { "checkJs": true }, "include": ["**/*.js"] }`).
+- **DOM lookups**: `getElementById()` returns a plain `HTMLElement`, so
+  `canvas.getContext` is flagged. Narrow it with
+  `/** @type {HTMLCanvasElement} */`, or put `// @ts-nocheck` at the top of a
+  file to opt it out.
+
+ESLint attaches only in projects with an ESLint config.
+
 ### Astro
 
 The language server and treesitter parsers are added directly, not through
