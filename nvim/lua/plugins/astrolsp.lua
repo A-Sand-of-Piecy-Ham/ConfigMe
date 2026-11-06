@@ -4,6 +4,29 @@
 --       as this provides autocomplete and documentation while editing
 
 ---@type LazySpec
+-- checkJs brings TypeScript's strict mode, whose demands suit annotated code
+-- and not plain JavaScript: every untyped parameter and getElementById() result
+-- becomes an error. `strict = false` cannot switch it off, because
+-- typescript-language-server only forwards the option when it is true, so these
+-- are dropped here instead, for JS files only.
+local JS_IGNORED_CODES = {
+  [7005] = true, -- variable implicitly has an 'any' type
+  [7006] = true, -- parameter implicitly has an 'any' type
+  [7031] = true, -- binding element implicitly has an 'any' type
+  [18047] = true, -- 'x' is possibly 'null'
+  [18048] = true, -- 'x' is possibly 'undefined'
+}
+
+local function without_js_annotation_noise(err, result, ctx)
+  if result and result.uri:match "%.[cm]?jsx?$" then
+    result.diagnostics = vim.tbl_filter(
+      function(diagnostic) return not JS_IGNORED_CODES[diagnostic.code] end,
+      result.diagnostics
+    )
+  end
+  return vim.lsp.diagnostic.on_publish_diagnostics(err, result, ctx)
+end
+
 local spec = {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
@@ -45,6 +68,13 @@ local spec = {
     -- client specific configuration can also go in `lsp/` in your configuration root (see `:h lsp-config`)
     config = {
       -- ["*"] = { capabilities = {} }, -- modify default LSP client settings such as capabilities
+      -- TypeScript reports only syntax errors in plain JavaScript unless checkJs
+      -- is on, so undefined variables went unreported. This covers JS outside a
+      -- jsconfig.json/tsconfig.json; a project with one uses its own settings.
+      ts_ls = {
+        settings = { implicitProjectConfiguration = { checkJs = true } },
+        handlers = { ["textDocument/publishDiagnostics"] = without_js_annotation_noise },
+      },
       harper_ls = {
         settings = {
           ["harper-ls"] = {
