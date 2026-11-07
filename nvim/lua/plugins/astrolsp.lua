@@ -10,11 +10,18 @@
 -- typescript-language-server only forwards the option when it is true, so these
 -- are dropped here instead, for JS files only.
 local JS_IGNORED_CODES = {
+  [2531] = true, -- object is possibly 'null'
+  [2532] = true, -- object is possibly 'undefined'
+  [2533] = true, -- object is possibly 'null' or 'undefined'
   [7005] = true, -- variable implicitly has an 'any' type
   [7006] = true, -- parameter implicitly has an 'any' type
+  [7017] = true, -- globalThis.x: 'typeof globalThis' has no index signature
   [7031] = true, -- binding element implicitly has an 'any' type
+  [7034] = true, -- variable implicitly has type 'any' in some locations
+  [7053] = true, -- obj[key]: expression can't be used to index the type
   [18047] = true, -- 'x' is possibly 'null'
   [18048] = true, -- 'x' is possibly 'undefined'
+  [18049] = true, -- 'x' is possibly 'null' or 'undefined'
 }
 
 local function without_js_annotation_noise(err, result, ctx)
