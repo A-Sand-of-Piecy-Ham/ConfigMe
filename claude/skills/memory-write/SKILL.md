@@ -1,7 +1,6 @@
 ---
 name: memory-write
 description: Persist a stated preference. Triggers - "always", "never", "from now on", "stop doing", "I prefer", "remember that", or the same correction given twice.
-model: opus
 effort: medium
 ---
 
@@ -25,6 +24,7 @@ Phrasing that narrows — "this time", "for now", "just here" — is not.
 | Preference or fact, no trigger phrase for "know this" | Auto memory: `~/.claude/projects/<slug>/memory/` |
 | Rule that must hold in every session | `~/.claude/rules/` |
 | Procedure triggered by a kind of task | A skill — see `skill-forge` |
+| Correction to how an existing skill's workflow went | That skill's body, amended in this session |
 
 Misfiling costs asymmetrically. A rule filed as a skill is silently absent
 whenever it did not trigger, which is the same failure as not writing it. A

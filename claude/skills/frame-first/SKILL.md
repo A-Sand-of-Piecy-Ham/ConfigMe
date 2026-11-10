@@ -17,8 +17,9 @@ so. When a session shows a better step, add it here.
 Scale to the task. If one model would finish the job in one session, a frame
 costs more than it saves; do the work directly.
 
-Say so before designing if the session is not on the strongest model available.
-A frame's mistakes are inherited by every milestone built on it.
+Check the session's model before designing. If it is not the strongest
+available, stop and tell the user; design only if they say to go on. A frame's
+mistakes are inherited by every milestone built on it.
 
 ## Sequence
 

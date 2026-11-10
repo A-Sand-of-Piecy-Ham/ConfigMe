@@ -134,6 +134,24 @@ For the paper, and for experiments here:
 Evidence noticed while doing other work, appended by the `research-log` skill.
 Dated, one entry each; observations rather than conclusions.
 
+**2026-11-10 — a model pin downgraded the session it was meant to upgrade.**
+`skill-forge`, `introspection`, `memory-write` and `research-log` carried
+`model: opus` so meta-work would run on the strongest model. In a session
+running a newer, stronger model, invoking `skill-forge` switched it down to
+Opus for that turn. Nothing errored; it was noticed only because the commit
+attribution trailer changed. The skill written in that turn was therefore
+authored a tier below what the pin intended. Pins removed. Bears on the new
+pinned-values question, and on writer tier: the mechanism meant to control who
+writes skills was the thing that got it wrong.
+
+**2026-11-10 — writing a skill changed the skill-writing skill.** `frame-first`
+was drafted under `skill-forge`'s rules and departed from them in two places
+(an intent section, a status note for unrun parts). Both went back into
+`skill-forge` the same session, at the user's prompting for the general case.
+First instance of a skill being revised by its own use. Suggests amendment
+needs an always-loaded prompt, since the session using a skill has not loaded
+`skill-forge`; a line was added to `rules/engineering-practice.md` for that.
+
 **2026-09-09 — the harness cannot test what it was built to test.** `claude-probe`
 was built to answer questions about what a session loads. It turns out headless
 `-p` sessions load `CLAUDE.md`, `~/.claude/rules/` and skills, but not
