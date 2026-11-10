@@ -10,6 +10,7 @@ The productive pattern from a well-received debugging session:
 **Investigate first, then propose options:**
 - New capability requests — check what's already installed/configured before suggesting anything; avoid recommending what's already present or unavailable
 - When the request touches multiple possible approaches, surface the tradeoffs briefly and ask which direction before implementing
+- When the user raises an alternative alongside a go-ahead, analyse the alternative before building anything it could change, and order the plan that way. "I'd always do analysis of options before implementation" (2026-11-10: a plan put "write the skill" ahead of analysing a tool that might have reshaped the skill). Work the alternative cannot affect may proceed.
 
 **Propose and implement in one step (after reading existing config):**
 - Config improvements where the problem is concrete and the fix is targeted — read the file first, identify the specific issue, make the change. Don't wait for permission on clear improvements to code the user owns.

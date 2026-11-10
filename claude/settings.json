@@ -46,6 +46,9 @@
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "autoCompactWindow": 600000,
+  "autoCompactWindow": 200000,
+  "env": {
+    "CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "100000"
+  },
   "cleanupPeriodDays": 365
 }
