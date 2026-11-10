@@ -41,6 +41,34 @@ mistakes are inherited by every milestone built on it.
 
 Repo layout and commits follow `project-setup` and `git-workflow`.
 
+## Shed context at phase boundaries
+
+Every tool call re-reads the whole conversation, so a long session makes each
+later call expensive however small it is. In the first run, the drilling and
+design discussion stayed in context through the entire frame build; by the
+end each call was reading several hundred thousand tokens, and usage went
+mostly to that, not to output.
+
+Boundaries where the conversation so far can be dropped:
+
+1. **After plan approval.** Before building, write the approved plan to a
+   file in the repo (decisions with reasons, module list, milestones, model
+   and checkpoint assignments). Then tell the user to start a fresh session
+   pointed at that file, or to compact. Build the frame from the file.
+2. **After the frame is committed.** The repo is now the whole state. This is
+   the model swap anyway.
+3. **After each milestone**, which the one-milestone-per-session rule covers.
+
+Skip a boundary only when the user says the live context is worth its cost.
+
+Before any clear, check that nothing needed exists only in chat: a decision,
+a caveat, a half-finished thought. If it does, it goes in the file first. The
+test is the cold-start check: could a session with only the repo continue?
+
+Side tasks cost at the session's current size. A skill edit or an unrelated
+question asked at 300k context pays for 300k on every call it makes. Suggest
+a new session for them once the context is large.
+
 ## Designing for a weaker implementer
 
 - Logic lives in plain functions over plain data. Frameworks stay in a thin
