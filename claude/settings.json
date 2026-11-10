@@ -23,6 +23,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/bash-skill-hook",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionStart": [

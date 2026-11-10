@@ -21,6 +21,16 @@ Check the session's model before designing. If it is not the strongest
 available, stop and tell the user; design only if they say to go on. A frame's
 mistakes are inherited by every milestone built on it.
 
+Tiers here are relative: "strongest", "mid" and "small" mean what is
+available today, not model names. When the top model is weaker than the one
+this was written with, keep the method and shrink the steps: smaller
+milestones, a checkpoint after each of the first three, and one end-to-end
+path implemented before any handoff.
+
+At a checkpoint, or when reviewing what another model built, read
+`review.md` in this directory and work from it. When writing a frame's agent
+rules file, start from `agents-template.md`. Neither is needed otherwise.
+
 ## Sequence
 
 1. **Probe, then drill.** Read the environment first (toolchains, versions,
@@ -37,7 +47,7 @@ mistakes are inherited by every milestone built on it.
    before a yes.
 4. **Build the frame**, then tell the user plainly: swap models now, and come
    back at these named points.
-5. **Checkpoint reviews** as the milestones land.
+5. **Checkpoint reviews** as the milestones land, from `review.md`.
 
 Repo layout and commits follow `project-setup` and `git-workflow`.
 
@@ -69,6 +79,15 @@ Side tasks cost at the session's current size. A skill edit or an unrelated
 question asked at 300k context pays for 300k on every call it makes. Suggest
 a new session for them once the context is large.
 
+**One model per session.** The prompt cache is kept per model, so changing
+model mid-session re-reads the whole conversation at full price, and the new
+model inherits context written for another tier. The first handoff and its
+review shared one session across two models (2026-11-10); the review paid
+for the implementer's context. At a model change, start a new session, or
+clear and continue from the repo. Prefer a clear to a compaction: compacting
+costs a summarising call, and after a milestone the repo already holds the
+state.
+
 ## Designing for a weaker implementer
 
 - Logic lives in plain functions over plain data. Frameworks stay in a thin
@@ -96,8 +115,15 @@ a new session for them once the context is large.
   shows one milestone's state. Prefer invariants and several cases to a single
   golden number: one expected value invites hard-coding and enshrines the
   designer's arithmetic slip.
-- An agent rules file in the repo gives milestone order, exact commands, what
-  is frozen (public signatures, tests), and where to log a deviation.
+- An agent rules file in the repo, built from `agents-template.md`: milestone
+  order, exact commands, what is frozen (public signatures, tests), where to
+  log a deviation, what to read and what to report.
+- **One finish command that can pass at every milestone.** It runs that
+  milestone's tests and every earlier one, nothing later, and prints a
+  PASS or FAIL line. Run it against the bare frame before handoff. The first
+  frame said "all tests pass", which could not be true until the last
+  milestone; the implementer worked around it and reported the expected
+  failures at length.
 - Cold-start check: could a fresh session start milestone N from the repo
   alone? The implementer never sees the planning chat, so the reasons have to
   be in the repo.
@@ -128,6 +154,37 @@ before the handoff was finished.
   asserts) and the cases that encode a design decision. A mid-tier model
   writes out the rest; the strong model reads them at the first checkpoint.
   Untested as of this writing.
+- **Stubs split the same way.** The strong model keeps what cannot be
+  recovered from a wrong guess: signatures, formulas, the order of
+  operations, invariants, and the list of test cases. A mid-tier session
+  expands that into compiling files: field docs, stub bodies, test bodies,
+  the rules file. The first frame's strong model typed about seventy stubs
+  with their comments itself. Untested.
+- **A number to notice overspend by.** The plan's estimate gives each piece a
+  length. While writing, at twice the estimate for a piece, stop, hand the
+  remainder to a cheaper model as a sub-milestone, and tell the user. Without
+  a number there is nothing to notice against.
+- **Checking is not the strong model's work either.** Pipe test, lint and
+  build output through a filter so only failures reach the context (`-q`,
+  `tail`, a grep for errors); unfiltered runs were a large share of the
+  first frame's input. A compile-and-fix loop expected to take more than
+  two rounds goes to a cheaper subagent or session, with the error list as
+  its brief.
+
+## What a weak model writes, a strong model reads
+
+Every line an implementer writes into a log, a commit or a report is later
+input for the review tier, at the review tier's price and trust. So choose
+what it writes:
+
+- Fixed-format lines with a length cap: a gaps row, a friction line, the
+  report fields. The template has them.
+- No free prose in docs. Design docs, contracts and READMEs beyond a status
+  cell are written or approved by the tier that owns them.
+- Unstated duties are not done. The first small-model implementer followed
+  every numbered step and none of the implied ones ("keep the log true"
+  produced a false line). If the reviewer needs something recorded, the rules
+  need a step, a format and a check for it.
 
 Relative cost per token when this was written (2026-11): the strongest model
 about 2x the mid tier and 4x the small one. Check current prices before
@@ -149,7 +206,7 @@ points reasoned from that, not measurements:
 | Tight-oracle milestones | small | medium |
 | Milestones with judgment, or where modules first meet | mid | high |
 | UI and framework wiring | small or mid | medium; look up the API instead of thinking harder |
-| Checkpoint review | strongest | high |
+| Checkpoint review | strongest | medium (one run: findings came from reading and running, not from thinking longer) |
 | Tuning with the user | strongest | medium |
 
 ## Splitting work across models
@@ -171,19 +228,11 @@ Set them at plan time, not when trouble shows: after the first milestone (is
 the frame fillable at all?), at the first end-to-end runnable result, wherever
 quality has no test, and on any request to change something frozen.
 
-Read the diff, not the test summary. Look for:
-
-- edited, skipped or deleted tests
-- bodies special-cased to the test inputs
-- stubs still present (grep for the stub marker)
-- helpers duplicated across modules
-- contract clauses no test covers
-- frozen signatures changed with no log entry
-
-Fix findings by amending the frame (a new test, a tighter contract, a line in
-the rules file) and sending the work back. Hand-fixing in the strong model ends
-the cheap loop. If the finding is that the architecture is wrong, change the
-frame rather than letting patches collect around it.
+How to run one is in `review.md`: what to read, the code checklist, the
+process review that fixes the frame and this skill without being asked, and
+what to do with each kind of finding. In short: read the diff, not the
+summary, and fix findings by amending the frame, not by hand-fixing code in
+the review model.
 
 ## Footguns
 
@@ -205,5 +254,15 @@ First used 2026-11-10 on a Rust/Bevy mech game. Probe, drill and plan review
 ran and were well received. The frame was built and compiled, but overspent:
 that run produced "Budget the frame itself". It also skipped the thin
 end-to-end path, so whether that step earns its cost is still unknown.
-Handoff, checkpoint review, the test split and the effort table have not been
-run: treat them as hypotheses and revise them from the first full run.
+
+First handoff and checkpoint ran the same day: one tight-oracle milestone, a
+small model, reviewed by the strongest. The code was correct and to
+standard, so the split by oracle tightness held for that case. What failed
+was around the code, and produced `review.md`, `agents-template.md`, the
+finish-command rule and "What a weak model writes".
+
+Still hypotheses, never run: the thin end-to-end path, the test split and
+stub split, the overspend number, the review ladder, milestones for the mid
+tier, and everything in `review.md` when the reviewer is not the model that
+wrote it. The effort table has one data point (checkpoint review). Revise
+from the next run.
