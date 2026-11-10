@@ -26,6 +26,9 @@ trigger. The description is permanent context cost; the body is not.
 | `calendar-check` | Availability and scheduling |
 | `memory-write` | "always", "never", "from now on" -- persists rather than just complying |
 | `research-log` | Evidence bearing on the SELF-GENERATION open questions |
+| `docs-audience` | Any edit to a project doc; picks the depth and tone for whoever reads that file |
+| `project-setup` | Setting up or assessing a repo against the project standards |
+| `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints |
 
 `skill-forge`, `introspection` and `memory-write` pin `model: opus` with raised
 `effort` in their frontmatter, so meta-work runs on the strongest model
