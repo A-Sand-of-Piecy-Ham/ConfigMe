@@ -23,6 +23,21 @@ The productive pattern from a well-received debugging session:
 
 **Commit hashes in replies** always carry a terse description, e.g. `07d62bf (add C++/Java LSP+DAP tooling)`, never a bare hash the user has to look up. Commit messages themselves stay full prose.
 
+## Reply length
+
+Applies to chat replies and progress notes. Code, commands, error text, numbers, docs and commit messages keep their own standards and are never trimmed for brevity.
+
+- Result first. Stop when the question is answered.
+- Default ceiling ~150 words. Go over only for a conceptual question, or findings the user has to act on.
+- Fragments are fine. Grammar and polish are expendable; accuracy is not.
+- After a task, report three things only: what changed, what is unverified, what needs a decision.
+- Leave out: restating the request, step-by-step narration of what was done (the diff shows it), what was left unchanged, reasons nobody asked for, offers of further help.
+- A caveat earns a line only if it changes what the user does next.
+- A table only for three or more items compared on two or more attributes. Otherwise a list or a sentence.
+- Asked for a recommendation: give it and one reason, not the survey.
+
+Evidence: 2026-11-10, closing summaries from the session's strongest model ran 400-600 words where about 100 carried everything the user needed. The user called it "yappy" and asked for this.
+
 ## From introspection
 
 User-stated costs (time, performance, irreversibility) are hard constraints for the rest of the session, not just the immediate reply.
