@@ -71,6 +71,24 @@ Include verification, especially where success and failure look alike.
 Skip preamble, restated titles, and closing summaries. Assume the reader is
 already doing the task — the skill only loaded because they are.
 
+## Intent before method
+
+A skill that encodes a method opens by saying what the method is for, and that
+the steps are the current way of getting it. A reader who knows the goal can
+drop a step that is not serving it; a reader given bare steps follows them past
+the point where they help. This is not preamble. Preamble restates the title;
+intent tells the reader when to deviate.
+
+## No skill is final
+
+Every skill is a draft that its next use revises. When use contradicts a skill,
+change the skill in the same session instead of working around it.
+
+Where part of a skill was designed but never run, say so in a short status
+note, so the reader weighs that part as a hypothesis. Update or delete the note
+once the run has happened. `frame-first` was written after only its planning
+half had been exercised, and says which half.
+
 ## Check for redundancy before writing
 
 Read the existing skill descriptions first. A new skill that overlaps an old one
