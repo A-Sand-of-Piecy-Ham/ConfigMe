@@ -74,6 +74,56 @@ Repo layout and commits follow `project-setup` and `git-workflow`.
   alone? The implementer never sees the planning chat, so the reasons have to
   be in the repo.
 
+## Budget the frame itself
+
+The strong model's tokens go to decisions, not volume. Building the frame is
+the most expensive stretch of the whole method, and it is easy to spend it on
+typing. In the first run the strong model wrote all 43 catalog parts, every
+enemy, the level, and about a hundred tests by hand, and hit the usage limit
+before the handoff was finished.
+
+- **Two examples, then delegate.** For anything repeated (catalog entries,
+  level geometry, test cases of one shape, per-item visuals), the strong model
+  writes the schema, two instances that differ, and a check that validates the
+  rest (parses, cross-references, stays in range). The remaining instances
+  become a sub-milestone for the smallest model.
+- **Watch for it while writing.** About to write a third instance of the same
+  shape: stop, add the sub-milestone, move on. This has to be caught live; the
+  plan will not have foreseen every repetition.
+- **Estimate output at plan review.** List what the frame will contain and
+  roughly how long each piece is. Anything long and repetitive is assigned to
+  a cheaper model before writing starts, and the plan shown to the user says
+  so.
+- **Tests split the same way, with more care.** They are the oracle, so a
+  weaker model writing all of them weakens everything downstream. The strong
+  model writes the list of cases for each suite (name plus the one thing it
+  asserts) and the cases that encode a design decision. A mid-tier model
+  writes out the rest; the strong model reads them at the first checkpoint.
+  Untested as of this writing.
+
+Relative cost per token when this was written (2026-11): the strongest model
+about 2x the mid tier and 4x the small one. Check current prices before
+relying on the ratio; the point is that it is large, and that it counts
+against both the short and the weekly usage limits.
+
+## Reasoning effort
+
+Effort buys the most where the output is short and a mistake is expensive, and
+the least where a test will catch the mistake anyway. These are starting
+points reasoned from that, not measurements:
+
+| Step | Model | Effort |
+|---|---|---|
+| Probe and drill | strongest | medium |
+| Architecture and plan review | strongest | high |
+| Writing the frame (the design is already decided) | strongest | medium |
+| Bulk fill from examples | small | low |
+| Tight-oracle milestones | small | medium |
+| Milestones with judgment, or where modules first meet | mid | high |
+| UI and framework wiring | small or mid | medium; look up the API instead of thinking harder |
+| Checkpoint review | strongest | high |
+| Tuning with the user | strongest | medium |
+
 ## Splitting work across models
 
 Assign by how much judgment the oracle leaves open, not by size.
@@ -124,6 +174,8 @@ frame rather than letting patches collect around it.
 ## Status
 
 First used 2026-11-10 on a Rust/Bevy mech game. Probe, drill and plan review
-ran and were well received. Frame building, handoff and checkpoint review were
-designed but had not been run when this was written: treat those sections as
-hypotheses and revise them from the first full run.
+ran and were well received. The frame was built and compiled, but overspent:
+that run produced "Budget the frame itself". It also skipped the thin
+end-to-end path, so whether that step earns its cost is still unknown.
+Handoff, checkpoint review, the test split and the effort table have not been
+run: treat them as hypotheses and revise them from the first full run.
