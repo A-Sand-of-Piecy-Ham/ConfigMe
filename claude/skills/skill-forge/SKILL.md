@@ -133,6 +133,12 @@ long enough that loading it is a cost. Split along the trigger seam, so each
 half owns phrases the other does not want, then re-check both descriptions for
 competition.
 
+Where the seam is a phase inside one trigger (designing versus reviewing the
+same kind of work), split into files in the skill's directory instead, each
+named in the body with the condition for reading it. No second description is
+paid for. `frame-first` did this on 2026-11-10; whether readers open the
+sub-file when the condition holds is not yet known.
+
 ## Placement
 
 `~/projects/ConfigMe/claude/skills/<name>/SKILL.md`, symlinked to

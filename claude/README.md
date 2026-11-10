@@ -56,6 +56,7 @@ rather than Claude remembering it:
 |---|---|
 | `InstructionsLoaded` → `bin/log-instructions-loaded` | Logs every instruction file that loads, so "do rules actually load?" is checkable |
 | `PreToolUse` on `Edit\|Write` → `bin/docs-audience-hook` | Editing a project doc injects "load docs-audience first". The skill's trigger alone missed doc edits made in passing during code changes |
+| `PreToolUse` on `Bash` → `bin/bash-skill-hook` | A shell command that commits or pushes injects "load git-workflow first"; one that writes a project doc (`sed -i`, a redirect, a script) injects "load docs-audience first". A session that did all its edits and commits through the shell had loaded neither |
 | `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt. Once per version |
 | `PreCompact` → `bin/compact-notes-hook` | Gives every compaction standing instructions on what to keep, plus the session's own notes when the `smart-compact` skill wrote some |
 

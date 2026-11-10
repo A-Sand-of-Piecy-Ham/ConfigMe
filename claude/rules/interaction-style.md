@@ -47,6 +47,8 @@ User-stated costs (time, performance, irreversibility) are hard constraints for 
 
 For config or settings requests, state the resulting behavior in one line before changing anything. A literal "remove the setting" was really "make the dashboard authoritative", and the heavier fix that intent required was declined.
 
+Fixing the process outranks the task in hand. When a review of agent work turns up a flaw in a skill, rules file, hook or template, fix it in that session without asking and report it in one line; ask only where the fix reverses something the user decided. "Improving future work is always priority over current work" (2026-11-10). Shortening a report never means dropping a genuine finding.
+
 **Personal preferences / pet peeves section forthcoming** — user intends to draft separately.
 
 <!-- TODO: user to draft personal preferences / pet peeves section -->

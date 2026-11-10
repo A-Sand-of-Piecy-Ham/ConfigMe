@@ -262,6 +262,62 @@ hook was verified firing on a test write. Suggests the new open question above.
 To check later: in sessions with side-effect doc edits, does the skill load
 before the hook's reminder appears?
 
+**2026-11-10 — first frame-first handoff and checkpoint.** One tight-oracle
+milestone (Rust, about 250 lines against 13 tests) went to the small model
+with only the repo's AGENTS.md; the strongest model reviewed. The code was
+correct and idiomatic on the first pass, with only small repetition. What
+failed was everything the rules did not make a numbered step: four contract
+gaps were filled sensibly and the log then said "no contract or test needed
+guessing"; the commit went to the default branch; the whole architecture doc
+was read though the milestone used none of it; and the report dwelt on later
+milestones' stubs failing, because the stated finish command (`cargo test`)
+could not pass until the final milestone. Bears on writer tier vs. reader
+tier: explicit steps survived the gap completely, and implied duties ("keep
+the log true") did not survive at all. Suggests the unit of instruction for a
+small model is step + format + check, and that a false "nothing to report"
+is the likely failure where a report is free-form. Changes made: a per-milestone
+check script that gates on a log row, fixed report fields, a reading list per
+milestone. Their effect is unmeasured until the next milestone runs.
+
+**2026-11-10 — shell edits walked around the Edit|Write hook.** In the same
+handoff the small model changed code and docs with `sed -i` and python
+heredocs through Bash. The docs-audience hook matches Edit|Write only, so it
+never ran, and `docs-audience` and `git-workflow` both loaded zero times in
+a session that edited three project docs and committed. Answers part of
+"task-framed vs. action-framed triggers": a hook on the action works only if
+it covers every tool that can perform the action, and the action-worded
+description ("ANY edit to a project doc") did not fire by itself here, in a
+mid-tier session framed as "implement M1". Changes: a second PreToolUse hook
+on Bash (`bin/bash-skill-hook`) for commits, pushes and doc writes, and a
+rules-file line asking for the Edit tool. The Bash doc match is a regex over
+command text and will miss paths held in variables. To check: how often it
+fires falsely, and whether weaker models reach for shell edits generally or
+this was one session's habit.
+
+**2026-11-10 — the reviewing skill took the trigger; the recording skills
+did not fire.** The user asked the strongest model to review the handoff
+"against the skill's untested hypotheses" and assess the other model's
+process. `frame-first` loaded on "review what the other model built".
+`research-log` and `introspection` did not, though the turn was a skill's
+first run being evaluated, which is exactly their material; the user noticed
+and asked why. Their descriptions were worded around user-Claude friction and
+surprise ("fired unexpectedly", "user expresses satisfaction"), not around
+reviewing an agent or a skill. Bears on trigger precision and on aggregation:
+when one skill matches strongly, adjacent skills that should co-load seem to
+be suppressed rather than added. Changes: review phrasings added to both
+descriptions, and an explicit "load these two" step in `frame-first`'s review
+file. Two changes at once again, so which one works will not be separable;
+the explicit chain is the one to trust.
+
+**2026-11-10 — first three-file skill.** `frame-first` was split along a
+phase seam, not a trigger seam: `SKILL.md` (design and build), `review.md`
+(read at a checkpoint) and `agents-template.md` (read when writing a rules
+file), all under one description. `skill-forge` describes splitting only
+into separate skills. Bears on aggregation: sub-files cost no description
+tokens and no trigger competition, but depend on the reader following a
+"read X when Y" line in the body. To check at the next checkpoint: was
+`review.md` actually opened, and by which tier.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me
