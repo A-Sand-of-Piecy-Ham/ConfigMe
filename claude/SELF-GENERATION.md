@@ -128,6 +128,15 @@ For the paper, and for experiments here:
   than a task may need a harness hook on the action, not a better description.
   Does an action-worded description ("ANY edit to a project doc") fire on
   side-effect edits by itself, or only with a hook?
+- **Writer tier vs. reader tier.** Skills are mostly written by the strongest
+  model and often loaded by a weaker one. Which features of a body survive that
+  gap (explicit conditions and defaults, observable checks, ordering) and which
+  do not (stated intent, "use judgment")? And in the other direction: are
+  amendments made by a mid-tier session net improvements, or do they need the
+  additive-only limit `skill-forge` now puts on them?
+- **Pinned values that go stale.** Anything in a skill that names the current
+  best of something (a model, a tool version) is correct only until it is
+  superseded. What else in the setup has this shape?
 
 ## Observations
 
