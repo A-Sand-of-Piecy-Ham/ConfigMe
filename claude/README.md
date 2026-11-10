@@ -29,6 +29,7 @@ trigger. The description is permanent context cost; the body is not.
 | `docs-audience` | Any edit to a project doc; picks the depth and tone for whoever reads that file |
 | `project-setup` | Setting up or assessing a repo against the project standards |
 | `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints |
+| `smart-compact` | Compacting or clearing a large session; writes notes on what the summary must keep, since the agent cannot start a compaction itself |
 
 Skills are drafts. A session that finds one wrong or incomplete amends it then
 and there; `skill-forge` says which changes any model may make and which wait
@@ -48,7 +49,7 @@ separate files rather than being merged into `CLAUDE.md`.
 ## Settings and hooks
 
 `claude/settings.json` is linked to `~/.claude/settings.json`: preferences
-(theme, vim mode, effort) and hooks. Hooks are the harness enforcing something
+(theme, vim mode, effort, when auto-compaction starts) and hooks. Hooks are the harness enforcing something
 rather than Claude remembering it:
 
 | Hook | Does |
@@ -56,6 +57,7 @@ rather than Claude remembering it:
 | `InstructionsLoaded` → `bin/log-instructions-loaded` | Logs every instruction file that loads, so "do rules actually load?" is checkable |
 | `PreToolUse` on `Edit\|Write` → `bin/docs-audience-hook` | Editing a project doc injects "load docs-audience first". The skill's trigger alone missed doc edits made in passing during code changes |
 | `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt. Once per version |
+| `PreCompact` → `bin/compact-notes-hook` | Gives every compaction standing instructions on what to keep, plus the session's own notes when the `smart-compact` skill wrote some |
 
 Hook commands use `$HOME`, not absolute paths, so the file works on any machine.
 Permission approvals granted mid-session go to `~/.claude/settings.local.json`,

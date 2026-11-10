@@ -137,11 +137,61 @@ For the paper, and for experiments here:
 - **Pinned values that go stale.** Anything in a skill that names the current
   best of something (a model, a tool version) is correct only until it is
   superseded. What else in the setup has this shape?
+- **Routing around a harness limit.** Some things an agent cannot do are gaps
+  (nothing starts a compaction), and some are deliberate (permission prompts).
+  A workaround for the first kind is often a general channel that also defeats
+  the second: a tool that types into the session can type "yes". What makes a
+  workaround safe to put in a skill: a fixed function, a precondition it
+  checks, a note in the skill saying a limit is being routed around?
 
 ## Observations
 
 Evidence noticed while doing other work, appended by the `research-log` skill.
 Dated, one entry each; observations rather than conclusions.
+
+**2026-11-10 — compaction instructions shape the summary, not what survives.**
+A manual `/compact keep the last 3 turns in detail; reduce the game design to
+"frame is built, see AGENTS.md"` took a session from 366k to 26k tokens. The
+content half was followed. The turn-count half was not: one message survived
+word for word, and the harness re-attached five recently modified files, one
+of which the instruction meant to drop. Suggests instructions have to name
+content. Led to the `smart-compact` skill and a PreCompact hook
+(`bin/compact-notes-hook`) that feeds agent-written notes into any compaction.
+Neither has been through a real compaction yet. To check: does the summary
+honour the notes, and does the standing "do not quote user messages in full"
+line survive the built-in summary template?
+
+**2026-11-10 — option not built: a tmux tool that types `/compact`.** Nothing
+documented lets a hook, the agent or another session start a compaction. The
+user found a tool that does it from outside: it watches a Claude Code session
+in tmux and sends `/compact` with preservation notes and a continuation
+message before the session grows too large. Analysis at the time:
+
+- Only the trigger needs tmux. The notes can go through a PreCompact hook and
+  the continuation through a SessionStart hook matching `compact`, and those
+  also work in the desktop app, which has no pane to type into.
+- What the trigger buys is timing: compacting at about 50 minutes idle, while
+  the one-hour prompt cache is warm, saves one full uncached read per long
+  break (up to roughly 230k input-equivalents at a 200k window).
+- The risk is that `send-keys` types with the user's authority into whatever
+  the pane shows: Enter on a permission prompt approves it, text at a shell
+  runs, text into a half-typed message corrupts it. A safe version is
+  fixed-function (sends only `/compact`) and fires only after a hook reports
+  the session idle with no prompt pending. It should not be a general channel
+  the agent can call.
+- It cannot fire when the machine is asleep or off. A server does not fix
+  that, since nothing remote can type into a local session. Cheaper: trigger
+  on suspend, or after 10 to 15 idle minutes above the threshold, or accept a
+  cold resume, which the 200k window now caps.
+- Built-in idle compaction exists (`idleCompaction`,
+  `CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS`) but the setting's own description
+  says true "does not turn idle compaction on", so it looks gated. If it
+  starts firing, most of the case for the tmux tool goes.
+
+Revisit if long CLI sessions keep resuming cold. Bears on the new question
+about routing around a harness limit: the user's point was that persistence
+gets past limits on what an agent can do, which is useful and dangerous for
+the same reason.
 
 **2026-11-10 — a model pin downgraded the session it was meant to upgrade.**
 `skill-forge`, `introspection`, `memory-write` and `research-log` carried

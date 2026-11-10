@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""PreCompact hook: tell the compaction summary what to keep.
+
+Claude Code turns a PreCompact hook's stdout into instructions for the summary. This prints a
+few standing instructions, then the session's own notes if the agent wrote any (the
+smart-compact skill says how), so manual, automatic and idle compactions all get them. Without
+this, the summary keeps what it likes: on 2026-11-10 a hand-typed "keep the last 3 turns" was
+only half followed.
+
+Notes live at ~/.claude/compact-notes/<session_id>.md and are used once: after printing, the
+file is renamed to <session_id>.used.md, since notes written for one compaction describe a
+conversation that no longer exists by the next.
+
+Never blocks compaction; exits 0 on any error so it can't disrupt a session.
+"""
+import json
+import re
+import sys
+from pathlib import Path
+
+NOTES_DIR = Path.home() / ".claude" / "compact-notes"
+# Claude Code caps a hook's instructions at 10,000 characters; leave room for the standing text.
+MAX_NOTES_CHARS = 8000
+
+STANDING = """\
+Standing instructions for this summary:
+- Work already committed to a repository or written to a file becomes one line naming the path. \
+Do not restate its contents or how it was built.
+- Do not quote earlier user messages in full. Keep the user's standing preferences and \
+constraints, and the exact wording of their most recent request.
+- Keep exactly: the state of unfinished work, decisions not yet written to any file, commands \
+and error text still in use, and anything marked unverified.
+- A finished side topic becomes one line or is dropped."""
+
+try:
+    session_id = json.load(sys.stdin).get("session_id", "")
+except Exception:
+    session_id = ""
+
+print(STANDING)
+
+# The id becomes a file name, so accept only what a session id looks like.
+if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", session_id):
+    sys.exit(0)
+
+notes = NOTES_DIR / f"{session_id}.md"
+try:
+    text = notes.read_text().strip()
+    if text:
+        print("\nNotes from the session being summarised. Where they conflict with the "
+              "standing instructions above, follow the notes:\n")
+        print(text[:MAX_NOTES_CHARS])
+    notes.replace(NOTES_DIR / f"{session_id}.used.md")
+except Exception:
+    pass

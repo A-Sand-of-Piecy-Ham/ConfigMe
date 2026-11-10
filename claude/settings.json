@@ -35,6 +35,17 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/compact-notes-hook",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "enableWorkflows": true,
