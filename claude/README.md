@@ -30,9 +30,13 @@ trigger. The description is permanent context cost; the body is not.
 | `project-setup` | Setting up or assessing a repo against the project standards |
 | `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints |
 
-`skill-forge`, `introspection` and `memory-write` pin `model: opus` with raised
-`effort` in their frontmatter, so meta-work runs on the strongest model
-regardless of the session setting.
+Skills are drafts. A session that finds one wrong or incomplete amends it then
+and there; `skill-forge` says which changes any model may make and which wait
+for the strongest one.
+
+No skill pins a model. Four of them used to carry `model: opus` so meta-work
+would run on the strongest model, and once a stronger model shipped the pin
+quietly downgraded every session that loaded them. Some still set `effort`.
 
 ## Rules
 

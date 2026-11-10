@@ -2,7 +2,6 @@
 name: introspection
 description: >
   Analyze a completed interaction to identify what response patterns worked well versus caused friction, and file each finding where it belongs (interaction style, engineering practice, a skill, or project standards). Suggest invoking when the user expresses satisfaction with a session.
-model: opus
 effort: high
 ---
 
@@ -41,6 +40,8 @@ For each friction or positive exchange, ask: what did Claude do just before that
 - Did Claude correctly read whether the question was practical or conceptual — and calibrate depth accordingly?
 - Did Claude verify the user's stated facts, or contradict them without checking?
 - Did Claude respect constraints the user named (cost, performance, irreversibility) for the rest of the session?
+- Did a loaded skill help, mislead, or get misfollowed? If misfollowed, was the step written so that only a stronger model than this session's would have read it correctly?
+- Did the session learn something a skill should now say, and was the skill amended at the time or left as it was?
 
 ---
 
@@ -58,7 +59,8 @@ Classify first. `interaction-style.md` is only for the user and how to work *wit
 |---|---|
 | The user: preferences, how they communicate, what to ask vs. do, reading intent | `~/projects/ConfigMe/claude/rules/interaction-style.md`, `## From introspection` |
 | How to do engineering work: verification, safe edits, cleanup depth | `~/projects/ConfigMe/claude/rules/engineering-practice.md` |
-| A workflow a skill already covers (docs, git, project setup, …) | That skill's `SKILL.md` (use `skill-forge` for anything beyond a line) |
+| A workflow a skill already covers (docs, git, project setup, …) | That skill's `SKILL.md`, now. A line any model may add; anything structural follows the `skill-forge` split (strongest model, or a `## Pending` line) |
+| A skill that was misfollowed or hard to follow | That skill's `SKILL.md`: rewrite the step with a condition, a default and an observable check. Name the session's model in the evidence clause |
 | A convention every repo should follow | `~/projects/ConfigMe/github-templates/project-standards.md` |
 | One project only | That project's memory or docs |
 
