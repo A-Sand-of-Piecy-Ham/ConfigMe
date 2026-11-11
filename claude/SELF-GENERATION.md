@@ -507,8 +507,8 @@ the five fixes in a scratch clone: 25 changed lines, about ten calls,
 `PASS` first time. The implementer's tier now spends a session
 rediscovering a patch that exists. Question raised: below some size, is
 applying the proven patch cheaper than the send-back, and what does the
-implementer's tier learn from a send-back that a patch would lose? Put to
-the user, not decided.
+implementer's tier learn from a send-back that a patch would lose? Decided
+by the user the same day: a proven patch under about 50 lines is applied.
 
 **2026-11-11 — the desktop app's auto mode refused a deletion the skill
 asks for.** `rm` of the untracked review brief was denied as irreversible.
@@ -534,6 +534,25 @@ did happen without them: context7 was called 10 times (doc-lookup),
 TickTick 5 times (todo-capture), and this session compacted twice
 (smart-compact). Bears on whether a description alone triggers reliably:
 here a hook on the tool call looks like what makes a skill fire.
+
+**2026-11-11 — a skill's `effort:` header overrode the session's effort
+for a whole turn.** `introspection` (`effort: high`) was loaded in the
+first seconds of a review set to medium. The request log shows medium for
+4 calls, high for the next 41, and medium again from the user's next
+message. Inferred from timing, not from documentation. Three other skills
+carried `effort:` lines; all four are removed and `skill-forge` forbids
+them. Bears on the cost of loading a skill: the body is not the only
+thing a load brings.
+
+**2026-11-11 — where one review turn's cost went, at price weights.** 46
+model calls, 110 tool calls, context 48k at start and 164k at peak. Cache
+writes 295k, all one-hour (weight 2): about 590k. Cache reads 5.07M
+(weight 0.1): about 507k. Output 67k (weight 5): about 335k. Eighteen
+calls were one Bash command each; about fifteen were upkeep done one item
+at a time. The largest tool results were oversized Bash output spilled to
+a file and read back. Suggests calls times context is the thing to cut,
+ahead of output; `rules/call-economy.md` is the attempt. Unmeasured:
+whether an always-loaded rule changes the call count.
 
 ## Prior art to check
 
