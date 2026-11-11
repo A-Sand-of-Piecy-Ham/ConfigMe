@@ -51,7 +51,8 @@ read this page only to know what the implementer was told.
 
    Never commit on `<default branch>`, and do not merge your branch: the
    user, the reviewer or the session that handed you the milestone does
-   that (docs/MILESTONES.md, "Merging").
+   that (docs/MILESTONES.md, "Merging"). `docs/log.jsonl` never conflicts
+   in a merge, because `.gitattributes` merges it by union.
 3. Read these first:
    - the milestone's entry in <milestone doc>;
    - the files it lists (the contract for each function is its doc comment);

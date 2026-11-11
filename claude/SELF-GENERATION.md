@@ -626,6 +626,18 @@ Bears on the cost asymmetry: a threshold reasoned from a wrong price
 survived a day in two files. Untested: a window above 200k, and whether the
 automatic point is a fraction of the window or a fixed margin under it.
 
+**2026-11-11: two T3 subagents skipped skill-load hooks on purpose.** In
+armor_core, Sonnet subagents ran M5a and M5c. Hooks reminded both to load
+`docs-audience`, on a README table row, and `git-workflow`, on a commit.
+Neither loaded them. Each said so in its report, unasked: the edit was one
+row, or a commit in a form AGENTS.md prescribes. That was arguably right,
+since the repo's own rules covered both. It bears on trigger precision.
+The hooks fire on any edit to a doc and any commit, so a model ends up
+judging whether the skill applies, and a T3 model judged that it did not.
+It suggests that hook-forced loads cost little when ignored but are not
+followed reliably. Still open: whether a skipped load ever lost something
+the skill would have caught, and whether a T2 or T1 model obeys more often.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me
