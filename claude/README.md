@@ -60,7 +60,9 @@ rather than Claude remembering it:
 | `InstructionsLoaded` → `bin/log-instructions-loaded` | Logs every instruction file that loads, so "do rules actually load?" is checkable |
 | `PreToolUse` on `Edit\|Write` → `bin/docs-audience-hook` | Editing a project doc injects "load docs-audience first". The skill's trigger alone missed doc edits made in passing during code changes |
 | `PreToolUse` on `Bash` → `bin/bash-skill-hook` | A shell command that commits or pushes injects "load git-workflow first"; one that writes a project doc (`sed -i`, a redirect, a script) injects "load docs-audience first". A session that did all its edits and commits through the shell had loaded neither |
-| `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt. Once per version |
+| `PreToolUse` on context7 and TickTick tools → `bin/mcp-skill-hook` | The first such call in a session injects "load doc-lookup first" or "load todo-capture first". Both tools had been used many times and neither skill had ever loaded |
+| `UserPromptSubmit` → `bin/context-size-hook` | When the conversation passes 150k tokens (and again at 250k and 400k), injects "load smart-compact and tell the user whether to compact". Claude cannot see its own context size, so the skill's own trigger never fired |
+| `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt, and a `claude-start-size` run. Once per version |
 | `PreCompact` → `bin/compact-notes-hook` | Gives every compaction standing instructions on what to keep, plus the session's own notes when the `smart-compact` skill wrote some. Refuses an automatic compaction while the session has a hold file, for at most two hours; a typed `/compact` always runs |
 
 Hook commands use `$HOME`, not absolute paths, so the file works on any machine.
@@ -68,6 +70,21 @@ Permission approvals granted mid-session go to `~/.claude/settings.local.json`,
 which stays machine-local and untracked. Changing a setting in `/config`
 rewrites the linked file, so it shows up as a diff here; `install.sh --doctor`
 flags it if Claude Code ever replaces the link with a plain file.
+
+### Tools switched off
+
+A tool named under `permissions.deny` is not sent to the model at all, and
+tool definitions are most of what a session reads before it starts.
+
+- `settings.json` denies `Artifact` (publishing a page to claude.ai) in every
+  session. Its definition alone was 12k tokens. To publish a page, take the
+  line out and start a new session.
+- `claude-lean` starts a terminal session that also drops sub-agents,
+  workflows, scheduling and notebooks (the list is
+  `claude/profiles/lean.json`). It starts about 6k smaller than a plain
+  `claude`, and `claude-lean --strict-mcp-config` drops every MCP server and
+  connector for another 7k. Use it for implementation sessions.
+- `claude-start-size` prints both starting sizes for the folder it runs in.
 
 `bin/claude-config-check` (run by the doctor) checks what actually loads, not just
 what's linked: the load log must show `CLAUDE.md` and every rule in the last

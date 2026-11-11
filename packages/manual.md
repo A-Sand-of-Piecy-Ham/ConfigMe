@@ -242,8 +242,13 @@ Registered in `~/.claude.json`, which cannot be symlinked into this repo: it
 also holds per-project session state that changes constantly. Recorded here so
 the set is reproducible on a new machine.
 
-Currently registered: `filesystem`, `context7`, `sequential-thinking`,
-`chrome-devtools`, `github`.
+Currently registered: `context7`, `chrome-devtools`, `github`.
+
+`filesystem` and `sequential-thinking` were removed on 2026-11-10. Neither had
+been called in 33 saved sessions. `filesystem` duplicated the built-in file
+tools, and `sequential-thinking` gives a model a tool for writing numbered
+thoughts, which current models do without one. Each also started an `npx`
+process with every session.
 
 `fetch` and `memory` were removed. `fetch` duplicated the built-in `WebFetch`,
 which is strictly better -- it takes a prompt and answers against the content

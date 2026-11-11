@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "deny": [
+      "Artifact",
+      "ArtifactComments",
+      "ArtifactData",
+      "DesignSync",
+      "Workflow",
+      "Agent",
+      "Task",
+      "ReportFindings",
+      "ScheduleWakeup",
+      "ListAgents",
+      "SendMessage",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "RemoteTrigger",
+      "PushNotification",
+      "NotebookEdit",
+      "Monitor"
+    ]
+  }
+}
