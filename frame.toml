@@ -19,10 +19,12 @@ main_branch = "frame/split"
 stub = 'FRAME-STUB\("{tag}[^0-9]'
 stub_paths = ["scripts"]
 stub_glob = "*.stub"
-# scripts/test output; milestone T corrects these against the real runner.
+# scripts/test output, checked against the runner by milestone T. `detail`
+# keeps each FAIL line and the line after it (its first detail line); a
+# pattern that also matched the indented lines printed each of them twice.
 failed_test = '^FAIL (\S+)'
 passed = '(\d+) passed'
-detail = '^FAIL|^  '
+detail = '^FAIL '
 
 [[milestone]]
 id = "M0"
@@ -38,7 +40,7 @@ needs = ["M0"]
 tier = "T2"
 effort = "high"
 # Checked by hand: scripts/test runs and lists every case in docs/SPLIT.md.
-status = ""
+status = "done"
 
 [[milestone]]
 id = "M1"
