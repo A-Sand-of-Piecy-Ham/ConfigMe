@@ -1,7 +1,7 @@
 ---
 name: introspection
 description: >
-  Analyze a completed interaction to identify what response patterns worked well versus caused friction, and file each finding where it belongs (interaction style, engineering practice, a skill, or project standards). Load without being asked at the end of a task in which a hook noted a user correction. Also - reviewing how an agent, model or earlier session performed; "did the skill work", "how did sonnet/opus do", "assess the process".
+  Analyze a completed interaction to identify what response patterns worked well versus caused friction, and file each finding where it belongs (interaction style, engineering practice, a skill, or project standards). Load without being asked at the end of a task in which a hook noted a user correction. Also - reviewing how an agent, model or earlier session performed; "did the skill work", "how did sonnet/opus do", "assess the process"; the user says a session used too many tokens or too much of a usage limit.
 ---
 
 ## Token budget
@@ -66,6 +66,47 @@ Classify first. `interaction-style.md` is only for the user and how to work *wit
 Check the destination for an existing entry and update it rather than duplicating. If a finding is already covered where it belongs, add nothing.
 
 ---
+
+## When the complaint is token cost
+
+The user's usage meter is the ground truth; a session cannot see it, and
+its own sense of "that was a small task" is not evidence. When the user
+says a session cost too much, measure before guessing. The first guesses on
+2026-11-11 (one big file, overthinking, over-logging) were all wrong; the
+cause was the number of calls.
+
+1. One command, on the session's transcript (`<id>` is
+   `$CLAUDE_CODE_SESSION_ID` for this session):
+
+   ```bash
+   t=$(ls ~/.claude/projects/*/<id>.jsonl)
+   jq -s -c '[.[]|select(.type=="assistant")|{id:.message.id,u:.message.usage}]|unique_by(.id)
+     |{calls:length, out:(map(.u.output_tokens)|add), read:(map(.u.cache_read_input_tokens)|add),
+       w5m:(map(.u.cache_creation.ephemeral_5m_input_tokens//0)|add),
+       w1h:(map(.u.cache_creation.ephemeral_1h_input_tokens//0)|add),
+       peak:(map(.u|.input_tokens+.cache_read_input_tokens+.cache_creation_input_tokens)|max)}' "$t"
+   echo ---; grep -o '"effort":"[a-z]*"' "$t" | uniq -c
+   echo ---; jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use")|.name' "$t" | sort | uniq -c | sort -rn | head -6
+   echo ---; jq -r 'select(.type=="user")|.message.content[]?|select(.type=="tool_result")|(.content|tostring|length)' "$t" | sort -rn | head -3
+   ```
+
+   It prints the totals, the order in which effort levels ran (the counts
+   are lines, not calls), the tools used most, and the three largest tool
+   results in characters.
+2. Weigh the totals as the usage limit is assumed to: `read` × 0.1,
+   `w5m` × 1.25, `w1h` × 2, `out` × 5. Say which of the three is largest.
+3. Match it to a cause:
+
+   | Shows | Cause | Fix goes in |
+   |---|---|---|
+   | `read` largest; `calls` far above what the task needed | One tool call per message, upkeep done one item at a time | `rules/call-economy.md` |
+   | `w1h` largest | Large tool results, or a skill body loaded early and carried | The same file's size limits; the skill that asked for the early load |
+   | A tool result over about 16,000 characters | A whole file or unbounded command output | The same file's size limits |
+   | An effort level the user did not set | An `effort:` line in a loaded skill's header | Delete the line (`skill-forge` forbids it) |
+   | `out` largest | Long replies or long reasoning | `rules/interaction-style.md`, reply length |
+
+4. Tell the user the numbers and the cause in three lines, then make the
+   fix. One row in `claude/SELF-GENERATION.md` under Observations.
 
 ## Hard constraints
 

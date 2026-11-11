@@ -554,6 +554,14 @@ a file and read back. Suggests calls times context is the thing to cut,
 ahead of output; `rules/call-economy.md` is the attempt. Unmeasured:
 whether an always-loaded rule changes the call count.
 
+**2026-11-11 — the user reports turns "much faster" after
+`call-economy.md` was written.** Same session, the turns after the rule:
+four turns of 3 to 5 model calls each, with a dozen edits in one message.
+Confounded three ways: the session had just compacted (smaller context),
+the effort setting had been lowered, and the rule was in context because
+the session wrote it, not because it loaded as a rule. The first clean
+test is a new session where it loads by itself.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me
