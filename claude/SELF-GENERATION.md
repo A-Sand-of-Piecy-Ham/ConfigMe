@@ -484,6 +484,25 @@ removed. `review.md` gained reviewer friction rows, a cost measurement and
 a duty to cut one thing per review. Untested; the first real use is the M3
 review.
 
+**2026-11-10 — starting context measured from the terminal CLI, and what
+removes it.** `claude -p` on the small model, no repo agent file: 47.6k
+with everything, 43.9k without MCP servers (so all connectors together are
+3.7k), 42.6k without skills as well (1.3k), 31.6k with the page-publishing
+tool denied (12.2k for one tool), 23.8k with eighteen unused built-in tools
+denied. A deny rule, by flag or by `permissions.deny`, removes the
+definition, not only the permission. Not yet tested in the desktop app.
+
+**2026-11-10 — five of fourteen skills have never been invoked in 33 saved
+sessions, and the two most used are the two with a hook.** Counts:
+docs-audience 9 and git-workflow 6 (both hooked); frame-first 6,
+dotfiles-change 6, skill-forge 4, research-log 3, web-browsing 2,
+introspection 2, memory-write 1; calendar-check, doc-lookup, todo-capture,
+project-setup and smart-compact 0. The work of three of the unused ones
+did happen without them: context7 was called 10 times (doc-lookup),
+TickTick 5 times (todo-capture), and this session compacted twice
+(smart-compact). Bears on whether a description alone triggers reliably:
+here a hook on the tool call looks like what makes a skill fire.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me
