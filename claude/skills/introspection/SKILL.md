@@ -69,32 +69,40 @@ Check the destination for an existing entry and update it rather than duplicatin
 
 ## When the complaint is token cost
 
-The user's usage meter is the ground truth; a session cannot see it, and
-its own sense of "that was a small task" is not evidence. When the user
-says a session cost too much, measure before guessing. The first guesses on
-2026-11-11 (one big file, overthinking, over-logging) were all wrong; the
-cause was the number of calls.
+The transcript is the ground truth, not the usage meter and not anyone's
+impression. The meter tells the user that a window was spent; it does not
+say which turn, call or tool spent it. The user may also name the wrong
+cause: "too many tokens" when the cost was calls, since a cached token read
+costs a fiftieth of an output token (the user's own correction,
+2026-11-11). So take the complaint as the signal to measure, and let the
+numbers say what happened, including when they contradict the user. The
+first guesses that day, the user's and the session's (one big file,
+overthinking, over-logging), were all wrong; the cause was the number of
+calls.
 
-1. One command, on the session's transcript (`<id>` is
-   `$CLAUDE_CODE_SESSION_ID` for this session):
+Costs are counted in **units**: one uncached input token of the model that
+ran. A turn over about 15% of a five-hour window is a large one. A session
+can also run step 1 unasked after a turn it suspects was large (many
+calls, a long review); it does not need the complaint.
+
+1. One command, on the session's transcript (no argument means this
+   session):
 
    ```bash
-   t=$(ls ~/.claude/projects/*/<id>.jsonl)
-   jq -s -c '[.[]|select(.type=="assistant")|{id:.message.id,u:.message.usage}]|unique_by(.id)
-     |{calls:length, out:(map(.u.output_tokens)|add), read:(map(.u.cache_read_input_tokens)|add),
-       w5m:(map(.u.cache_creation.ephemeral_5m_input_tokens//0)|add),
-       w1h:(map(.u.cache_creation.ephemeral_1h_input_tokens//0)|add),
-       peak:(map(.u|.input_tokens+.cache_read_input_tokens+.cache_creation_input_tokens)|max)}' "$t"
+   session-cost; t=$(ls ~/.claude/projects/*/$CLAUDE_CODE_SESSION_ID.jsonl)
    echo ---; grep -o '"effort":"[a-z]*"' "$t" | uniq -c
    echo ---; jq -r 'select(.type=="assistant")|.message.content[]?|select(.type=="tool_use")|.name' "$t" | sort | uniq -c | sort -rn | head -6
    echo ---; jq -r 'select(.type=="user")|.message.content[]?|select(.type=="tool_result")|(.content|tostring|length)' "$t" | sort -rn | head -3
    ```
 
-   It prints the totals, the order in which effort levels ran (the counts
-   are lines, not calls), the tools used most, and the three largest tool
+   `session-cost` prints one row per user turn: calls, units, the share
+   that was cache read, cache write and output, the peak context, and an
+   estimated share of the window, with `!` on a large turn. The window's
+   size is an estimate from one reading; the script's header says how
+   rough. Then: the order in which effort levels ran (the counts are
+   lines, not calls), the tools used most, and the three largest tool
    results in characters.
-2. Weigh the totals as the usage limit is assumed to: `read` × 0.1,
-   `w5m` × 1.25, `w1h` × 2, `out` × 5. Say which of the three is largest.
+2. Take the costliest turn and say which share is largest.
 3. Match it to a cause:
 
    | Shows | Cause | Fix goes in |

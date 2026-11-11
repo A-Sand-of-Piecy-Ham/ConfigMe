@@ -40,6 +40,7 @@ CORRECTION = re.compile(
     r"|\b(do not|don'?t|never) (do that|ask|freely)\b"
     r"|\b(you|it) should(n'?t| not)? have\b"
     r"|\bwhy did you\b"
+    r"|\b(i was|you were|you are|you're) (wrong|mistaken)\b"
     r"|\bavoid (asking|doing|using|adding)\b"
     # A complaint about cost counts: the user's meter is the only place it shows.
     r"|\b(token burn|too many (tokens|calls)|(usage|hour|weekly) limit)\b",
