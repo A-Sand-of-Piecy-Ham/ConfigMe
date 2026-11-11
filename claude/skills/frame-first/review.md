@@ -117,7 +117,7 @@ the process review was partial.
 | Skills or hooks bypassed | Files changed through `Bash` (`sed -i`, a heredoc, a redirect); a `Skill` call that should be there and is not; commits on the default branch | The rules file, or a hook when a rule would not be enough |
 | Shared checkout | Commits made on a milestone branch in the main checkout (the check's `tree` gate should have refused it); two branches with edits to one file | The worktree step in the rules file; a missing entry in a `needs` list |
 | Finish condition not passable | The implementer explains failures, or stops short of the stated command | The check command |
-| Friction rows | `friction` rows in the log | The cause; then settle the row |
+| Friction rows | `friction` rows in the log, the implementer's and your own (`"by":"review"`, see "What the method itself costs") | The cause; then settle the row |
 | Subtask rows | `subtask` rows in the log, and files in the diff outside the milestone's list with no row | Keep it, or undo it when it departs from the plan. Several in one area mean the milestone's file list or the frame is wrong there |
 | Effort and tier | The report's `Model:` line against `frame.toml` | The milestone's `effort`, and a row in the research log's table |
 
@@ -138,6 +138,58 @@ item, a model assignment, a push or branch rule). Otherwise make it.
 Cutting noise never means dropping a finding. A finding is anything that
 changes what someone does next; it stays in the report however short the
 report is.
+
+## What the method itself costs
+
+Every rule in a frame is paid for on every milestone: tokens to read it,
+calls to obey it, the user's attention to answer it. The reviewer is the one
+session that sees both the rules and what they cost, so it keeps that account.
+The aim is fewer steps, not more records: this section earns its place only
+by getting something else cut.
+
+1. **Friction rows of your own.** When a step of this file, the rules file,
+   a hook or a command costs you time or produces nothing, add a row at that
+   moment, as implementers do:
+
+   ```json
+   {"kind":"friction","milestone":"M3","by":"review","what":"Three calls to find the implementer transcript: the slug starts with a dash"}
+   ```
+
+   `by` marks it as the reviewer's. `milestone` is the one under review, or
+   the checkpoint's id. Optional, as for implementers: no row when nothing
+   cost anything.
+2. **Measure, at the end.** For your session and each implementer session
+   (`<id>` is `$CLAUDE_CODE_SESSION_ID` for your own; the `*` spares you the
+   project slug):
+
+   ```bash
+   t=$(ls ~/.claude/projects/*/<id>.jsonl)
+   jq -s -c '[.[]|select(.type=="assistant")|{id:.message.id,u:.message.usage}]|unique_by(.id)
+     |{calls:length, out:(map(.u.output_tokens)|add), start:(.[0].u|.input_tokens+.cache_read_input_tokens+.cache_creation_input_tokens),
+       peak:(map(.u|.input_tokens+.cache_read_input_tokens+.cache_creation_input_tokens)|max)}' "$t"
+   ```
+
+   `start` is what the session held before its first tool call: rules,
+   tool definitions, skill list. `peak` near the compaction threshold means
+   the milestone or the review is too big for one session. For the user's
+   effort, count the times they had to answer something that was not a
+   decision about the product ("go on", a permission, a restated rule).
+3. **Name one thing to cut.** From the rows and the numbers, pick the rule,
+   step or required output that cost the most for the least, and cut or
+   merge it in this session, with one clause of evidence. A step of this
+   file that produced no finding in two reviews running is a candidate by
+   default. Ask first only where the cut reverses a user decision. "Nothing
+   to cut" is an allowed answer; say what you looked at.
+4. **A weak tier that drops a rule needs a check, not a longer rule.** When
+   an implementer ignored something the rules file states (rows written
+   late, files changed through the shell, unformatted code), do not restate
+   it more firmly. Move it into `scripts/check` or a hook, where it cannot
+   be skipped, and then shorten the rule to one line. The smallest tier
+   followed every gate in the M3 comparison and dropped three rules that
+   had none.
+
+The numbers go in the research log's table (Finishing, step 4) and in one
+line of the report.
 
 ## Write the findings down before fixing anything
 
@@ -201,10 +253,11 @@ code. Run it; a test that was never run is a guess.
 3. Set the checkpoint's `status` in `frame.toml`. No open rows are left:
    `jq -c 'select(.settled == null)' docs/log.jsonl` prints nothing.
 4. File what `research-log` and `introspection` turned up, including one row
-   per reviewed milestone in the research log's "Effort and tier, measured"
-   table.
+   per reviewed milestone and one for this review in the research log's
+   "Effort and tier, measured" table, each with its cost.
 5. Report: verdict, findings that need the user's decision, frame changes
-   made. Then give the `Next:` line `scripts/check` prints, which names the
+   made, and one line on cost: this review's calls, output tokens and peak
+   context, and what was cut. Then give the `Next:` line `scripts/check` prints, which names the
    tier the next milestone needs. If a coming milestone meets the
    conditions in `SKILL.md` for a second run on a cheaper setting, say so
    in one line.
