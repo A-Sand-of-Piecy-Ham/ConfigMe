@@ -603,6 +603,19 @@ luck: "I was wrong about", the part that made it a correction, is not in
 the list (now added). The lesson was the skill edit itself, so the skill
 was not loaded.
 
+**2026-11-11 — advice to compact early was costing, not saving.** With the
+corrected read weight, the per-call overhead of a session that compacts at
+size W back to K is about r(K+W)/2 + C·g/(W−K): r the read weight, C one
+compaction (150k to 250k claws, estimated from three), g growth per call
+(about 3k tokens). The minimum is flat and sits near W = 230k to 285k on
+the strongest model and near 195k on the next two; this session's automatic
+point was 163k to 168k under a 200k window. Compacting at 150k as
+`smart-compact` and the size hook advised is worse on every model. Both now
+prepare for the automatic compaction instead of asking for an earlier one.
+Bears on the cost asymmetry: a threshold reasoned from a wrong price
+survived a day in two files. Untested: a window above 200k, and whether the
+automatic point is a fraction of the window or a fixed margin under it.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me
