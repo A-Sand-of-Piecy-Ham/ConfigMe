@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""PreToolUse hook (Bash): remind Claude of a skill when a shell command does that skill's job.
+
+Two cases, both seen in one session where a mid-tier model did everything through the shell:
+
+- `git commit` / `git push`: nothing loaded git-workflow, because finishing a milestone never
+  looked like "commit this" to the skill's trigger.
+- a project doc written with sed, a redirect, tee or a script: the Edit|Write hook
+  (docs-audience-hook) never saw it, so the docs guidance never loaded.
+
+The doc match is a heuristic over the command text: it wants a write form aimed at a doc path,
+and will miss a path held in a variable. Injects context only; never blocks, and exits 0 on any
+error so it can't disrupt a session.
+"""
+import json
+import re
+import sys
+
+DOC = r"""[\w./~-]*(?:(?:README|EDITING|AGENTS|CONTRIBUTING)\.md|docs/[\w.-]+\.md)"""
+# `git`, any global options (-C dir, -c k=v, --no-pager), then the subcommand itself.
+GIT = re.compile(r"\bgit(?:\s+-[cC]\s+\S+|\s+--?[\w-]+(?:=\S+)?)*\s+(?:commit|push)\b")
+DOC_WRITE = re.compile(
+    rf"""
+      >>?\s*["']?{DOC}                                   # redirect into a doc
+    | \b(?:sed|perl)\b[^|;&\n]*\s-\w*i[^|;&\n]*{DOC}     # in-place edit of a doc
+    | \btee\b[^|;&\n]*{DOC}
+    | open\(\s*["']{DOC}["']\s*,\s*["'][wa+]             # script opening a doc for writing
+    | ["']{DOC}["']\s*\)?\s*\.write_text
+    """,
+    re.VERBOSE,
+)
+# A script that names a doc and writes a file it opened by variable (p='README.md'; open(p,'w')).
+SCRIPT_WRITE = re.compile(r"\.write\(|write_text\(|writeFileSync\(")
+DOC_QUOTED = re.compile(rf"""["']{DOC}["']""")
+
+try:
+    command = json.load(sys.stdin).get("tool_input", {}).get("command", "")
+except Exception:
+    sys.exit(0)
+if not isinstance(command, str) or not command:
+    sys.exit(0)
+
+notes = []
+if GIT.search(command):
+    notes.append(
+        "This command commits or pushes. If the git-workflow skill isn't loaded in this session "
+        "yet, invoke it first."
+    )
+if DOC_WRITE.search(command) or (SCRIPT_WRITE.search(command) and DOC_QUOTED.search(command)):
+    notes.append(
+        "This command writes a project doc from the shell. Use the Edit or Write tool for docs "
+        "where possible; either way, if the docs-audience skill isn't loaded in this session "
+        "yet, invoke it first."
+    )
+if not notes:
+    sys.exit(0)
+
+print(json.dumps({"hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "additionalContext": " ".join(notes),
+}}))

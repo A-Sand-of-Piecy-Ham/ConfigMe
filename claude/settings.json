@@ -1,6 +1,9 @@
 {
   "permissions": {
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "deny": [
+      "Artifact"
+    ]
   },
   "hooks": {
     "InstructionsLoaded": [
@@ -23,6 +26,37 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/bash-skill-hook",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__context7__.*|mcp__15fae7e2-.*|mcp__claude_ai_TickTick__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/mcp-skill-hook",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/context-size-hook",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -31,6 +65,17 @@
           {
             "type": "command",
             "command": "$HOME/.local/bin/claude-version-watch",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/compact-notes-hook",
             "timeout": 5
           }
         ]
@@ -46,6 +91,14 @@
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "autoCompactWindow": 600000,
+  "autoCompactWindow": 200000,
+  "modelSettings": {
+    "claude-fable-5-2": {
+      "autoCompactWindow": 300000
+    }
+  },
+  "env": {
+    "CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "100000"
+  },
   "cleanupPeriodDays": 365
 }

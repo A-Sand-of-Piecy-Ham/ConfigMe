@@ -26,10 +26,18 @@ trigger. The description is permanent context cost; the body is not.
 | `calendar-check` | Availability and scheduling |
 | `memory-write` | "always", "never", "from now on" -- persists rather than just complying |
 | `research-log` | Evidence bearing on the SELF-GENERATION open questions |
+| `docs-audience` | Any edit to a project doc; picks the depth and tone for whoever reads that file |
+| `project-setup` | Setting up or assessing a repo against the project standards |
+| `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints. Carries a `template/` of repo files (rules, milestone file, finish check) and `new-frame <repo>` to copy it in. Also how to run milestones side by side in worktrees, how to run a milestone or a review twice to test a cheaper model (`ab.md`, `ab-clone`), and a draft method for writing and art that no test can judge (`creative.md`) |
+| `smart-compact` | Compacting or clearing a large session; writes notes on what the summary must keep, since the agent cannot start a compaction itself |
 
-`skill-forge`, `introspection` and `memory-write` pin `model: opus` with raised
-`effort` in their frontmatter, so meta-work runs on the strongest model
-regardless of the session setting.
+Skills are drafts. A session that finds one wrong or incomplete amends it then
+and there; `skill-forge` says which changes any model may make and which wait
+for the strongest one.
+
+No skill pins a model. Four of them used to carry `model: opus` so meta-work
+would run on the strongest model, and once a stronger model shipped the pin
+quietly downgraded every session that loaded them. Some still set `effort`.
 
 ## Rules
 
@@ -38,23 +46,45 @@ file per topic, and support `paths:` frontmatter to load only alongside matching
 files. This is the right home for always-true behaviour that should stay in
 separate files rather than being merged into `CLAUDE.md`.
 
+`model-tiers.md` is the one place that says which model is T1, T2 and T3.
+Skills and repos name tiers only, so a model change is a one-line edit there.
+
 ## Settings and hooks
 
 `claude/settings.json` is linked to `~/.claude/settings.json`: preferences
-(theme, vim mode, effort) and hooks. Hooks are the harness enforcing something
+(theme, vim mode, effort, when auto-compaction starts) and hooks. Hooks are the harness enforcing something
 rather than Claude remembering it:
 
 | Hook | Does |
 |---|---|
 | `InstructionsLoaded` → `bin/log-instructions-loaded` | Logs every instruction file that loads, so "do rules actually load?" is checkable |
 | `PreToolUse` on `Edit\|Write` → `bin/docs-audience-hook` | Editing a project doc injects "load docs-audience first". The skill's trigger alone missed doc edits made in passing during code changes |
-| `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt. Once per version |
+| `PreToolUse` on `Bash` → `bin/bash-skill-hook` | A shell command that commits or pushes injects "load git-workflow first"; one that writes a project doc (`sed -i`, a redirect, a script) injects "load docs-audience first". A session that did all its edits and commits through the shell had loaded neither |
+| `PreToolUse` on context7 and TickTick tools → `bin/mcp-skill-hook` | The first such call in a session injects "load doc-lookup first" or "load todo-capture first". Both tools had been used many times and neither skill had ever loaded |
+| `UserPromptSubmit` → `bin/context-size-hook` | When the conversation passes 150k tokens (and again at 250k and 400k), injects "load smart-compact and tell the user whether to compact". Claude cannot see its own context size, so the skill's own trigger never fired |
+| `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt, and a `claude-start-size` run. Once per version |
+| `PreCompact` → `bin/compact-notes-hook` | Gives every compaction standing instructions on what to keep, plus the session's own notes when the `smart-compact` skill wrote some. Refuses an automatic compaction while the session has a hold file, for at most two hours; a typed `/compact` always runs |
 
 Hook commands use `$HOME`, not absolute paths, so the file works on any machine.
 Permission approvals granted mid-session go to `~/.claude/settings.local.json`,
 which stays machine-local and untracked. Changing a setting in `/config`
 rewrites the linked file, so it shows up as a diff here; `install.sh --doctor`
 flags it if Claude Code ever replaces the link with a plain file.
+
+### Tools switched off
+
+A tool named under `permissions.deny` is not sent to the model at all, and
+tool definitions are most of what a session reads before it starts.
+
+- `settings.json` denies `Artifact` (publishing a page to claude.ai) in every
+  session. Its definition alone was 12k tokens. To publish a page, take the
+  line out and start a new session.
+- `claude-lean` starts a terminal session that also drops sub-agents,
+  workflows, scheduling and notebooks (the list is
+  `claude/profiles/lean.json`). It starts about 6k smaller than a plain
+  `claude`, and `claude-lean --strict-mcp-config` drops every MCP server and
+  connector for another 7k. Use it for implementation sessions.
+- `claude-start-size` prints both starting sizes for the folder it runs in.
 
 `bin/claude-config-check` (run by the doctor) checks what actually loads, not just
 what's linked: the load log must show `CLAUDE.md` and every rule in the last

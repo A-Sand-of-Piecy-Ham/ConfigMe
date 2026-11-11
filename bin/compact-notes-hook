@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""PreCompact hook: tell the compaction summary what to keep.
+
+Claude Code turns a PreCompact hook's stdout into instructions for the summary. This prints a
+few standing instructions, then the session's own notes if the agent wrote any (the
+smart-compact skill says how), so manual, automatic and idle compactions all get them. Without
+this, the summary keeps what it likes: on 2026-11-10 a hand-typed "keep the last 3 turns" was
+only half followed.
+
+Notes live at ~/.claude/compact-notes/<session_id>.md and are used once: after printing, the
+file is renamed to <session_id>.used.md, since notes written for one compaction describe a
+conversation that no longer exists by the next.
+
+It blocks in one case only. If ~/.claude/compact-notes/<session_id>.hold exists, an *automatic*
+compaction is refused (exit 2) so that work held only in the conversation, such as review
+findings not yet written to a file, is not summarised away mid-task. The session writes the
+hold, with one line saying what it is waiting for, and deletes it when that is on disk. A
+manual /compact is never refused, and a hold older than HOLD_MAX_AGE_S is ignored and removed,
+so a forgotten one cannot switch compaction off for good.
+
+Any error exits 0, so the hook can't disrupt a session.
+"""
+import json
+import re
+import sys
+import time
+from pathlib import Path
+
+NOTES_DIR = Path.home() / ".claude" / "compact-notes"
+# A hold is for one stretch of work, not a session. Two hours covers a long review.
+HOLD_MAX_AGE_S = 2 * 60 * 60
+# Claude Code caps a hook's instructions at 10,000 characters; leave room for the standing text.
+MAX_NOTES_CHARS = 8000
+
+STANDING = """\
+Standing instructions for this summary:
+- Work already committed to a repository or written to a file becomes one line naming the path. \
+Do not restate its contents or how it was built.
+- Do not quote earlier user messages in full. Keep the user's standing preferences and \
+constraints, and the exact wording of their most recent request.
+- Keep exactly: the state of unfinished work, decisions not yet written to any file, commands \
+and error text still in use, and anything marked unverified.
+- A finished side topic becomes one line or is dropped."""
+
+try:
+    payload = json.load(sys.stdin)
+    session_id = payload.get("session_id", "")
+    trigger = payload.get("trigger", "")
+except Exception:
+    session_id = trigger = ""
+
+# The id becomes a file name, so accept only what a session id looks like.
+id_ok = bool(re.fullmatch(r"[A-Za-z0-9_-]{1,80}", session_id))
+
+
+def held() -> str | None:
+    """The hold's reason if this session has a live one, else None. Removes an expired hold."""
+    hold = NOTES_DIR / f"{session_id}.hold"
+    try:
+        age = time.time() - hold.stat().st_mtime
+        if age > HOLD_MAX_AGE_S:
+            hold.unlink()
+            return None
+        return hold.read_text().strip()[:300] or "no reason given"
+    except Exception:
+        return None
+
+
+# Checked before anything is printed or retired: a refused compaction must leave the notes
+# in place for the one that eventually runs.
+if id_ok and trigger == "auto":
+    reason = held()
+    if reason is not None:
+        print(f"Automatic compaction held by this session: {reason}. "
+              f"Delete ~/.claude/compact-notes/{session_id}.hold to release it, "
+              "or run /compact, which is never held.", file=sys.stderr)
+        sys.exit(2)
+
+print(STANDING)
+
+if not id_ok:
+    sys.exit(0)
+
+# context-size-hook leaves this marker when the user corrected the session. Used once, like
+# the notes: the summary carries the duty forward, so the marker has done its work.
+correction = Path.home() / ".local/state/configme/corrections" / session_id
+try:
+    if correction.exists():
+        print("- The user corrected this session at least once. If what that taught is not yet "
+              "written to a rules file, a skill or memory, list it under unfinished work, "
+              "to be filed with the introspection skill at the end of the task.")
+        correction.unlink()
+except Exception:
+    pass
+
+notes = NOTES_DIR / f"{session_id}.md"
+try:
+    text = notes.read_text().strip()
+    if text:
+        print("\nNotes from the session being summarised. Where they conflict with the "
+              "standing instructions above, follow the notes:\n")
+        print(text[:MAX_NOTES_CHARS])
+    notes.replace(NOTES_DIR / f"{session_id}.used.md")
+except Exception:
+    pass

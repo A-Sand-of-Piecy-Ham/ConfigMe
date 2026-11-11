@@ -65,6 +65,9 @@ return {
         spell = false, -- sets vim.opt.spell
         signcolumn = "yes", -- sets vim.opt.signcolumn to yes
         wrap = false, -- sets vim.opt.wrap
+        -- New files, and files guess-indent finds no indentation in. shiftwidth
+        -- is 0 in AstroNvim, which means "follow tabstop".
+        tabstop = 4,
       },
       g = { -- vim.g.<key>
         -- configure global vim variables (vim.g)

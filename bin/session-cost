@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Print what a Claude Code session cost, turn by turn, in claws.
+
+    session-cost [SESSION_ID | TRANSCRIPT.jsonl]     default: $CLAUDE_CODE_SESSION_ID
+
+The usage meter the user sees gives one percentage for a five-hour window. It does not say
+which turn, call or tool spent it, and raw token counts mislead: a cached token read costs
+between a fiftieth and a two-hundredth of an output token. The transcript records every call's usage, so this is the
+measurement to reason from when a session is said to have cost too much.
+
+A claw is our own name for the cost unit, so that "unit" and "token" need not carry the
+meaning: one claw is the price of one uncached input token of the reference model (REFERENCE
+below). Weights follow
+the API price list: five-minute cache write 1.25, one-hour cache write 2, output 5, the same
+on every current model, so a call on another model converts with one factor, the ratio of the
+input prices (the user's point, 2026-11-11). Cache reads are the exception: their weight
+differs by model (0.025 on the strongest, 0.05 on the next two, 0.1 on older ones), so it is
+looked up per model too. An earlier version used 0.1 for all and overstated reads fourfold.
+That the usage limit counts by these weights is an assumption; nothing here has tested it.
+
+A turn starts at a message the user typed and runs to the next one. Each row gives the model
+calls made, the claws spent, their share by kind, the largest context any call read, and an
+estimated share of the five-hour limit.
+"""
+import json
+import os
+import sys
+from glob import glob
+from pathlib import Path
+
+WEIGHTS = {"in": 1.0, "read": 0.1, "w5m": 1.25, "w1h": 2.0, "out": 5.0}
+# Per model id prefix: input price in $/MTok, and the cache-read weight where it is not the
+# 0.1 in WEIGHTS. From the claude-api skill's price table (cached 2026-11-03); a model missing
+# here is counted at the reference price and named in the last line. Longest prefix wins.
+PRICES = {
+    "claude-fable-5-2": (8.0, 0.025),
+    "claude-mythos-5-2": (8.0, 0.025),
+    "claude-opus-5-5": (4.0, 0.05),
+    "claude-sonnet-5-5": (2.0, 0.05),
+    "claude-haiku-5-5": (0.1, 0.1),
+}
+REFERENCE = "claude-fable-5-2"
+# Claws in one five-hour window of the user's plan (Pro). An estimate from two
+# readings on 2026-11-11: 1.0M claws moved the meter by "30%+" (so at most 3.4M), and the
+# meter stood at 85% when this session had spent 1.5M (so at least 1.8M, if nothing else ran
+# in the window). The middle is used; treat the percentage as good to about a third.
+# Correct it when a better reading exists.
+LIMIT_CLAWS = 2_500_000
+# A turn at or above this share of the window is a large one (the user's threshold).
+LARGE_SHARE = 0.15
+
+
+def find_transcript(arg):
+    """The transcript path for a session id, or the argument itself if it is a file."""
+    if arg and Path(arg).is_file():
+        return arg
+    session = arg or os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+    hits = glob(str(Path.home() / ".claude/projects/*" / f"{session}.jsonl")) if session else []
+    if not hits:
+        sys.exit(f"session-cost: no transcript for {session or '(no session id given)'}")
+    return hits[0]
+
+
+def typed_text(row):
+    """What the user typed in this row, or None for tool results and injected rows."""
+    if row.get("type") != "user" or row.get("isMeta") or row.get("isSidechain"):
+        return None
+    content = row.get("message", {}).get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list) and not any(b.get("type") == "tool_result" for b in content):
+        return " ".join(b.get("text", "") for b in content if b.get("type") == "text")
+    return None
+
+
+def model_rates(model):
+    """(claws per input token, cache-read weight) for a model id, or None if not in PRICES."""
+    known = [p for p in PRICES if (model or "").startswith(p)]
+    if not known:
+        return None
+    price, read = PRICES[max(known, key=len)]
+    return price / PRICES[REFERENCE][0], read
+
+
+def call_units(usage, rates):
+    """One call's tokens by kind, in claws. Older rows lack the cache_creation split."""
+    factor, read = rates or (1.0, WEIGHTS["read"])
+    weights = {**WEIGHTS, "read": read}
+    split = usage.get("cache_creation") or {}
+    w5m = split.get("ephemeral_5m_input_tokens") or 0
+    w1h = split.get("ephemeral_1h_input_tokens") or 0
+    if not split:
+        w5m = usage.get("cache_creation_input_tokens") or 0
+    raw = {"in": usage.get("input_tokens") or 0, "read": usage.get("cache_read_input_tokens") or 0,
+           "w5m": w5m, "w1h": w1h, "out": usage.get("output_tokens") or 0}
+    context = raw["in"] + raw["read"] + raw["w5m"] + raw["w1h"]
+    return {k: v * weights[k] * factor for k, v in raw.items()}, context
+
+
+def main():
+    turns = []  # each: {"text", "calls", "units": {kind: n}, "peak"}
+    seen = set()  # one assistant message is written once per content block, same usage each time
+    models = {}  # model id -> calls
+    unknown = set()
+    with open(find_transcript(sys.argv[1] if len(sys.argv) > 1 else "")) as f:
+        for line in f:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            text = typed_text(row)
+            if text is not None:
+                turns.append({"text": text, "calls": 0, "units": dict.fromkeys(WEIGHTS, 0.0), "peak": 0})
+                continue
+            message = row.get("message") or {}
+            if row.get("type") != "assistant" or not message.get("usage") or message.get("id") in seen:
+                continue
+            seen.add(message.get("id"))
+            if not turns:
+                continue
+            model = message.get("model") or "?"
+            rates = model_rates(model)
+            if rates is None:
+                unknown.add(model)
+            models[model] = models.get(model, 0) + 1
+            units, context = call_units(message["usage"], rates)
+            turn = turns[-1]
+            turn["calls"] += 1
+            turn["peak"] = max(turn["peak"], context)
+            for kind, n in units.items():
+                turn["units"][kind] += n
+
+    print(f"{'turn':>4} {'calls':>5} {'claws':>8} {'read':>5} {'write':>5} {'out':>5} {'peak':>6} {'limit':>6}  prompt")
+    total_units = total_calls = 0
+    for i, turn in enumerate(turns, 1):
+        u = turn["units"]
+        units = sum(u.values())
+        if not turn["calls"]:
+            continue
+        total_units += units
+        total_calls += turn["calls"]
+        share = units / LIMIT_CLAWS
+        pct = lambda n: f"{100 * n / units:4.0f}%" if units else "    -"
+        print(f"{i:>4} {turn['calls']:>5} {units / 1000:>7.0f}k {pct(u['read'])} {pct(u['w5m'] + u['w1h'])} "
+              f"{pct(u['out'])} {turn['peak'] / 1000:>5.0f}k {100 * share:>5.1f}%"
+              f"{' !' if share >= LARGE_SHARE else '  '}{' '.join(turn['text'].split())[:50]}")
+    print(f"total: {total_calls} calls, {total_units / 1000:.0f}k claws, "
+          f"about {100 * total_units / LIMIT_CLAWS:.0f}% of a five-hour window "
+          f"(window taken as {LIMIT_CLAWS / 1e6:.1f}M claws; '!' marks a turn over {LARGE_SHARE:.0%})")
+    print("models: " + ", ".join(f"{m} {n}" for m, n in sorted(models.items()))
+          + f"; 1 claw = 1 {REFERENCE} input token")
+    if unknown:
+        print(f"not in PRICES, counted at the reference price: {', '.join(sorted(unknown))}")
+
+
+if __name__ == "__main__":
+    main()

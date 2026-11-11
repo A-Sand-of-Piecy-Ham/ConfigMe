@@ -9,7 +9,9 @@ description: Commit, branch, PR, or push in any repo. Triggers - "commit this", 
 end of a request (so builds start), never push to the default branch or
 force-push, never touch in-repo config or `.gitignore` without discussion -- and
 is loaded every session, so they are not restated here beyond one reminder:
-**pushing a branch is routine; opening or merging a PR still needs a yes.** Branch first if on the default branch.
+**pushing a branch is routine, and so is opening or merging a PR on a repo the
+user owns; a PR, issue or comment on anyone else's repo needs a yes.** Compare
+`gh repo view --json owner -q .owner.login` with `gh api user -q .login`. Branch first if on the default branch.
 
 Repo conventions -- branch naming, CI expectations, versioning, review norms --
 live in `github-templates/project-standards.md`; setting up or assessing a repo
@@ -39,6 +41,11 @@ Body ends with the PR attribution line Claude Code supplies for the session.
 
 Reference issues and PRs as full markdown links using the owner/repo from the
 actual remote. Never a bare `#123`, and never assume a default repository.
+
+`gh pr edit` can fail with "Projects (classic) is being deprecated" and
+change nothing (2026-11-11). Edit through REST instead, with the body in a
+file: `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -F body=@<file>`.
+Read the body back to check the edit took.
 
 ## gh versus the GitHub MCP
 

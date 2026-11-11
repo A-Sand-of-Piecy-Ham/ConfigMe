@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Start Claude Code with the built-in tools a coding session does not use switched off.
+#
+# A denied tool's definition is not sent at all, and the definitions are most of what a
+# session reads before it does anything. Measured 2026-11-10 on 2.1.295, in an empty folder:
+# 47.6k tokens at start with every tool, 37.0k once settings.json denied page publishing,
+# 30.7k through this script, and 23.8k with --strict-mcp-config added (no MCP servers or
+# connectors at all). Every call re-reads that, so the saving is per call, not once.
+#
+# What is off: page publishing, sub-agents, workflows, scheduling, cross-session messages,
+# notebooks. What stays: files, shell, search, skills, worktrees, web, MCP servers.
+# Edit the profile to change the list.
+#
+# Arguments pass through:  claude-lean --model opus     claude-lean -p "..." --output-format json
+#
+# CLAUDE_CODE_ENTRYPOINT is dropped for the reason bin/claude-probe gives: started from inside
+# a desktop-app session, the terminal CLI otherwise reports an expired login that is not one.
+set -euo pipefail
+
+profile="$(dirname "$(readlink -f "$0")")/../claude/profiles/lean.json"
+exec env -u CLAUDE_CODE_ENTRYPOINT claude --settings "$profile" "$@"

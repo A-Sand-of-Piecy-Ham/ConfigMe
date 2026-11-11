@@ -1,8 +1,6 @@
 ---
 name: research-log
-description: Record evidence bearing on the open questions in claude/SELF-GENERATION.md. Triggers - a skill fired or failed to fire unexpectedly, a description change altered behaviour, a memory was missed or misfiled, "that worked", "turns out", "that answers".
-model: opus
-effort: medium
+description: Record evidence bearing on the open questions in claude/SELF-GENERATION.md. Triggers - a skill fired or failed to fire unexpectedly, a description change altered behaviour, a memory was missed or misfiled, a skill's first run or its untested parts are being reviewed, "test the hypotheses", "that worked", "turns out", "that answers".
 ---
 
 ## What this is for

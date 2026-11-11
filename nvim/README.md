@@ -140,6 +140,24 @@ The viewer is vimtex's `zathura_simple`, not `zathura`: the latter finds its
 window with xdotool, which cannot see the Wayland clients that WSLg and
 current Raspberry Pi OS produce.
 
+### JavaScript (`lua/plugins/astrolsp.lua`)
+
+ts_ls runs with `checkJs` on, so plain JS gets undefined names and bad property
+accesses rather than only syntax errors. Its annotation and null complaints are
+filtered out of JS files; TypeScript files keep them.
+
+Two results to expect:
+
+- **Globals from another `<script>`** show as undefined unless that file is
+  open, because without a project ts_ls sees only open files. Add a
+  `jsconfig.json` (`{ "compilerOptions": { "checkJs": true }, "include": ["**/*.js"] }`).
+- **DOM lookups**: `getElementById()` returns a plain `HTMLElement`, so
+  `canvas.getContext` is flagged. Narrow it with
+  `/** @type {HTMLCanvasElement} */`, or put `// @ts-nocheck` at the top of a
+  file to opt it out.
+
+ESLint attaches only in projects with an ESLint config.
+
 ### Astro
 
 The language server and treesitter parsers are added directly, not through
@@ -173,6 +191,10 @@ LSP config when rustaceanvim loads, before astrolsp has registered that
 setting, and it also switches off rustaceanvim's own clippy default. The result
 was plain `cargo check` with no clippy lints and no sign anything was missing.
 Re-enabling rustaceanvim's default restores clippy at server start.
+
+It also silences two style lints in the editor, `needless_return` and
+`needless_late_init` -- add others to `CLIPPY_ARGS`. This covers rust-analyzer
+only; `cargo clippy` in a terminal or CI still reports them.
 
 Useful `:RustLsp` subcommands: `runnables` and `testables` (pick and run),
 `debuggables` (same, under codelldb), `expandMacro`, `explainError`,

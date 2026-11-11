@@ -1,3 +1,6 @@
 # nvim state — not config
 nvim/plugin/
 nvim/.cache/
+
+# Skills the Claude desktop app syncs into the linked skills folder — its copy, not ours
+claude/skills/synced/
