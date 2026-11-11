@@ -28,7 +28,7 @@ trigger. The description is permanent context cost; the body is not.
 | `research-log` | Evidence bearing on the SELF-GENERATION open questions |
 | `docs-audience` | Any edit to a project doc; picks the depth and tone for whoever reads that file |
 | `project-setup` | Setting up or assessing a repo against the project standards |
-| `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints. Carries a `template/` of repo files (rules, milestone file, finish check) and `new-frame <repo>` to copy it in |
+| `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints. Carries a `template/` of repo files (rules, milestone file, finish check) and `new-frame <repo>` to copy it in. Also how to run milestones side by side in worktrees, and how to run one twice to test a cheaper model (`ab.md`, `ab-clone`) |
 | `smart-compact` | Compacting or clearing a large session; writes notes on what the summary must keep, since the agent cannot start a compaction itself |
 
 Skills are drafts. A session that finds one wrong or incomplete amends it then

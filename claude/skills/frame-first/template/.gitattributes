@@ -1,0 +1,4 @@
+# Every milestone branch adds rows at the end of the log. Without this, two
+# branches merged one after the other conflict there every time. "union"
+# keeps the lines of both sides; the rows are independent, so that is right.
+docs/log.jsonl merge=union

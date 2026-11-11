@@ -41,9 +41,12 @@ that is not producing findings on the task at hand, and say so.
 
 ## What to read, in this order
 
-1. `git log --oneline main..<branch>` and `git diff main...<branch>`. If the
-   work was committed on `main`, diff from the last checkpoint commit, and
-   record the missing branch as a process finding.
+1. `git log --oneline main..<branch>` and `git diff main...<branch>`. A
+   milestone merged before its checkpoint (allowed, so that what needs it
+   could start) is read from its merge commit: `git log --merges --oneline
+   <last checkpoint>..main` lists them, and `git diff <merge>^1 <merge>` is
+   one milestone's diff. Work committed straight onto `main` with no branch
+   is a process finding; diff it from the last checkpoint commit.
 2. The open log rows:
    `jq -c 'select(.settled == null)' docs/log.jsonl`. Gaps, disputes,
    subtasks, deviations and friction are all there.
@@ -98,6 +101,7 @@ the process review was partial.
 | Noise reported | Report lines beyond the fixed format; remarks on things that are normal in a frame | The "normal here" list in the rules file |
 | Undocumented guesses | The code-review item above | Backfill the rows; if the rules did not make logging mechanical, fix the rules |
 | Skills or hooks bypassed | Files changed through `Bash` (`sed -i`, a heredoc, a redirect); a `Skill` call that should be there and is not; commits on the default branch | The rules file, or a hook when a rule would not be enough |
+| Shared checkout | Commits made on a milestone branch in the main checkout (the check's `tree` gate should have refused it); two branches with edits to one file | The worktree step in the rules file; a missing entry in a `needs` list |
 | Finish condition not passable | The implementer explains failures, or stops short of the stated command | The check command |
 | Friction rows | `friction` rows in the log | The cause; then settle the row |
 | Subtask rows | `subtask` rows in the log, and files in the diff outside the milestone's list with no row | Keep it, or undo it when it departs from the plan. Several in one area mean the milestone's file list or the frame is wrong there |
@@ -174,8 +178,11 @@ code. Run it; a test that was never run is a guess.
 ## Finishing
 
 1. The finish check prints PASS with your changes in.
-2. Commit, then merge the milestone branch into the default branch. Push only
-   as the user's standing rules allow.
+2. Commit, then merge any milestone branch not yet in the default branch,
+   with `--no-ff`. Remove the worktrees of merged branches
+   (`git worktree list`, then `git worktree remove <path>`; look for
+   uncommitted files in each first). Push only as the user's standing rules
+   allow.
 3. Set the checkpoint's `status` in `frame.toml`. No open rows are left:
    `jq -c 'select(.settled == null)' docs/log.jsonl` prints nothing.
 4. File what `research-log` and `introspection` turned up, including one row
