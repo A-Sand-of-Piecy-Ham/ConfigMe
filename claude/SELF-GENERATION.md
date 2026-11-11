@@ -233,6 +233,16 @@ message before the session grows too large. Analysis at the time:
   `CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS`) but the setting's own description
   says true "does not turn idle compaction on", so it looks gated. If it
   starts firing, most of the case for the tmux tool goes.
+- 2026-11-11, read from the 2.1.321 binary: it is on by default and the
+  changelog says it was added to VS Code and the desktop Code tab. While the
+  session is idle and the cache warm it writes a summary, and uses it on the
+  next message only if the cache has expired by then. It runs only with
+  compaction on, a one-hour cache, an unchanged prompt prefix, and a context
+  over the minimum (200k by default, 100k the floor, which our variable
+  already sets). None of 22 recorded compactions is marked as an idle one,
+  so whether it has ever fired here is unknown; the transcript may record
+  it as `auto`. The notice to look for: "Compacted while idle, before the
+  prompt cache expired". Terminal sessions are not named in the changelog.
 
 Revisit if long CLI sessions keep resuming cold. Bears on the new question
 about routing around a harness limit: the user's point was that persistence
