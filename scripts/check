@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""The finish check for one milestone of a frame.
+
+    scripts/check          list the milestones and name the next one
+    scripts/check M2       check M2, what it needs, and everything finished
+
+Everything project-specific is in frame.toml at the repo root: the
+milestones, what each one needs, its test commands, the lint command and the
+stub marker.
+This file is the same in every frame repo; its master copy is in ConfigMe at
+claude/skills/frame-first/template/scripts/check. A repo may change its copy.
+When a change would help other repos too, the checkpoint reviewer copies it
+back.
+
+The list gives each milestone a state:
+
+    done, held   its status in frame.toml
+    ready        everything in its "needs" is done or held; it can be started
+    busy         ready, but a branch named for it exists: someone has it
+    waits        something it needs is not done (named in brackets)
+
+A milestone with no "needs" key needs the entry above it, so a frame that
+never mentions the key is a plain sequence. Several milestones ready at once
+can be worked at the same time, each in its own worktree.
+
+Gates, one line each, detail only for a gate that is not ok:
+
+    tree    the work is in a worktree, not on a branch in the main checkout
+    tests   every test command succeeds for the target, for what it needs,
+            and for every milestone already done in this checkout. A
+            disputed test of an earlier, held milestone may fail: it is
+            named after "held earlier:" and does not count against the target
+    stubs   no stub marker for the target is left
+    lint    the lint command succeeds
+    format  the format command succeeds (it checks; it does not rewrite)
+    log     the log file parses, and the target has a "gap" row
+
+Last line and exit status:
+
+    PASS <id>   0   every gate ok
+    HELD <id>   3   the only failures are tests with an open "dispute" row
+    FAIL <id>   1   anything else
+"""
+
+import json
+import re
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# Fields a row of each kind must carry, besides "kind" and "milestone".
+ROW_FIELDS = {
+    "gap": ["chose"],
+    "dispute": ["found", "would_change"],
+    "subtask": ["what", "why"],
+    "deviation": ["what", "why"],
+    "friction": ["what"],
+}
+FIELD_LIMIT = 300  # characters; a row is a line, not a report
+
+
+def load_frame():
+    with open(ROOT / "frame.toml", "rb") as f:
+        frame = tomllib.load(f)
+    milestones = frame["milestone"]
+    by_id = {m["id"]: m for m in milestones}
+    prev = None
+    for m in milestones:
+        # No "needs" key: the entry above. `needs = []` says "nothing".
+        m.setdefault("needs", [prev] if prev else [])
+        unknown = [n for n in m["needs"] if n not in by_id]
+        if unknown:
+            sys.exit(f"frame.toml: {m['id']} needs {', '.join(unknown)}, which is not a milestone id")
+        prev = m["id"]
+    for m in milestones:
+        if any(m["id"] in closure(by_id, n) for n in m["needs"]):
+            sys.exit(f"frame.toml: {m['id']} needs itself, through its \"needs\" lists")
+    return frame["check"], milestones
+
+
+def closure(by_id, target):
+    """The ids of `target` and of everything it needs, directly or not."""
+    seen, stack = set(), [target]
+    while stack:
+        i = stack.pop()
+        if i not in seen:
+            seen.add(i)
+            stack += by_id[i]["needs"]
+    return seen
+
+
+def git(*args):
+    """Output of a git command in this checkout, or None when it fails."""
+    try:
+        p = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
+    except OSError:
+        return None
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def branch_for(milestone_id, branches):
+    """A branch named for the milestone (m3, m3-combat), if there is one."""
+    named = re.compile(rf"{re.escape(milestone_id)}(-|$)", re.I)
+    return next((b for b in branches if named.match(b)), None)
+
+
+def describe(m):
+    if m.get("kind") == "checkpoint":
+        return f"checkpoint {m['id']}, a review by {m.get('tier', 'the reviewer')}"
+    effort = f", effort {m['effort']}" if "effort" in m else ""
+    return f"{m['id']} ({m.get('tier', '?')}{effort})"
+
+
+def list_milestones(milestones):
+    by_id = {m["id"]: m for m in milestones}
+    current = git("branch", "--show-current")
+    branches = [b for b in (git("branch", "--format=%(refname:short)") or "").splitlines() if b != current]
+    ready, unfinished = [], []
+    for m in milestones:
+        state, note = m.get("status", ""), ""
+        if not state:
+            unfinished.append(m)
+            # A held milestone is finished work with one test in dispute: what
+            # needs it may start. A checkpoint is only ever done or not.
+            unmet = [n for n in m["needs"] if by_id[n].get("status") not in ("done", "held")]
+            taken = branch_for(m["id"], branches)
+            if unmet:
+                state, note = "waits", f"  [needs {', '.join(unmet)}]"
+            elif taken:
+                state, note = "busy", f"  [branch {taken}]"
+            else:
+                state = "ready"
+                ready.append(m)
+        print(f"{m['id']:<5} {m.get('tier', ''):<3} {state:<5} {m['what']}{note}")
+
+    # Implementers take milestones, so a checkpoint is named last unless it
+    # is the only thing ready.
+    ready.sort(key=lambda m: m.get("kind") == "checkpoint")
+    for m in ready[1:]:
+        print(f"Also ready: {describe(m)}")
+    if not unfinished:
+        print("Next: nothing left")
+    elif not ready:
+        print("Next: nothing is ready. The rows marked busy or waits say what is in the way.")
+    elif ready[0].get("kind") == "checkpoint":
+        print(f"Next: {describe(ready[0])}. Implementers stop here.")
+    else:
+        print(f"Next: {describe(ready[0])}")
+
+
+def tree_problems(cfg):
+    """Milestone work on a branch belongs in a worktree of its own."""
+    main = cfg.get("main_branch", "main")
+    branch = git("branch", "--show-current")
+    git_dir, common = git("rev-parse", "--absolute-git-dir"), git("rev-parse", "--git-common-dir")
+    if not branch or branch == main or not git_dir or not common:
+        return []  # the default branch, a detached HEAD, or no git: not milestone work
+    if Path(git_dir).resolve() != (ROOT / common).resolve():
+        return []  # a linked worktree
+    return [
+        f"This is the repo's main checkout, on branch {branch}. Two agents working",
+        "at once would share these files, so milestone work is done in a worktree.",
+        f"Commit what you have, then: git switch {main} && "
+        f"git worktree add .claude/worktrees/{branch} {branch}",
+        "and carry on from that directory.",
+    ]
+
+
+def read_log(path):
+    """Returns (rows, problems)."""
+    rows, problems = [], []
+    if not path.exists():
+        return rows, [f"{path.relative_to(ROOT)} does not exist"]
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as e:
+            problems.append(f"line {n}: not valid JSON ({e.msg}). One object per line.")
+            continue
+        kind = row.get("kind") if isinstance(row, dict) else None
+        if kind not in ROW_FIELDS:
+            problems.append(f"line {n}: \"kind\" must be one of {', '.join(ROW_FIELDS)}")
+            continue
+        missing = [k for k in ["milestone", *ROW_FIELDS[kind]] if not row.get(k)]
+        if missing:
+            problems.append(f"line {n}: a {kind} row needs {', '.join(missing)}")
+        long = [k for k, v in row.items() if isinstance(v, str) and len(v) > FIELD_LIMIT]
+        if long:
+            problems.append(f"line {n}: {', '.join(long)} is over {FIELD_LIMIT} characters")
+        rows.append(row)
+    return rows, problems
+
+
+def run(cmd):
+    p = subprocess.run(cmd, shell=True, cwd=ROOT, capture_output=True, text=True)
+    return p.returncode, p.stdout + p.stderr
+
+
+def detail_lines(out, pattern, limit=40):
+    """Lines matching `pattern`, each with the line after it."""
+    lines = out.splitlines()
+    keep = []
+    for i, line in enumerate(lines):
+        if re.search(pattern, line):
+            keep.append(line)
+            if i + 1 < len(lines):
+                keep.append(lines[i + 1])
+    return keep[:limit]
+
+
+def main():
+    cfg, milestones = load_frame()
+    ids = [m["id"] for m in milestones if m.get("kind") != "checkpoint"]
+    if len(sys.argv) < 2:
+        list_milestones(milestones)
+        return 0
+    target = sys.argv[1]
+    if target not in ids:
+        print(f"usage: scripts/check [milestone]   one of: {' '.join(ids)}", file=sys.stderr)
+        return 2
+
+    results = []  # (gate, status, detail lines)
+
+    problems = tree_problems(cfg)
+    results.append(("tree", "FAIL" if problems else "ok", problems))
+
+    rows, log_problems = read_log(ROOT / cfg["log"])
+    disputed = {
+        r["test"] for r in rows
+        if r.get("kind") == "dispute" and r.get("test") and not r.get("settled")
+    }
+
+    # --- tests ---------------------------------------------------------------
+    passed, failed_names, detail, broken = 0, set(), [], False
+    # Disputed tests failing in a suite other than the target's: an earlier
+    # milestone that is held. They wait on the reviewer, not on this work.
+    inherited = set()
+    # The target, what it is built on, and whatever is finished here. Not
+    # "everything above it": a milestone being worked on another branch is
+    # still stubs in this checkout.
+    wanted = closure({m["id"]: m for m in milestones}, target)
+    for m in milestones:
+        if m["id"] not in wanted and not m.get("status"):
+            continue
+        for cmd in m.get("test", []):
+            rc, out = run(cmd)
+            passed += sum(int(n) for n in re.findall(cfg["passed"], out))
+            if rc != 0:
+                names = set(re.findall(cfg["failed_test"], out, flags=re.M))
+                # A command that fails without naming a test did not compile
+                # or crashed: that is never a dispute.
+                broken |= not names
+                if m["id"] != target:
+                    inherited |= names & disputed
+                    names -= disputed
+                failed_names |= names
+                detail += [f"$ {cmd}"] + detail_lines(out, cfg["detail"])
+    undisputed = failed_names - disputed
+    if not failed_names and not broken:
+        note = f"; held earlier: {', '.join(sorted(inherited))}" if inherited else ""
+        results.append(("tests", f"ok    {passed} passed{note}", []))
+    elif not undisputed and not broken:
+        held = ", ".join(sorted(failed_names))
+        results.append(("tests", f"held  {passed} passed; disputed: {held}", []))
+    else:
+        results.append(("tests", "FAIL", detail))
+
+    # --- stubs ---------------------------------------------------------------
+    tm = next(m for m in milestones if m["id"] == target)
+    marker = re.compile(cfg["stub"].replace("{tag}", re.escape(tm.get("stub_tag", target))))
+    exclude = re.compile(cfg["stub_exclude"]) if cfg.get("stub_exclude") else None
+    stubs = []
+    for base in cfg["stub_paths"]:
+        for path in sorted((ROOT / base).rglob(cfg.get("stub_glob", "*"))):
+            rel = path.relative_to(ROOT).as_posix()
+            if not path.is_file() or (exclude and exclude.search(rel)):
+                continue
+            for n, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+                if marker.search(line):
+                    stubs.append(f"{rel}:{n}: {line.strip()}")
+    results.append(("stubs", "FAIL" if stubs else "ok", stubs))
+
+    # --- lint ----------------------------------------------------------------
+    if cfg.get("lint"):
+        rc, out = run(cfg["lint"])
+        results.append(("lint", "ok" if rc == 0 else "FAIL", out.splitlines()[:30]))
+
+    # --- format --------------------------------------------------------------
+    if cfg.get("format"):
+        rc, out = run(cfg["format"])
+        hint = [cfg["format_fix"]] if cfg.get("format_fix") else []
+        results.append(("format", "ok" if rc == 0 else "FAIL", hint + out.splitlines()[:20]))
+
+    # --- log -----------------------------------------------------------------
+    if not any(r.get("kind") == "gap" and r.get("milestone") == target for r in rows):
+        log_problems.append(
+            f"no gap row for {target}. Add one row per choice you made where a contract "
+            f'was silent, or {{"kind":"gap","milestone":"{target}","chose":"none"}}.'
+        )
+    results.append(("log", "FAIL" if log_problems else "ok", log_problems))
+
+    for gate, status, lines in results:
+        print(f"{gate:<7} {status}")
+        if not status.startswith("ok"):
+            for line in lines:
+                print(f"    {line}")
+
+    states = [status.split()[0] for _, status, _ in results]
+    if "FAIL" in states:
+        print(f"FAIL {target}")
+        return 1
+    if "held" in states:
+        print(f"HELD {target}")
+        return 3
+    print(f"PASS {target}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
