@@ -304,10 +304,13 @@ Run the loop between checkpoints from one T2 session that hands each ready
 milestone to a subagent of the milestone's tier, all at once. The prompt is
 tier, milestone, "follow AGENTS.md" and the worktrees in use. The repo
 already says the rest, and restating it was judged too verbose. That session
-re-runs each finish check, merges once the owner agrees, hands out what
-became ready, and stops at the checkpoint. The owner judged this the ideal
-implementation loop (armor_core, 2026-11-11, M5a/M5c/M6a): it needs the
-owner only for merges, and costs one cold start per subagent.
+re-runs each finish check and merges on `PASS` or `HELD` without asking.
+Then it hands out what became ready, and stops at the checkpoint with one
+report. The checkpoint's T1 review approves the merges. The owner judged
+this the ideal implementation loop (armor_core, 2026-11-11, M5a/M5c/M6a):
+it needs the owner only at checkpoints, and costs one cold start per
+subagent. Asking the owner to approve each merge was tried first and was
+pure friction.
 
 ### Testing whether a cheaper tier would do
 
