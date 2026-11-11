@@ -85,6 +85,22 @@ loses detail, and the saving per call is small. To read the current size, use
 the session's usage tool if it has one, or the last `usage` record in the
 session transcript.
 
+## Holding an automatic compaction
+
+When the conversation holds something not yet on disk and the task is about
+to write it (review findings, a plan mid-approval), an automatic compaction
+at that moment loses it. Hold it off:
+
+```bash
+mkdir -p ~/.claude/compact-notes && echo "<what is not yet written>" > ~/.claude/compact-notes/"${CLAUDE_CODE_SESSION_ID:?}".hold
+```
+
+Delete the file as soon as the thing is written. While it exists the
+PreCompact hook refuses automatic compactions; a typed `/compact` still
+runs, and the hold expires after two hours. Use it for a stretch of work,
+never for a session: every call made while held is paid at the full context
+size. Writing the thing to a file sooner is always the better fix.
+
 ## What cannot be controlled
 
 After a compaction the harness re-reads up to five files, most recently
@@ -108,6 +124,10 @@ they still remember, and add a line here saying what kind of item was lost.
 
 Written 2026-11-10 from one manual compaction (366k to 26k). The notes file
 and hook have not yet been through a real compaction, and the size thresholds
-are reasoned from cache prices, not measured. A separate idea, a small tool
+are reasoned from cache prices, not measured. The hold was added the same
+day after a review lost its place to a mid-task compaction; the hook's exit
+codes are tested, but no real automatic compaction has met a hold yet, so
+what the session and the user see when one is refused is unknown. Record it
+here the first time it happens. A separate idea, a small tool
 that types `/compact` into an idle terminal session before the cache expires,
 is recorded in `claude/SELF-GENERATION.md` and not built.

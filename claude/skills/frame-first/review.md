@@ -129,6 +129,20 @@ TODO for everything else. Then fix. A review's context is at its largest
 exactly when the fixing starts, and a compaction or a usage limit there
 loses findings that exist only in the conversation.
 
+Hold automatic compaction while the findings are only in the conversation.
+At the start of the review:
+
+```bash
+mkdir -p ~/.claude/compact-notes && echo "review of Mx: findings not yet written" > ~/.claude/compact-notes/"${CLAUDE_CODE_SESSION_ID:?}".hold
+```
+
+and as soon as the findings are in the repo, delete that file. The
+PreCompact hook refuses an automatic compaction while it exists (a manual
+`/compact` still works, and the hold expires after two hours). The second
+review was compacted mid-task and lost its place in this file. Built
+2026-11-10 and tested on the hook's exit codes only: not yet seen against a
+real automatic compaction.
+
 When the context is large at that point (over about 150k tokens) and the
 fixes are more than a few edits, stop after writing the findings and tell
 the user to start a fresh session for the fixes. The findings file is its

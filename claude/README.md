@@ -61,7 +61,7 @@ rather than Claude remembering it:
 | `PreToolUse` on `Edit\|Write` → `bin/docs-audience-hook` | Editing a project doc injects "load docs-audience first". The skill's trigger alone missed doc edits made in passing during code changes |
 | `PreToolUse` on `Bash` → `bin/bash-skill-hook` | A shell command that commits or pushes injects "load git-workflow first"; one that writes a project doc (`sed -i`, a redirect, a script) injects "load docs-audience first". A session that did all its edits and commits through the shell had loaded neither |
 | `SessionStart` → `bin/claude-version-watch` | When Claude Code has updated since the last session, prompts a changelog check for features ConfigMe should adopt. Once per version |
-| `PreCompact` → `bin/compact-notes-hook` | Gives every compaction standing instructions on what to keep, plus the session's own notes when the `smart-compact` skill wrote some |
+| `PreCompact` → `bin/compact-notes-hook` | Gives every compaction standing instructions on what to keep, plus the session's own notes when the `smart-compact` skill wrote some. Refuses an automatic compaction while the session has a hold file, for at most two hours; a typed `/compact` always runs |
 
 Hook commands use `$HOME`, not absolute paths, so the file works on any machine.
 Permission approvals granted mid-session go to `~/.claude/settings.local.json`,

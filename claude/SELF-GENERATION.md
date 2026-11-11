@@ -386,6 +386,17 @@ copies may diverge and the checkpoint review upstreams what recurs. Bears
 on transfer. Nothing measured: the template has been copied into no second
 repo, and its non-Rust check examples have never run.
 
+**2026-11-10 — option deferred: a routine that works T2 and T3 milestones
+while the user is busy.** The user's aim is to spend usage allowance that
+would otherwise go unused, on implementation tiers only; reviews stay
+attended. Open at the time: whether cloud routines can reach a private
+GitHub repo (the project then had no remote), that a cloud Linux session
+cannot build the Windows-only shell crate, and that the frame rules had not
+yet been through an implementer. A local trigger was the fallback idea. The
+user will research it. The frame already gives such a routine its stopping
+rule: `scripts/check` names the next milestone and tier, and an implementer
+stops at `HELD` or a checkpoint. Revisit after two more attended milestones.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me
