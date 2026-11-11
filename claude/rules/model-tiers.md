@@ -12,6 +12,11 @@ As of 2026-11-10: **T1 = Fable 5.2, T2 = Opus 5.5, T3 = Sonnet 5.5, T0 = unused.
   examples, weak at creative work judged by taste.
 - T0: a model billed as usage credit. Not used unless the user says so.
 
+A `C` after the tier (`T1C`, `T2C`) marks creative work judged by taste:
+writing, jokes, art direction. Today it is the same model as the tier
+without the letter; the letter exists so that can change. It also means the
+repo's creative rulebook applies and the user is the reviewer. No `T3C`.
+
 Effort is a second axis, written `T2-high`. A task that names a tier other
 than this session's: tell the user before starting.
 

@@ -1,6 +1,6 @@
 ---
 name: frame-first
-description: Plan a build as a strong-model frame that weaker models fill in. Triggers - "one shot this", "agentic code", "design the structure, not the implementation", "frame for a weaker model", "stub it out", "leave out implementation", "hand off to sonnet/opus/haiku", "which model for which part", "when do I swap models", "checkpoint review", "review what the other model built", "could a cheaper model do this", "run it on both and compare", "A/B the milestone", "which milestones can run in parallel".
+description: Plan a build as a strong-model frame that weaker models fill in. Triggers - "one shot this", "agentic code", "design the structure, not the implementation", "frame for a weaker model", "stub it out", "leave out implementation", "hand off to sonnet/opus/haiku", "which model for which part", "when do I swap models", "checkpoint review", "review what the other model built", "could a cheaper model do this", "run it on both and compare", "A/B the milestone", "which milestones can run in parallel", "compare reviewers", "creative milestone", "T1C/T2C", "write the item text / lore / jokes".
 ---
 
 ## What this is for
@@ -44,7 +44,10 @@ three, and one end-to-end path implemented before any handoff.
 At a checkpoint, or when reviewing what another model built, read
 `review.md` in this directory and work from it. When setting up a frame
 repo, read `agents-template.md` and copy `template/` in with `new-frame`.
-Neither is needed otherwise.
+To run a milestone or a review twice and compare tiers, read `ab.md`. For
+work judged by taste (writing, jokes, art direction; tiers written `T1C`,
+`T2C`), read `creative.md`, which is a draft that has never run. None is
+needed otherwise.
 
 ## Sequence
 

@@ -116,14 +116,59 @@ run: it met the same silence and chose without saying so.
 - Delete the losing branch and the sealed copy once the row is written.
   Look at what is in the copy before deleting it.
 
+## Two reviewers
+
+The same idea measures a review tier: would a T2 review have found what the
+T1 review found? It matters because T1 is whichever model is strongest and
+affordable, and that changes.
+
+A review cannot be compared the way a build is. A full review fixes the
+frame, settles rows, merges, and edits this skill and the research log,
+which the other reviewer would then read. So both reviewers do the first
+half only: read, and write the findings down.
+
+1. Cut one sealed copy per reviewer, each holding the branches under review:
+
+   ```bash
+   ~/.claude/skills/frame-first/ab-clone <repo> ../ab/review-<tier> "" main <branch>...
+   ```
+
+2. The user starts one fresh session per copy, on the tier under test, and
+   gives both the same request. Vary the milestone and branch names:
+
+   > Review M3. It was built twice from the same commit: branch `m3-combat`
+   > (T2, medium effort) and branch `ab/m3-t3` (T3, medium effort). Follow
+   > the frame-first review file, and `ab.md` from its step 4. Stop where
+   > the review file says to write the findings down: put every finding,
+   > and which branch you would merge, in `docs/review-M3.md`, commit it on
+   > a branch named `review-m3`, and change nothing else in this repo or
+   > outside it.
+
+   Neither session is told about the other. The lower tier will say the
+   review names T1; the user answers: go on.
+3. In the original repo, fetch both findings files
+   (`git fetch ../ab/review-<tier> review-m3:ab/review-m3-<tier>`). A third
+   session, on the strongest tier and not either reviewer, lists every
+   finding from both files and checks each against the code: real or not.
+4. Score: real findings only one reviewer made, findings that were not
+   real, whether the verdicts agree, output tokens of each. Record a row
+   per reviewer in the research log's table.
+5. The real review then runs once, in the original repo, with the checked
+   list as its brief.
+
+Leave the mechanical findings of an earlier build comparison out of this
+skill's status notes until the reviewers have run: both read these files.
+
 ## Status
 
 Written 2026-11-10 for a second run of a combat milestone first done on T2
 at medium effort. `ab-clone` was run and its seal checked. Steps 2 to 4 then ran
 once, with T3 at medium as the second run: both passed with the same test
 count, so the mechanical measures did not decide it. What told the runs
-apart was outside the check: the T3 run left unlogged several gaps the T2 run logged (one of
-them, by a grep and not yet a read, filled the opposite way), wrote its rows through a shell
+apart was outside the check: the T3 run left unlogged several gaps the T2 run logged, wrote its rows through a shell
 redirect after the code, and left unformatted code. The last three rows of
 the table come from that. The T1 read, the decision and step 5 have not
 been run.
+
+"Two reviewers" was written 2026-11-11. Its step 1 ran (two copies cut and
+their seals checked); nothing after it has.
