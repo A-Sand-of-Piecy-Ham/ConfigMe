@@ -1,6 +1,6 @@
 ---
 name: frame-first
-description: Plan a build as a strong-model frame that weaker models fill in. Triggers - "one shot this", "agentic code", "design the structure, not the implementation", "frame for a weaker model", "stub it out", "leave out implementation", "hand off to sonnet/opus/haiku", "which model for which part", "when do I swap models", "checkpoint review", "review what the other model built".
+description: Plan a build as a strong-model frame that weaker models fill in. Triggers - "one shot this", "agentic code", "design the structure, not the implementation", "frame for a weaker model", "stub it out", "leave out implementation", "hand off to sonnet/opus/haiku", "which model for which part", "when do I swap models", "checkpoint review", "review what the other model built", "could a cheaper model do this", "run it on both and compare", "A/B the milestone", "which milestones can run in parallel".
 ---
 
 ## What this is for
@@ -272,6 +272,31 @@ plan.
 A milestone fits one session and ends with its tests green and a commit. One
 that runs into context compaction loses its contract.
 
+### What can run at the same time
+
+Give every milestone a `needs` list in `frame.toml`: the milestones whose
+code it calls, plus any that edit the same file. Write it from what the
+milestone uses, not from where it sits in the plan. `scripts/check` then
+shows everything whose needs are done as `ready`, and ready milestones can
+be given to separate agents at once. The first frame was planned as a
+sequence; when the lists were written, three T3 milestones turned out to
+need nothing after the first checkpoint and could have run beside the T2
+work from the start.
+
+Parallel work needs three things the template now carries: each agent in
+its own worktree (one checkout has one `HEAD`, so a branch alone does not
+separate them; the check refuses a milestone branch in the main checkout),
+a union merge for the log, and a merge of each passed milestone into the
+default branch before its checkpoint, so that what needs it can start.
+Merging is not acceptance; the checkpoint reads each merge's diff.
+
+### Testing whether a cheaper tier would do
+
+The tiers and efforts in a plan are guesses. To measure one, run a real
+milestone a second time on the cheaper setting in a sealed copy and compare:
+`ab.md` has the steps, and `ab-clone` makes the copy. Prefer this to
+invented side tasks, which say little about the frame in hand.
+
 ## Checkpoints
 
 Set them at plan time, not when trouble shows: after the first milestone (is
@@ -325,6 +350,14 @@ reviewed by T1 from `review.md`. No code findings; it logged four gaps
 before writing the code and correctly disputed a wrong frame test. That run
 produced `HELD`, the subtask rule, `frame.toml`, the JSONL log and the tier
 names.
+
+Third milestone, same day: T2 at medium effort, not yet reviewed. It logged
+seven gaps and an unprompted `friction` row with two real findings, so the
+friction kind stays optional: requiring one would buy filler. Added after
+it: `needs` lists, the ready/busy/waits listing, the worktree gate, the
+early merge and `ab.md`. The gate and the listing were tested by hand; no
+implementer has yet followed the worktree step, no two agents have run at
+once, and the comparison in `ab.md` has only had its first step run.
 
 Still hypotheses, never run: the thin end-to-end path, the test split and
 stub split, the overspend number, the review ladder, `new-frame` on a second

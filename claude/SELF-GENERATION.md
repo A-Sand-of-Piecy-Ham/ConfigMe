@@ -397,6 +397,16 @@ user will research it. The frame already gives such a routine its stopping
 rule: `scripts/check` names the next milestone and tier, and an implementer
 stops at `HELD` or a checkpoint. Revisit after two more attended milestones.
 
+**2026-11-10 — an optional log row fired unprompted on T2.** The third
+milestone (T2, medium effort, not yet reviewed) wrote a `friction` row with
+two real findings (a README line its rules forbade it to correct, no format
+gate in the check) although nothing requires one. The required `gap` kind
+produced seven rows in the same run. One instance; suggests an optional row
+with a clear "add one when" clause is used by a mid-tier model, and that
+requiring it would add filler. Not yet seen on T3. Same day, a sealed clone
+was cut to rerun that milestone on a cheaper tier (`frame-first/ab.md`);
+the comparison has not run.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me

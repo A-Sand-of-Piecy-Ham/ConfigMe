@@ -12,8 +12,10 @@ read this page only to know what the implementer was told.
 ## Normal here: do not report, do not fix
 
 - Most bodies are `<stub marker>`. That is the design.
-- `<full test command>` fails for every milestone after yours. Use
-  `scripts/check`, which runs only what should pass.
+- `<full test command>` fails for every milestone not finished in your
+  checkout. Use `scripts/check`, which runs only what should pass.
+- A milestone listed as `busy` is being built on another branch. Its stubs
+  are still stubs where you are.
 - <anything else that looks broken and is not>
 
 ## The loop
@@ -21,12 +23,28 @@ read this page only to know what the implementer was told.
 1. Run `scripts/check` with no argument. Its last line names the next
    milestone with its tier and effort, for example `Next: M3 (T2, effort
    medium)`. One milestone per session.
+   - If the user named a milestone, take that one instead, provided its row
+     in the list says `ready`. `busy` means another agent has it; `waits`
+     means something it needs is not merged yet. Take neither.
    - Tiers (T1, T2, T3) say which model does the work. If you are a different
      tier, or do not know your tier, tell the user before starting.
    - If the line names a checkpoint, stop: that is a review, not yours.
-2. Make a branch from `<default branch>` named for the milestone, for example
-   `git switch -c m3-<name> <default branch>`. Never commit on
-   `<default branch>`; the reviewer merges your branch at the checkpoint.
+2. Make a worktree with a branch named for the milestone, and work only
+   there. Other agents may be working in this repo at the same time, and
+   two agents in one directory overwrite each other.
+
+   ```
+   git worktree add .claude/worktrees/m3-<name> -b m3-<name> <default branch>
+   ```
+
+   Then move into it: with the `EnterWorktree` tool, giving it that path, if
+   your session has the tool; otherwise `cd` there and use that path for
+   every file and command. If `git rev-parse --git-dir` already prints a
+   path with `/worktrees/` in it, your session started in a worktree: stay,
+   and only make the branch (`git switch -c m3-<name> <default branch>`).
+
+   Never commit on `<default branch>`, and do not merge your branch: the
+   user or the reviewer does that.
 3. Read these first:
    - the milestone's entry in <milestone doc>;
    - the files it lists (the contract for each function is its doc comment);

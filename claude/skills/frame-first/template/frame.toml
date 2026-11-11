@@ -1,6 +1,14 @@
-# The build order, and how each milestone is checked. Read by scripts/check.
-# What each milestone asks for is in <milestone doc>.
+# The milestones, what each one needs, and how each is checked. Read by
+# scripts/check. What each milestone asks for is in <milestone doc>.
 #
+# needs   the ids that must be done (and merged into the default branch)
+#         before this one can start. Milestones whose needs are all done can
+#         be worked at the same time, so write what a milestone really uses,
+#         not what happens to sit above it: the first frame's list was a
+#         sequence, and three of its small milestones turned out to need
+#         nothing after the first checkpoint. Two milestones that edit the
+#         same file need one another even when the code does not. Name only
+#         the direct ones. Left out, it means the entry above.
 # tier    who does it: T1 reviewer, T2 implementer, T3 small implementer.
 #         Which model each tier is today is not recorded here; your session's
 #         instructions say which tier you are. If they do not, ask the user.
@@ -13,6 +21,7 @@
 
 [check]
 log = "docs/log.jsonl"
+# main_branch = "main"    # set when the default branch has another name
 # Must exit non-zero on any warning. Leave out to skip the lint gate.
 lint = "<lint command>"
 # Regex for a stub left for a milestone. {tag} is the milestone's stub_tag,
@@ -41,6 +50,7 @@ detail = '<regex for lines worth showing on failure>'
 [[milestone]]
 id = "M0"
 what = "The frame"
+needs = []
 tier = "T1"
 test = ["<command that runs only the frame's own suite>"]
 status = "done"
@@ -48,6 +58,7 @@ status = "done"
 [[milestone]]
 id = "M1"
 what = "<first milestone: small, tight oracle>"
+needs = ["M0"]
 tier = "T3"
 effort = "medium"
 test = ["<command that runs only this milestone's suite>"]
@@ -57,9 +68,15 @@ status = ""
 id = "A"
 kind = "checkpoint"
 what = "Checkpoint A: did the frame hold up?"
+needs = ["M1"]
 tier = "T1"
 status = ""
 
+# Everything after the first checkpoint needs "A" at least: the frame is
+# not known to be fillable before it.
+#
 # A milestone with no `test` is checked by hand; say how in a comment and in
 # the milestone doc. Sub-milestones that share stubs (M5a, M5b) set
-# stub_tag = "M5".
+# stub_tag = "M5", and then need one another in sequence: the stub gate of
+# each fails while the other's stubs are left. A sub-milestone with no stubs
+# of its own (a data file) leaves stub_tag out.
