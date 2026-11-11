@@ -7,8 +7,8 @@
 Everything project-specific is in frame.toml at the repo root: the
 milestones, what each one needs, its test commands, the lint command and the
 stub marker.
-This file is the same in every frame repo; its master copy is in ConfigMe at
-claude/skills/frame-first/template/scripts/check. A repo may change its copy.
+This file is the same in every frame repo; its master copy is in AdaptiveDesign at
+core/skills/frame-first/template/scripts/check. A repo may change its copy.
 When a change would help other repos too, the checkpoint reviewer copies it
 back.
 
@@ -249,7 +249,7 @@ def main():
             continue
         for cmd in m.get("test", []):
             rc, out = run(cmd)
-            passed += sum(int(n) for n in re.findall(cfg["passed"], out))
+            passed += sum(int(n) for n in re.findall(cfg["passed"], out, re.M))
             if rc != 0:
                 names = set(re.findall(cfg["failed_test"], out, flags=re.M))
                 # A command that fails without naming a test did not compile
