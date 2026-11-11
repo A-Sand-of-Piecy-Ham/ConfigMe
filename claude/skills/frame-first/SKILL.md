@@ -71,11 +71,13 @@ Repo layout and commits follow `project-setup` and `git-workflow`.
 
 ## Shed context at phase boundaries
 
-Every tool call re-reads the whole conversation, so a long session makes each
-later call expensive however small it is. In the first run, the drilling and
-design discussion stayed in context through the entire frame build; by the
-end each call was reading several hundred thousand tokens, and usage went
-mostly to that, not to output.
+A phase boundary is where a clear is free: the state is in files, so the
+conversation can go without a summary being paid for. Size alone is not the
+reason. Each call re-reads the conversation at a fortieth of the input price
+on T1 and a twentieth below it, and automatic compaction bounds the size;
+`smart-compact` has the arithmetic. In the first run compaction was off and
+the design discussion stayed in context through the whole frame build, so by
+the end each call was reading several hundred thousand tokens.
 
 Boundaries where the conversation so far can be dropped:
 
@@ -99,10 +101,10 @@ Before any clear, check that nothing needed exists only in chat: a decision,
 a caveat, a half-finished thought. If it does, it goes in the file first. The
 test is the cold-start check: could a session with only the repo continue?
 
-Side tasks cost at the session's current size. A skill edit or an unrelated
-question asked at 300k context pays for 300k on every call it makes. Suggest
-a new session for them only when `~/.claude/rules/call-economy.md`'s
-arithmetic says it pays; with compaction near 150k it seldom does.
+Side tasks cost at the session's current size: each call of a skill edit or
+an unrelated question re-reads the whole context. Suggest a new session for
+them only when `~/.claude/rules/call-economy.md`'s arithmetic says it pays;
+with automatic compaction on it seldom does.
 
 **One model per session.** The prompt cache is kept per model, so changing
 model mid-session re-reads the whole conversation at full price, and the new
