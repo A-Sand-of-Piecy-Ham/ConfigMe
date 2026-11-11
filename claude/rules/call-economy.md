@@ -1,6 +1,9 @@
-Every model call re-reads the whole conversation, so a call costs about a
-tenth of the context size before it does anything: 15k tokens' worth at a
-150k context. Count calls, not only tokens. A draft: amend it from what
+Two things cost, in units of one input token. Whatever enters the
+conversation (a tool result, a reply) is written to the cache at twice
+price, and a reply costs five times on top. And every model call re-reads
+the whole conversation: a fortieth of the context on the strongest model,
+a twentieth on the next two, so about 4k or 8k at a 150k context. Bound
+what comes back first, then count calls. A draft: amend it from what
 sessions measure, as with the skills.
 
 - **Send everything independent in one message.** Before a lone tool call,
@@ -8,8 +11,9 @@ sessions measure, as with the skills.
   result, it goes out now, beside it.
 - **Unused information is cheaper than a second call.** Unsure whether a
   second file, a neighbouring section or one more command's output will be
-  needed: fetch it now. Up to about 2k tokens of maybe-useful output costs
-  less than the call that would go back for it.
+  needed: fetch it now. Up to about 1k tokens of maybe-useful output costs
+  less than the call that would go back for it; past that the call is
+  cheaper.
 - **Bash: one command, several questions.** Join independent commands with
   `;` and an `echo ---` between them (`&&` hides everything after the first
   failure). Status, log, diff, grep and `wc` belong in one call, not five.
@@ -33,12 +37,16 @@ sessions measure, as with the skills.
   `introspection` then and file the lesson. Nothing else triggers it.
 - **Do not suggest a fresh session unless it pays.** Starting one costs
   about 100k (a 48k start, written to cache at twice price). Staying costs
-  a tenth of the context per call. So it pays only when the remaining
-  calls times the context exceed about a million, say 10 calls at 100k,
-  and what is needed is already in files. The user asked for this
-  (2026-11-11) after being sent to a fresh session for a five-call job.
+  a fortieth of the context per call (a twentieth below the strongest
+  model). So it pays only when the remaining calls times the context
+  exceed about four million (two million), say 27 calls at 150k, and what
+  is needed is already in files. The user asked for this (2026-11-11)
+  after being sent to a fresh session for a five-call job. A compaction is
+  the same sum: it writes what it keeps again, 100k to 200k measured.
 
 Evidence: 2026-11-11, one review turn made 46 model calls for 110 tool
 calls, 18 of them a single Bash command and about 15 for upkeep done one
-item at a time. Re-reading the conversation cost more than all its output,
-and the user's five-hour limit lost a third.
+item at a time. By `session-cost` the turn was 55% cache write, 33%
+output and 12% re-reading, and three compactions wrote 22% of the session.
+A first count used a read weight four times too high and blamed the calls
+alone; this file's first version was built on it.

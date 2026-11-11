@@ -570,14 +570,31 @@ every call's usage. A user may also say "tokens" when the cost was calls,
 not knowing that cached reads, cache writes and output are priced far
 apart. One of the few cases where the user's assessment can be wrong and
 the session should say so from numbers. `bin/session-cost` prints the
-per-turn breakdown in units (one uncached input token); a turn over 15%
-of a five-hour window counts as large (the user's threshold, Pro plan).
-The window is taken as about 3.5M units for the strongest model, between
-two readings: 1.4M units moved the meter by "30%+" (at most 4.6M), and the
-meter read 85% with 2.3M spent in this session (at least 2.7M, if nothing
-else ran). This session by turn: the review 1.38M over 45 calls, then
-twelve turns of 16k to 250k; the 250k one was 58% cache write, the
-re-write of the context after a compaction.
+per-turn breakdown; a turn over 15% of a five-hour window counts as large
+(the user's threshold, Pro plan). The numbers first written here used a
+wrong weight; the next entry has the corrected ones.
+
+**2026-11-11 — the first cost measurement was itself wrong, by one
+weight.** The script weighted cache reads at 0.1 of an input token for
+every model. The price table says 0.025 on the strongest model and 0.05
+on the next two; only older models have 0.1. Found when the user said
+costs on different models should compare, which sent the session to the
+table: input, output and cache writes do scale by one factor per model,
+cache reads do not. Corrected, the same session reads differently: the
+review was 1.0M over 45 calls at 55% cache write, 33% output, 12%
+re-reading, where the first count had re-reading largest and blamed the
+number of calls. Four calls made half of all cache writes: the session
+start (48k tokens) and three compactions (51k to 99k), together 22% of
+the session. So a compaction costs about what 40 calls of re-reading the
+dropped context would, and the advice to compact at 150k may cost more
+than it saves on the strongest model. `call-economy.md` and the
+introspection skill were built on the wrong weight and are corrected. The
+unit is now called a claw (the user's name): the price of one uncached
+input token on the reference model. The window is taken as about 2.5M
+claws, between two readings: 1.0M moved the meter by "30%+" (at most
+3.4M), and the meter read 85% with 1.5M spent in this session (at least
+1.8M, if nothing else ran). Untested throughout: that the usage limit
+counts by API price weights at all.
 
 **2026-11-11 — the correction hook fired for real on its first chance.**
 The user's message withdrawing "usage is ground truth" matched the phrase
