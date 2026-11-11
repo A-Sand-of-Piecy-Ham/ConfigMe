@@ -1,6 +1,9 @@
 {
   "permissions": {
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "deny": [
+      "Artifact"
+    ]
   },
   "hooks": {
     "InstructionsLoaded": [
@@ -30,6 +33,27 @@
           {
             "type": "command",
             "command": "$HOME/.local/bin/bash-skill-hook",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__context7__.*|mcp__15fae7e2-.*|mcp__claude_ai_TickTick__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/mcp-skill-hook",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/context-size-hook",
             "timeout": 5
           }
         ]

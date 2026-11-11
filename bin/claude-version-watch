@@ -46,7 +46,10 @@ def main():
                 f"break (not before the user's request), skim the changelog ({CHANGELOG}) for new "
                 "hook events, settings, tools, or skill/memory features, and tell the user in a "
                 "line or two which would improve ConfigMe (claude/settings.json, rules, skills, "
-                "bin/ hooks) or retire something it does by hand. Say nothing if none apply."
+                "bin/ hooks) or retire something it does by hand. Say nothing if none apply. "
+                "Also run `claude-start-size` once: built-in tool definitions change between "
+                "releases, and if the lean number has grown past the reference in that script, "
+                "say which new tool to add to claude/profiles/lean.json."
             ),
         }}))
     except Exception:
