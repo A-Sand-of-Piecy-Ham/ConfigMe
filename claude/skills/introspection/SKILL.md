@@ -1,7 +1,7 @@
 ---
 name: introspection
 description: >
-  Analyze a completed interaction to identify what response patterns worked well versus caused friction, and file each finding where it belongs (interaction style, engineering practice, a skill, or project standards). Suggest invoking when the user expresses satisfaction with a session. Also - reviewing how an agent, model or earlier session performed; "did the skill work", "how did sonnet/opus do", "assess the process".
+  Analyze a completed interaction to identify what response patterns worked well versus caused friction, and file each finding where it belongs (interaction style, engineering practice, a skill, or project standards). Load without being asked at the end of a task in which a hook noted a user correction. Also - reviewing how an agent, model or earlier session performed; "did the skill work", "how did sonnet/opus do", "assess the process".
 ---
 
 ## Token budget

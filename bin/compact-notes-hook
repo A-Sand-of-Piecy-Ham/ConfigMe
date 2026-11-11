@@ -81,6 +81,18 @@ print(STANDING)
 if not id_ok:
     sys.exit(0)
 
+# context-size-hook leaves this marker when the user corrected the session. Used once, like
+# the notes: the summary carries the duty forward, so the marker has done its work.
+correction = Path.home() / ".local/state/configme/corrections" / session_id
+try:
+    if correction.exists():
+        print("- The user corrected this session at least once. If what that taught is not yet "
+              "written to a rules file, a skill or memory, list it under unfinished work, "
+              "to be filed with the introspection skill at the end of the task.")
+        correction.unlink()
+except Exception:
+    pass
+
 notes = NOTES_DIR / f"{session_id}.md"
 try:
     text = notes.read_text().strip()
