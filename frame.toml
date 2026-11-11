@@ -47,7 +47,7 @@ id = "M1"
 what = "install.sh hands the claude section to AdaptiveDesign (also needs AD:M2)"
 needs = ["T"]
 tier = "T2"
-effort = "high"
+effort = "medium"
 test = ["scripts/test delegate"]
 status = ""
 
