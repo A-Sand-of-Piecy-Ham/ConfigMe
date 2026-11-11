@@ -1,7 +1,6 @@
 ---
 name: skill-forge
 description: Write or revise a skill. Triggers - "make a skill", "turn this into a skill", "shim for", "remember this workflow", "you should always do X when Y", a workflow was corrected twice, or a skill in use turned out wrong, stale or incomplete.
-effort: high
 ---
 
 ## What a skill is for
@@ -60,10 +59,15 @@ note so it reads as a hypothesis. Update or delete the note after the run.
 - **Examples get copied literally.** Give two that differ, or say what varies.
 - **Mark a step that needs the strongest model at that step**, with what a
   weaker one does instead (stop and say so, or do only the mechanical part).
-- **Never pin a model in frontmatter.** This skill carried `model: opus` to
-  force the strongest model. A stronger one shipped, and the pin then silently
-  downgraded every session that loaded it. Names go stale; put the requirement
-  in the body.
+- **No `model:` and no `effort:` line in any skill's frontmatter.** The user
+  sets both for the session, and a pin overrides them without saying so.
+  This skill carried `model: opus` to force the strongest model; a stronger
+  one shipped, and the pin silently downgraded every session that loaded it.
+  `introspection` carried `effort: high`; loaded in the first seconds of a
+  review the user had set to medium, it ran the next 41 calls at high, until
+  the user's next message (2026-11-11, read from the request log). If a step
+  needs the strongest model or more thought, say so in the body at that
+  step. A skill found with either line: delete the line, tell the user.
 
 Skip restated titles and closing summaries. The reader is already doing the
 task, which is why the skill loaded.

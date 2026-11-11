@@ -1,7 +1,6 @@
 ---
 name: memory-write
 description: Persist a stated preference. Triggers - "always", "never", "from now on", "stop doing", "I prefer", "remember that", or the same correction given twice.
-effort: medium
 ---
 
 ## Complying once is not remembering

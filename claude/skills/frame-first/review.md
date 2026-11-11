@@ -31,10 +31,14 @@ that is not producing findings on the task at hand, and say so.
 - **Re-read this file after a compaction.** The summary keeps the task and
   drops the steps. The second review ran its last third from the summary
   alone and skipped the tool rule below.
-- **Load `introspection` and `research-log` now.** Neither fires by itself
-  in a review turn: this skill takes the trigger (first checkpoint,
-  2026-11-10, both were missed until the user asked why). A checkpoint is a
-  skill being tested, which is what both exist to record.
+- **Do not load `introspection` or `research-log` yet.** Each is loaded at
+  Finishing, and only if the review found something for it (step 4 there
+  says what). Loaded at the start, both bodies rode through every call of
+  the M3 review before either had anything to file. Neither fires by
+  itself in a review turn (first checkpoint, 2026-11-10), so step 4 is the
+  trigger: do not skip it.
+- **Few calls.** `~/.claude/rules/call-economy.md` applies in full: batch
+  reads, bound output, checks once at the end, upkeep in one batch.
 - **Effort: medium.** At the first checkpoint every finding came from reading
   the diff or running a command, none from thinking longer. Spend on another
   check, not on deeper thought. One observation; revise it.
@@ -50,9 +54,9 @@ that is not producing findings on the task at hand, and say so.
 2. The open log rows:
    `jq -c 'select(.settled == null)' docs/log.jsonl`. Gaps, disputes,
    subtasks, deviations and friction are all there.
-3. The finish check, run by you: `scripts/check Mx`. Expected: `PASS Mx`, or
-   `HELD Mx` when the implementer disputed a test. Do not take the
-   implementer's word for it.
+3. Not the finish check, yet. It runs once, at Finishing, with your tests
+   in: that run covers the implementer's claim as well. Run it now only for
+   a reported `HELD`, or when the report and the log disagree.
 4. The contract (module docs and doc comments) of each file in the diff.
 5. For `HELD`: the disputed test against its contract, before anything
    else. Work it out by hand or run it; decide who is right. The milestone
@@ -126,7 +130,10 @@ repo, it also goes into `template/` or `SKILL.md` here, in the same session,
 with one clause of evidence. The same question goes to every change the
 repo has made to a file it copied from `template/` (`scripts/check`,
 `AGENTS.md`): would another repo want it? Tell the user each fix in one
-line.
+line. Note each fix as you find it and make them all in one batch at
+Finishing, with the template copies, this skill's status notes and the
+research log: they do not depend on each other, and one at a time they
+cost the M3 review about fifteen calls.
 
 The reviewer follows the implementer's tool rule: project docs change
 through Edit and Write, never `sed`, a heredoc or a redirect. The second
@@ -148,8 +155,8 @@ The aim is fewer steps, not more records: this section earns its place only
 by getting something else cut.
 
 1. **Friction rows of your own.** When a step of this file, the rules file,
-   a hook or a command costs you time or produces nothing, add a row at that
-   moment, as implementers do:
+   a hook or a command costs you time or produces nothing, add a row (with
+   the other rows you write, in one edit at Finishing):
 
    ```json
    {"kind":"friction","milestone":"M3","by":"review","what":"Three calls to find the implementer transcript: the slug starts with a dash"}
@@ -268,13 +275,16 @@ experiment on the method. Run one only when the user asks for it, and fold
 its reading into the one real review.
 
 **Where a review's tokens go** (measured on the M3 review, 82 calls over
-two sessions): cached re-reading of the conversation, cache writes and
-output, about a third each by price. No single file was to blame; the
-largest tool result was 10k tokens. What moves it: run at the effort the
-skill's table gives (this one ran at high, the table says medium, and
-about 60% of its output was reasoning); stop after the findings and tests
-are committed and do the process fixes in a fresh session; never read a
-session transcript with `Read`, only with `jq`.
+two sessions; weights: cache read 0.1, one-hour cache write 2, output 5
+times input). The first turn: cache writes about 590k, cached re-reading
+of the conversation about 507k, output about 335k. So the count of calls
+and the size of the context at each one matter more than what is written.
+No single file was to blame. The largest results, about 10k tokens each,
+were Bash output too big for the harness (several source files in one
+`cat`), spilled to a file and then read back whole. Forty-one calls ran at
+high effort in a session set to medium, because a skill's header pinned it
+(`skill-forge` now forbids that). What moves it: the call rules in
+`~/.claude/rules/call-economy.md`.
 
 ## Finishing
 
@@ -289,9 +299,14 @@ session transcript with `Read`, only with `jq`.
    allow.
 3. Set the checkpoint's `status` in `frame.toml`. No open rows are left:
    `jq -c 'select(.settled == null)' docs/log.jsonl` prints nothing.
-4. File what `research-log` and `introspection` turned up, including one row
-   per reviewed milestone and one for this review in the research log's
-   "Effort and tier, measured" table, each with its cost.
+4. Upkeep, in one batch. Always: the cost measurement, and one row per
+   reviewed milestone and one for this review in the research log's
+   "Effort and tier, measured" table (the table needs no skill loaded).
+   Load `research-log` when the review saw something about a skill, hook or
+   rule that is not already in the log. Load `introspection` when the
+   process review found an implementer dropping or misreading a rule, or
+   the user corrected this session: its filing table says where each
+   finding goes. Nothing of either kind: load neither.
 5. Report: verdict, findings that need the user's decision, frame changes
    made, and one line on cost: this review's calls, output tokens and peak
    context, and what was cut. Then give the `Next:` line `scripts/check` prints, which names the
