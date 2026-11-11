@@ -15,7 +15,7 @@ back.
 The list gives each milestone a state:
 
     done, held   its status in frame.toml
-    ready        everything in its "needs" is done; it can be started
+    ready        everything in its "needs" is done or held; it can be started
     busy         ready, but a branch named for it exists: someone has it
     waits        something it needs is not done (named in brackets)
 
@@ -27,7 +27,9 @@ Gates, one line each, detail only for a gate that is not ok:
 
     tree    the work is in a worktree, not on a branch in the main checkout
     tests   every test command succeeds for the target, for what it needs,
-            and for every milestone already done in this checkout
+            and for every milestone already done in this checkout. A
+            disputed test of an earlier, held milestone may fail: it is
+            named after "held earlier:" and does not count against the target
     stubs   no stub marker for the target is left
     lint    the lint command succeeds
     log     the log file parses, and the target has a "gap" row
@@ -120,7 +122,9 @@ def list_milestones(milestones):
         state, note = m.get("status", ""), ""
         if not state:
             unfinished.append(m)
-            unmet = [n for n in m["needs"] if by_id[n].get("status") != "done"]
+            # A held milestone is finished work with one test in dispute: what
+            # needs it may start. A checkpoint is only ever done or not.
+            unmet = [n for n in m["needs"] if by_id[n].get("status") not in ("done", "held")]
             taken = branch_for(m["id"], branches)
             if unmet:
                 state, note = "waits", f"  [needs {', '.join(unmet)}]"
@@ -232,6 +236,9 @@ def main():
 
     # --- tests ---------------------------------------------------------------
     passed, failed_names, detail, broken = 0, set(), [], False
+    # Disputed tests failing in a suite other than the target's: an earlier
+    # milestone that is held. They wait on the reviewer, not on this work.
+    inherited = set()
     # The target, what it is built on, and whatever is finished here. Not
     # "everything above it": a milestone being worked on another branch is
     # still stubs in this checkout.
@@ -247,11 +254,15 @@ def main():
                 # A command that fails without naming a test did not compile
                 # or crashed: that is never a dispute.
                 broken |= not names
+                if m["id"] != target:
+                    inherited |= names & disputed
+                    names -= disputed
                 failed_names |= names
                 detail += [f"$ {cmd}"] + detail_lines(out, cfg["detail"])
     undisputed = failed_names - disputed
     if not failed_names and not broken:
-        results.append(("tests", f"ok    {passed} passed", []))
+        note = f"; held earlier: {', '.join(sorted(inherited))}" if inherited else ""
+        results.append(("tests", f"ok    {passed} passed{note}", []))
     elif not undisputed and not broken:
         held = ", ".join(sorted(failed_names))
         results.append(("tests", f"held  {passed} passed; disputed: {held}", []))

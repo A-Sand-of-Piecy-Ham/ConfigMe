@@ -14,7 +14,8 @@
 #         instructions say which tier you are. If they do not, ask the user.
 # effort  the reasoning effort to start from. A suggestion; the user sets it.
 # status  "" not started, "done", or "held" (finished except for a disputed
-#         test). Implementers set their own milestone's; nothing else here.
+#         test; what needs it may still start). Implementers set their own
+#         milestone's; nothing else here.
 # first_playable  on one checkpoint: the first point where it runs without
 #         crashing and someone other than the builder can try it. Not the
 #         finished version.
