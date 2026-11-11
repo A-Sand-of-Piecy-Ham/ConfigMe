@@ -86,6 +86,12 @@ Boundaries where the conversation so far can be dropped:
 
 Skip a boundary only when the user says the live context is worth its cost.
 
+Weigh a boundary by price, not by token count: uncached input costs about
+a fifth of output per token, and cached input far less again. A fresh
+session that re-reads 30k of repo is cheap; a compaction pays for a summary
+as output. So re-reading files beats summarising them, and neither is a
+reason to keep a 300k conversation alive.
+
 Before any clear, check that nothing needed exists only in chat: a decision,
 a caveat, a half-finished thought. If it does, it goes in the file first. The
 test is the cold-start check: could a session with only the repo continue?
@@ -177,6 +183,15 @@ before the handoff was finished.
   asserts) and the cases that encode a design decision. T2 writes out the
   rest; the strong model reads them at the first checkpoint. Untested as of
   this writing.
+- **Where a lower tier's mistake is acceptable.** Reading costs less than
+  writing, so it is cheaper for T1 to find a mistake in T2's work than to
+  write the work itself, provided the mistake stays where it was made. One
+  test body is like that: a wrong one fails or is disputed, and the fix is
+  local. Give those to T2, or to T3 when the expected value is copied from
+  the contract and needs no arithmetic. Keep with T1 what compounds: public
+  signatures, formulas, shared fixtures and acceptance bands, and any test
+  whose expected value takes real maths to derive. One data point: the
+  first frame's only wrong test so far was a T1-written geometry case.
 - **Stubs split the same way.** The strong model keeps what cannot be
   recovered from a wrong guess: signatures, formulas, the order of
   operations, invariants, and the list of test cases. A T2 session
@@ -262,6 +277,13 @@ that runs into context compaction loses its contract.
 Set them at plan time, not when trouble shows: after the first milestone (is
 the frame fillable at all?), at the first end-to-end runnable result, wherever
 quality has no test, and on any request to change something frozen.
+
+Tag one checkpoint as the **first playable** (first usable, for something
+that is not a game): the earliest point where it runs without crashing and
+someone other than the builder can try it. It is not the finished version.
+Name it in the plan shown to the user and set `first_playable = true` on
+that checkpoint in `frame.toml`, so the user knows from the start when
+outside testing can begin (asked for 2026-11-10).
 
 How to run one is in `review.md`: what to read, the code checklist, the
 process review that fixes the frame and this skill without being asked, and
