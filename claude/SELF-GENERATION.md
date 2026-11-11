@@ -562,6 +562,30 @@ the effort setting had been lowered, and the rule was in context because
 the session wrote it, not because it loaded as a rule. The first clean
 test is a new session where it loads by itself.
 
+**2026-11-11 — for cost, the transcript outranks the user's meter, and the
+user may name the wrong cause.** The user first called their usage meter
+the ground truth, then withdrew it: the meter gives one percentage per
+window and no breakdown by turn, call or tool, while the transcript has
+every call's usage. A user may also say "tokens" when the cost was calls,
+not knowing that cached reads, cache writes and output are priced far
+apart. One of the few cases where the user's assessment can be wrong and
+the session should say so from numbers. `bin/session-cost` prints the
+per-turn breakdown in units (one uncached input token); a turn over 15%
+of a five-hour window counts as large (the user's threshold, Pro plan).
+The window is taken as about 3.5M units for the strongest model, between
+two readings: 1.4M units moved the meter by "30%+" (at most 4.6M), and the
+meter read 85% with 2.3M spent in this session (at least 2.7M, if nothing
+else ran). This session by turn: the review 1.38M over 45 calls, then
+twelve turns of 16k to 250k; the 250k one was 58% cache write, the
+re-write of the context after a compaction.
+
+**2026-11-11 — the correction hook fired for real on its first chance.**
+The user's message withdrawing "usage is ground truth" matched the phrase
+list on "hour limit" alone, and the note arrived. A true positive by
+luck: "I was wrong about", the part that made it a correction, is not in
+the list (now added). The lesson was the skill edit itself, so the skill
+was not loaded.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me
