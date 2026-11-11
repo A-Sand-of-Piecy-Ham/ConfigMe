@@ -101,7 +101,8 @@ test is the cold-start check: could a session with only the repo continue?
 
 Side tasks cost at the session's current size. A skill edit or an unrelated
 question asked at 300k context pays for 300k on every call it makes. Suggest
-a new session for them once the context is large.
+a new session for them only when `~/.claude/rules/call-economy.md`'s
+arithmetic says it pays; with compaction near 150k it seldom does.
 
 **One model per session.** The prompt cache is kept per model, so changing
 model mid-session re-reads the whole conversation at full price, and the new

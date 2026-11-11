@@ -10,8 +10,16 @@ late to prepare anything.
 Reads the size from the last assistant message in the transcript (input + cache read + cache
 creation tokens). Fires once at each step in STEPS, and again after a compaction brings the
 size back under the first step. Injects context only; never blocks, exits 0 on any error.
+
+It also notes user corrections. The introspection skill files what a correction teaches, but
+nothing loaded it: the user will not invoke skills by hand, and the skill ran twice in 33
+sessions. When the prompt reads like a correction (CORRECTION below), one line asks Claude to
+file the lesson with the task's closing upkeep, and a marker is left in CORRECTIONS for the
+PreCompact hook, which reminds the summary once if the session compacts first. The match is
+by phrase and will misfire; a false note costs about thirty tokens and Claude ignores it.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -20,6 +28,34 @@ STATE = Path.home() / ".local/state/configme/context-size"
 STEPS = [150_000, 250_000, 400_000]
 # The last usage record sits near the end of the transcript; this much is plenty to find it.
 TAIL_BYTES = 400_000
+# One file per session that has an unfiled correction; compact-notes-hook reads and removes it.
+CORRECTIONS = Path.home() / ".local/state/configme/corrections"
+# Phrasing that marks the user correcting Claude, not asking for something new.
+CORRECTION = re.compile(
+    r"^\s*(no|nope|wrong)\b[,.! ]"
+    r"|\bi (already )?(said|told you|asked)\b"
+    r"|\b(that'?s|that is|this is) (wrong|not what|incorrect)"
+    r"|\bnot what i\b"
+    r"|\b(stop|quit) (doing|asking|adding|using)\b"
+    r"|\b(do not|don'?t|never) (do that|ask|freely)\b"
+    r"|\b(you|it) should(n'?t| not)? have\b"
+    r"|\bwhy did you\b"
+    r"|\bavoid (asking|doing|using|adding)\b",
+    re.IGNORECASE)
+
+
+def correction_note(prompt, session):
+    """The line to inject when `prompt` reads like a correction, else None. Leaves the marker."""
+    if not CORRECTION.search(prompt or ""):
+        return None
+    try:
+        CORRECTIONS.mkdir(parents=True, exist_ok=True)
+        (CORRECTIONS / session).write_text("1")
+    except OSError:
+        pass
+    return ("This message reads like a correction. If it is one, file what it teaches with this "
+            "task's closing upkeep batch: load the introspection skill then, not now, and use "
+            "its filing table. If it is not a correction, ignore this line.")
 
 
 def last_context_size(transcript):
@@ -48,24 +84,33 @@ def last_context_size(transcript):
 try:
     payload = json.load(sys.stdin)
     session = payload.get("session_id", "") or "unknown"
-    size = last_context_size(payload["transcript_path"])
-    if size is None:
-        sys.exit(0)
-    reached = sum(1 for step in STEPS if size >= step)
-    marker = STATE / session
-    told = int(marker.read_text()) if marker.exists() else 0
-    if reached != told:
-        STATE.mkdir(parents=True, exist_ok=True)
-        marker.write_text(str(reached))
-    if reached > told:
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit",
-            "additionalContext": (
+    notes = []
+    if re.fullmatch(r"[A-Za-z0-9_-]{1,80}", session):  # it becomes a file name
+        note = correction_note(payload.get("prompt"), session)
+        if note:
+            notes.append(note)
+    try:
+        size = last_context_size(payload["transcript_path"])
+    except Exception:
+        size = None
+    if size is not None:
+        reached = sum(1 for step in STEPS if size >= step)
+        marker = STATE / session
+        told = int(marker.read_text()) if marker.exists() else 0
+        if reached != told:
+            STATE.mkdir(parents=True, exist_ok=True)
+            marker.write_text(str(reached))
+        if reached > told:
+            notes.append(
                 f"This conversation is now about {size // 1000}k tokens, and every call re-reads "
                 "all of it. Answer the user's message first. Then, if the smart-compact skill "
                 "isn't loaded yet, invoke it and tell the user in one line whether to compact, "
-                "clear or carry on."
-            ),
+                "clear or carry on. Do not suggest a new session unless call-economy.md's "
+                "arithmetic says it pays.")
+    if notes:
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": "\n".join(notes),
         }}))
 except Exception:
     pass

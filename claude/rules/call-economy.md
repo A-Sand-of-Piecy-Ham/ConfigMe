@@ -29,6 +29,14 @@ sessions measure, as with the skills.
   measurement that misses the last few calls is fine.
 - **Load a skill when its content is about to be used**, not at the start
   in case it is. Its body stays in context for every later call.
+- **A hook note that the user corrected you** joins the end batch: load
+  `introspection` then and file the lesson. Nothing else triggers it.
+- **Do not suggest a fresh session unless it pays.** Starting one costs
+  about 100k (a 48k start, written to cache at twice price). Staying costs
+  a tenth of the context per call. So it pays only when the remaining
+  calls times the context exceed about a million, say 10 calls at 100k,
+  and what is needed is already in files. The user asked for this
+  (2026-11-11) after being sent to a fresh session for a five-call job.
 
 Evidence: 2026-11-11, one review turn made 46 model calls for 110 tool
 calls, 18 of them a single Bash command and about 15 for upkeep done one
