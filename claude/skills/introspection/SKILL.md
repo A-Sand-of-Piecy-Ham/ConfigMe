@@ -72,16 +72,22 @@ Check the destination for an existing entry and update it rather than duplicatin
 The transcript is the ground truth, not the usage meter and not anyone's
 impression. The meter tells the user that a window was spent; it does not
 say which turn, call or tool spent it. The user may also name the wrong
-cause: "too many tokens" when the cost was calls, since a cached token read
-costs a fiftieth of an output token (the user's own correction,
-2026-11-11). So take the complaint as the signal to measure, and let the
-numbers say what happened, including when they contradict the user. The
-first guesses that day, the user's and the session's (one big file,
-overthinking, over-logging), were all wrong; the cause was the number of
-calls.
+cause, since the kinds of token differ in price two-hundredfold (the
+user's own correction, 2026-11-11). So take the complaint as the signal to
+measure, and let the numbers say what happened, including when they
+contradict the user. The first guesses that day, the user's and the
+session's (one big file, overthinking, over-logging), were all wrong. So
+was the first measurement: it weighted cache reads at 0.1 for every model
+and blamed the number of calls. With the weight the strongest model
+actually has (0.025), the same turn was 55% cache write, 33% output and
+12% re-reading. Check a weight against the price table before building on
+it.
 
-Costs are counted in **units**: one uncached input token of the model that
-ran. A turn over about 15% of a five-hour window is a large one. A session
+Costs are counted in **claws**, our own name for the unit: one claw is the
+price of one uncached input token on the script's reference model. Calls
+on other models are converted by the ratio of input prices, so sessions on
+different models compare. A turn over about 15% of
+a five-hour window is a large one. A session
 can also run step 1 unasked after a turn it suspects was large (many
 calls, a long review); it does not need the complaint.
 
@@ -95,7 +101,7 @@ calls, a long review); it does not need the complaint.
    echo ---; jq -r 'select(.type=="user")|.message.content[]?|select(.type=="tool_result")|(.content|tostring|length)' "$t" | sort -rn | head -3
    ```
 
-   `session-cost` prints one row per user turn: calls, units, the share
+   `session-cost` prints one row per user turn: calls, claws, the share
    that was cache read, cache write and output, the peak context, and an
    estimated share of the window, with `!` on a large turn. The window's
    size is an estimate from one reading; the script's header says how
@@ -108,7 +114,8 @@ calls, a long review); it does not need the complaint.
    | Shows | Cause | Fix goes in |
    |---|---|---|
    | `read` largest; `calls` far above what the task needed | One tool call per message, upkeep done one item at a time | `rules/call-economy.md` |
-   | `w1h` largest | Large tool results, or a skill body loaded early and carried | The same file's size limits; the skill that asked for the early load |
+   | `write` largest, in a turn of one or two calls that starts "This session is being continued" | A compaction: it writes everything it keeps again at twice price (50k to 100k tokens each, 22% of one session) | Fewer compactions: tell the user the count and what they cost. The threshold is the user's setting |
+   | `write` largest, spread over many calls | Large tool results, or a skill body loaded early | The same file's size limits; the skill that asked for the early load |
    | A tool result over about 16,000 characters | A whole file or unbounded command output | The same file's size limits |
    | An effort level the user did not set | An `effort:` line in a loaded skill's header | Delete the line (`skill-forge` forbids it) |
    | `out` largest | Long replies or long reasoning | `rules/interaction-style.md`, reply length |
