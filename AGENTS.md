@@ -208,7 +208,9 @@ a `deviation` row.
 - **Do not edit AdaptiveDesign.** It is another frame with its own agents.
   When ConfigMe needs something of it, log a `dispute` or a `gap` here.
 - **Work in a worktree branched from `frame/split`.** Nothing goes to `main`
-  until Checkpoint C.
+  until Checkpoint C. The session that merges a milestone pushes
+  `frame/split` after the merge; nobody pushes `main`, force-pushes or
+  opens a PR but the reviewer.
 
 ## Commands
 

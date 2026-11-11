@@ -48,8 +48,10 @@ The `==> claude` section (near line 907) stops linking and instead: finds
 the clone, clones it with `git clone` from
 `https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign` when it is absent
 and `CONFIGME_NO_CLONE` is unset, and runs its `install.sh` with one
-`--include` per enabled `claude-*` box. The `--check` section (near line
-550) runs its `install.sh --check` and passes its `ok`/`bad` lines through
+`--include` per enabled `claude-*` box. ConfigMe's checking mode is
+`--doctor` (corrected at Checkpoint A; the frame first called it
+`--check`). Its claude section (near line
+550) runs AdaptiveDesign's `install.sh --check` and passes its `ok`/`bad` lines through
 the existing `ok`/`bad` helpers. A missing clone is one `bad` line with a
 `fix`, and the rest of the installer carries on. The loop that links
 `bin/*` is unchanged.
@@ -62,8 +64,8 @@ Suite `delegate`:
 | `feature_off_skips` | with `claude` off, nothing under `~/.claude` is created |
 | `includes_follow_boxes` | `claude-calendar` off: `calendar-check` not linked; on: linked |
 | `missing_clone_reported` | clone absent and `CONFIGME_NO_CLONE=1`: a `bad` line names the path, exit status as for any other failed feature, later sections still run |
-| `check_delegates` | `--check` after an install shows AdaptiveDesign's `ok` lines and exits zero |
-| `check_fails_unlinked` | `--check` on an empty home with `claude` on reports `bad` |
+| `check_delegates` | `--doctor` after an install shows AdaptiveDesign's `ok` lines in its claude section, with no `bad` line there that AdaptiveDesign's own `--check` lacks |
+| `check_fails_unlinked` | `--doctor` on an empty home with `claude` on reports `bad` |
 | `other_bin_links_kept` | `kitty-nvim` and `tmux-attach-or-new` are still linked |
 
 ## M2: install.ps1 delegates

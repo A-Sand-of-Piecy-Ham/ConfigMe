@@ -23,7 +23,7 @@ stub_glob = "*.stub"
 # keeps each FAIL line and the line after it (its first detail line); a
 # pattern that also matched the indented lines printed each of them twice.
 failed_test = '^FAIL (\S+)'
-passed = '(\d+) passed'
+passed = '^(\d+) passed$'
 detail = '^FAIL '
 
 [[milestone]]
@@ -62,7 +62,7 @@ status = ""
 
 [[milestone]]
 id = "M3"
-what = "Remove claude/, the Claude hooks and github-templates/ (also needs AD:B)"
+what = "Remove what moved to AdaptiveDesign (also needs AD:B)"
 needs = ["M1", "M2"]
 tier = "T2"
 effort = "medium"
