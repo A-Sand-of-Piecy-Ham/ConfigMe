@@ -158,6 +158,23 @@ half only: read, and write the findings down.
 
 Leave the mechanical findings of an earlier build comparison out of this
 skill's status notes until the reviewers have run: both read these files.
+The first run broke this: the Status below named three of them, and one
+reviewer pointed out that neither could then be credited with finding them.
+
+Three more things the first run got wrong; do them next time:
+
+- **Same effort for both.** The first pair ran T1 at low against T2 at
+  medium, so the result does not separate tier from effort. Say the effort
+  in step 2's request to the user, and check it afterwards
+  (`grep -o '"effort":"[a-z]*"' <session>.jsonl | sort | uniq -c`).
+- **Let the request allow the compaction hold.** "Change nothing else in
+  this repo or outside it" made both reviewers skip the hold file
+  `review.md` asks for, and one was compacted. Add: "the hold file in
+  `review.md` is allowed".
+- **Expect about 150k tokens of context** for a two-branch review: both
+  sessions started near 64k before reading anything and added 85k to 95k.
+  That is at the automatic compaction threshold. Have each reviewer commit
+  the findings file before its last checks, as both happened to.
 
 ## Status
 
@@ -170,5 +187,8 @@ redirect after the code, and left unformatted code. The last three rows of
 the table come from that. The T1 read, the decision and step 5 have not
 been run.
 
-"Two reviewers" was written 2026-11-11. Its step 1 ran (two copies cut and
-their seals checked); nothing after it has.
+"Two reviewers" was written 2026-11-11. Steps 1 to 4 ran once on that
+build pair (T1 at low effort against T2 at medium; rows in the research
+log). Both reached the same verdict. The T1 run made the one finding that
+changes a decision and the other missed; the T2 run stated two things the
+code contradicts. Step 5 has not run.
