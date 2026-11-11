@@ -151,6 +151,17 @@ For the paper, and for experiments here:
 - **Do sub-files of a skill survive compaction?** A sub-file is read once on
   a "read X when Y" line. After a compaction the skill body is re-attached
   but the sub-file is not, and nothing prompts a re-read.
+- **What makes the smallest tier keep the record?** Twice now T3 has
+  written passing code and dropped what surrounds it (gap rows, formatting,
+  the tool rule). It will be the main implementer whenever the strongest
+  affordable model moves down a tier. Which of these holds it: a gate in
+  the finish check, a hook, a shorter rules file, a cheap review after each
+  milestone?
+- **When does convention cost more than it saves?** Each rule added after a
+  failure is read on every later milestone. Nothing yet measures a rule's
+  cost against what it prevents.
+- **How much of a session's context is spent before it starts?** And how
+  much of that can a per-project or per-role setup remove?
 
 ## Effort and tier, measured
 
@@ -158,16 +169,19 @@ One row per milestone or review in a `frame-first` project, added by the
 reviewer. "Rounds" is runs of the finish check before it passed. Models are
 named here because this is a record of what ran, not an assignment.
 
-| Date | Work | Tier (model) | Effort | Rounds | Review found |
-|---|---|---|---|---|---|
-| 2026-11-10 | M1, tight oracle, ~250 lines | T3 (Sonnet 5.5) | not recorded | not recorded | Code correct. 4 gaps filled silently, false "none" in the log, commit on the default branch |
-| 2026-11-10 | Checkpoint A review of M1 | T1 (Fable 5.2) | medium | n/a | Every finding came from the diff or a command; medium sufficed |
-| 2026-11-10 | M2, judgment, movement and energy | T2 (Opus 5.5) | low | not recorded | No code findings. 4 gaps logged before the code, 1 frame test correctly disputed |
-| 2026-11-10 | Review of M2 | T1 (Fable 5.2) | medium | n/a | As Checkpoint A. Confirmed the dispute by hand; two feel questions deferred to the user |
-| 2026-11-10 | M3, lock-on, weapons, damage, heat; ~640 lines | T2 (Opus 5.5) | medium | 2 reported, 3 in the transcript | Pass. 7 gaps logged before the code; one row disagrees with its code (target cycling); formatted |
-| 2026-11-10 | M3 again, sealed copy | T3 (Sonnet 5.5) | medium | 1 reported, 2 in the transcript | Pass, 69% of the output tokens. 5+ gaps unlogged, one a missed event the contract asks for; rows by heredoc after the code; unformatted |
-| 2026-11-11 | Findings-only review of both M3 builds | T1 (Fable 5.2) | low | n/a | 23k output tokens, 17 calls, compacted once at 167k after committing. Ran a throwaway test on both branches: the only reviewer to find the row that disagrees with its code. One weak finding |
-| 2026-11-11 | The same review, sealed copy | T2 (Opus 5.5) | medium | n/a | 20k output tokens, 27 calls, peak 148k. Same verdict. Found one duplicated rule the other missed; two statements the code contradicts; no test run, no list of missing tests |
+"Cost" is model calls, output tokens, and context at the start and at its
+peak (the command is in `frame-first/review.md`).
+
+| Date | Work | Tier (model) | Effort | Rounds | Cost | Review found |
+|---|---|---|---|---|---|---|
+| 2026-11-10 | M1, tight oracle, ~250 lines | T3 (Sonnet 5.5) | not recorded | not recorded | not recorded | Code correct. 4 gaps filled silently, false "none" in the log, commit on the default branch |
+| 2026-11-10 | Checkpoint A review of M1 | T1 (Fable 5.2) | medium | n/a | not recorded | Every finding came from the diff or a command; medium sufficed |
+| 2026-11-10 | M2, judgment, movement and energy | T2 (Opus 5.5) | low | not recorded | not recorded | No code findings. 4 gaps logged before the code, 1 frame test correctly disputed |
+| 2026-11-10 | Review of M2 | T1 (Fable 5.2) | medium | n/a | not recorded | As Checkpoint A. Confirmed the dispute by hand; two feel questions deferred to the user |
+| 2026-11-10 | M3, lock-on, weapons, damage, heat; ~640 lines | T2 (Opus 5.5) | medium | 2 reported, 3 in the transcript | 36 calls, 38k out | Pass. 7 gaps logged before the code; one row disagrees with its code (target cycling); formatted |
+| 2026-11-10 | M3 again, sealed copy | T3 (Sonnet 5.5) | medium | 1 reported, 2 in the transcript | 23 calls, 26k out | Pass. 5+ gaps unlogged, one a missed event the contract asks for; rows by heredoc after the code; unformatted |
+| 2026-11-11 | Findings-only review of both M3 builds | T1 (Fable 5.2) | low | n/a | 17 calls, 23k out, 65k to 167k, compacted once after committing | Ran a throwaway test on both branches: the only reviewer to find the row that disagrees with its code. One weak finding |
+| 2026-11-11 | The same review, sealed copy | T2 (Opus 5.5) | medium | n/a | 27 calls, 20k out, 63k to 148k | Same verdict. Found one duplicated rule the other missed; two statements the code contradicts; no test run, no list of missing tests |
 
 The two M3 reviews differ in tier and in effort, so the pair does not
 separate them either.
@@ -426,6 +440,49 @@ Bears on tiering and on whether optional rows work on T3: one instance
 says the tests held T3 to a passing body, and that what T3 drops is the
 record around it, the same pattern as the first milestone. No T1 read of
 either diff yet, so nothing here says the T3 code is as good.
+
+**2026-11-11 — the T1 read of that pair: T3 fails on discipline, not on
+code.** Two reviewers and a check of their findings against the code. T3's
+bodies were equal or better in the single-module, formula-led files and
+worse where two modules meet (lock state between `fcs` and `weapons`): one
+event the contract asks for is never sent, and four more choices went
+unlogged. Every rule T3 dropped had no gate (rows before the code, Edit
+only, formatting); every gate it met, it passed. The user's reading: T3
+needs a stronger harness, not retirement, because it becomes the
+implementer tier when Opus is T1 again. Suggests moving each dropped rule
+into the check or a hook and testing that with a third run of the same
+milestone. Bears on the new "smallest tier" question.
+
+**2026-11-11 — two reviewers on that pair; the comparison was confounded.**
+T1 at low effort against T2 at medium, so tier and effort moved together.
+Same verdict. T1-low ran a throwaway test on both branches and found a log
+row that contradicts its code; T2-medium read only, trusted the row, and
+wrote two statements the code contradicts. One instance says running code
+beat reading it, and that low effort did not stop the stronger model from
+choosing to. The skill's own status note had named three findings to both
+reviewers. Neither set the compaction hold, because the request said to
+change nothing outside one file; T1-low was compacted at 167k, after its
+commit. Neither loaded `introspection`; the user reports it was offered
+to them at the end, which the transcripts' text and tool calls do not
+show, so where that offer comes from is not yet known.
+
+**2026-11-11 — a session holds about 63k tokens before its first tool
+call.** Measured in both review sessions (desktop app). Roughly: 37k tool
+definitions, of which one built-in page-publishing tool is about 15k;
+about 8k names of deferred connector tools (mail, tasks, calendar, drive,
+browser); 6k skill descriptions for 31 skills; 6k rules and the repo's
+agent file; 4k system prompt; 3k connector instructions. Every call
+re-reads it, and a two-branch review then reached the compaction threshold
+with only 85k to 95k of its own reading. Under a third of it is this
+repo's doing. Not yet measured: the same session started from the terminal
+CLI, or with connectors off. Bears on "descriptions are permanent cost":
+tool definitions are the larger permanent cost and no skill controls them.
+
+**2026-11-11 — the user asked whether the method's conventions now slow
+the work.** Each rule so far was added after a failure and none has been
+removed. `review.md` gained reviewer friction rows, a cost measurement and
+a duty to cut one thing per review. Untested; the first real use is the M3
+review.
 
 ## Prior art to check
 
