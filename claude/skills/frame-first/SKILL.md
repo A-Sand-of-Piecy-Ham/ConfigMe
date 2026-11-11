@@ -146,7 +146,11 @@ state.
   from the template. It runs that milestone's tests and every earlier one,
   nothing later, checks stubs, lint and the log, and ends in `PASS`, `FAIL`,
   or `HELD` (the only failing test is one the implementer disputed in the
-  log). Run it against the bare frame before handoff. The first frame said
+  log). A held milestone is merged and satisfies `needs` like a passed one;
+  later checks name its disputed test after `held earlier:` and do not fail
+  on it. There is one `held`, by the user's decision (2026-11-11): a
+  blocking and a non-blocking kind would ask the implementer to judge how
+  far its own dispute reaches. Run it against the bare frame before handoff. The first frame said
   "all tests pass", which could not be true until the last milestone; the
   implementer worked around it and reported the expected failures at length.
 - **The implementer may step outside its file list.** When a milestone
@@ -297,6 +301,13 @@ milestone a second time on the cheaper setting in a sealed copy and compare:
 `ab.md` has the steps, and `ab-clone` makes the copy. Prefer this to
 invented side tasks, which say little about the frame in hand.
 
+Tell the user, unasked, when a second run would pay (asked for
+2026-11-11). Say it when a milestone finishes or a checkpoint ends and all
+of these hold, otherwise stay quiet: its tests are tight; at least two
+milestones of the same kind and tier are still to come, so a lower tier
+would be used again; and no run of that kind has been compared yet. One
+line: which milestone, which setting to try, what it would settle.
+
 ## Checkpoints
 
 Set them at plan time, not when trouble shows: after the first milestone (is
@@ -357,7 +368,11 @@ friction kind stays optional: requiring one would buy filler. Added after
 it: `needs` lists, the ready/busy/waits listing, the worktree gate, the
 early merge and `ab.md`. The gate and the listing were tested by hand; no
 implementer has yet followed the worktree step, no two agents have run at
-once, and the comparison in `ab.md` has only had its first step run.
+once. The comparison then ran through its mechanical step: T3 at medium
+passed the same 84 tests as T2 at medium, on about two thirds of the output
+tokens, and logged five gaps to seven. The T1 read that decides between
+them has not been done. `held` satisfying `needs` was added the next day
+and tested with a planted dispute, not by a real one.
 
 Still hypotheses, never run: the thin end-to-end path, the test split and
 stub split, the overspend number, the review ladder, `new-frame` on a second

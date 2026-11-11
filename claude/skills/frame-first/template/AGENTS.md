@@ -16,6 +16,9 @@ read this page only to know what the implementer was told.
   checkout. Use `scripts/check`, which runs only what should pass.
 - A milestone listed as `busy` is being built on another branch. Its stubs
   are still stubs where you are.
+- A `tests` line that ends `held earlier: <test name>`. That test belongs to
+  a finished milestone and waits on the reviewer. It is not yours to fix or
+  to dispute again.
 - <anything else that looks broken and is not>
 
 ## The loop

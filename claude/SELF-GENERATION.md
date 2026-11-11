@@ -407,6 +407,19 @@ requiring it would add filler. Not yet seen on T3. Same day, a sealed clone
 was cut to rerun that milestone on a cheaper tier (`frame-first/ab.md`);
 the comparison has not run.
 
+**2026-11-11 — the same milestone on T2 and T3, mechanical comparison
+only.** Both at medium effort, same commit, same one-line request. Both
+passed the finish check with 84 tests. T2: 36 model calls, 38k output
+tokens, 3 check runs, 7 gap rows, 1 friction row, rows written before the
+code, formatted. T3: 23 calls, 26k output tokens, 2 check runs, 5 gap rows,
+no friction row although a push failed for want of a remote (it said so in
+its report only), rows appended through a shell heredoc after the code,
+unformatted. At least one gap T2 logged, T3 met and filled without a row.
+Bears on tiering and on whether optional rows work on T3: one instance
+says the tests held T3 to a passing body, and that what T3 drops is the
+record around it, the same pattern as the first milestone. No T1 read of
+either diff yet, so nothing here says the T3 code is as good.
+
 ## Prior art to check
 
 Whether this pattern is used deliberately elsewhere is genuinely unknown to me

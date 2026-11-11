@@ -52,7 +52,18 @@ The agent will say that the milestone names another tier, as its rules tell
 it to. The user answers: go on.
 
 Do not tell the second session that it is a comparison or that another run
-exists.
+exists. The measurement is of what that tier does with the frame as an
+ordinary implementer; a model that knows it is being compared logs and
+reports for the comparison. Nothing it writes can leak into the real
+history unasked: its log rows and its commit exist only on its branch, and
+only the branch that wins is merged.
+
+Expected in the second session, and not a fault:
+
+- It names the tier mismatch and may go on without waiting for an answer.
+  The first second run did, and put the mismatch in its report, not the log.
+- A push at the end fails, when the user's standing rules tell agents to
+  push feature branches. The sealed copy has no remote. That is the seal.
 
 ## 3. Bring the result back
 
@@ -75,7 +86,9 @@ For each of the two branches, in a worktree of the original repo
 | Runs of the check | the `Check:` line of the agent's report |
 | Size | `git diff --shortstat <base> <branch>` |
 | Rows | `git diff <base> <branch> -- docs/log.jsonl \| grep -c '^+{"kind":"gap"'`, and the same for `dispute`, `subtask`, `friction` |
-| Tokens | the `usage` records of each session's transcript, in `~/.claude/projects/<slug>/`; output tokens are the ones that differ |
+| Tokens | the `usage` records of each session's transcript, in `~/.claude/projects/<slug>/` (the sealed copy has its own slug): `jq -s '[.[]\|select(.type=="assistant")\|{id:.message.id,u:.message.usage}]\|unique_by(.id)\|map(.u.output_tokens)\|add' <session>.jsonl`. Output tokens and the number of calls are the ones that differ |
+| Things no gate checks | the formatter in check mode, in each worktree; how each run wrote its log rows (list the transcript's tool calls as `review.md` shows: Edit, or a shell redirect after the code was done) |
+| Quiet gaps | each `gap` row one run has and the other lacks: grep the quiet run's diff for the function named in the row's `where` and see which way it went |
 
 Each branch runs its own copy of `scripts/check`. Both started from the
 same commit, so it is the same script and the two results compare.
@@ -106,7 +119,11 @@ run: it met the same silence and chose without saying so.
 ## Status
 
 Written 2026-11-10 for a second run of a combat milestone first done on T2
-at medium effort. `ab-clone` was run and its seal checked. Steps 2 to 5 have
-not been run: revise them from that comparison, including whether the
-mechanical measures in step 4 were enough to decide without reading both
-diffs.
+at medium effort. `ab-clone` was run and its seal checked. Steps 2 to 4 then ran
+once, with T3 at medium as the second run: both passed with the same test
+count, so the mechanical measures did not decide it. What told the runs
+apart was outside the check: the T3 run left unlogged several gaps the T2 run logged (one of
+them, by a grep and not yet a read, filled the opposite way), wrote its rows through a shell
+redirect after the code, and left unformatted code. The last three rows of
+the table come from that. The T1 read, the decision and step 5 have not
+been run.

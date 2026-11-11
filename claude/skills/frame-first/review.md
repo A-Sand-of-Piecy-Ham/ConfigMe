@@ -179,7 +179,8 @@ code. Run it; a test that was never run is a guess.
 
 1. The finish check prints PASS with your changes in.
 2. Commit, then merge any milestone branch not yet in the default branch,
-   with `--no-ff`. Remove the worktrees of merged branches
+   with `--no-ff`. Held milestones are merged too; what the review owes
+   them is a settled dispute. Remove the worktrees of merged branches
    (`git worktree list`, then `git worktree remove <path>`; look for
    uncommitted files in each first). Push only as the user's standing rules
    allow.
@@ -190,7 +191,9 @@ code. Run it; a test that was never run is a guess.
    table.
 5. Report: verdict, findings that need the user's decision, frame changes
    made. Then give the `Next:` line `scripts/check` prints, which names the
-   tier the next milestone needs.
+   tier the next milestone needs. If a coming milestone meets the
+   conditions in `SKILL.md` for a second run on a cheaper setting, say so
+   in one line.
 
 ## Review ladder (untested)
 
