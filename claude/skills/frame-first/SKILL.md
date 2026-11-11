@@ -300,6 +300,15 @@ a union merge for the log, and a merge of each passed milestone into the
 default branch before its checkpoint, so that what needs it can start.
 Merging is not acceptance; the checkpoint reads each merge's diff.
 
+Run the loop between checkpoints from one T2 session that hands each ready
+milestone to a subagent of the milestone's tier, all at once. The prompt is
+tier, milestone, "follow AGENTS.md" and the worktrees in use. The repo
+already says the rest, and restating it was judged too verbose. That session
+re-runs each finish check, merges once the owner agrees, hands out what
+became ready, and stops at the checkpoint. The owner judged this the ideal
+implementation loop (armor_core, 2026-11-11, M5a/M5c/M6a): it needs the
+owner only for merges, and costs one cold start per subagent.
+
 ### Testing whether a cheaper tier would do
 
 The tiers and efforts in a plan are guesses. To measure one, run a real

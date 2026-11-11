@@ -22,7 +22,7 @@ thing.
 
 | Change | Who makes it |
 |---|---|
-| Add a failure case, a missing step or a verification; correct a stale command or path; update a status note | Any session, at once. Tell the user in one line. |
+| Add a failure case, a missing step or a verification; correct a stale command or path; update a status note | Any session, at once. Tell the user in one line. A T3 session does it on a branch that a T2 or stronger session merges after review (`rules/model-tiers.md`). |
 | Rewrite a description, merge, split, delete, restructure, remove or reverse a rule | The strongest model available, or the user. |
 
 The split exists because an added line is cheap to check and revert, while a
