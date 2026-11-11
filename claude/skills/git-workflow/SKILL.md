@@ -42,6 +42,11 @@ Body ends with the PR attribution line Claude Code supplies for the session.
 Reference issues and PRs as full markdown links using the owner/repo from the
 actual remote. Never a bare `#123`, and never assume a default repository.
 
+`gh pr edit` can fail with "Projects (classic) is being deprecated" and
+change nothing (2026-11-11). Edit through REST instead, with the body in a
+file: `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -F body=@<file>`.
+Read the body back to check the edit took.
+
 ## gh versus the GitHub MCP
 
 Both are available. `gh` is faster for one-shot commands and is already
