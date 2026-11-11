@@ -32,6 +32,7 @@ Gates, one line each, detail only for a gate that is not ok:
             named after "held earlier:" and does not count against the target
     stubs   no stub marker for the target is left
     lint    the lint command succeeds
+    format  the format command succeeds (it checks; it does not rewrite)
     log     the log file parses, and the target has a "gap" row
 
 Last line and exit status:
@@ -288,6 +289,12 @@ def main():
     if cfg.get("lint"):
         rc, out = run(cfg["lint"])
         results.append(("lint", "ok" if rc == 0 else "FAIL", out.splitlines()[:30]))
+
+    # --- format --------------------------------------------------------------
+    if cfg.get("format"):
+        rc, out = run(cfg["format"])
+        hint = [cfg["format_fix"]] if cfg.get("format_fix") else []
+        results.append(("format", "ok" if rc == 0 else "FAIL", hint + out.splitlines()[:20]))
 
     # --- log -----------------------------------------------------------------
     if not any(r.get("kind") == "gap" and r.get("milestone") == target for r in rows):
