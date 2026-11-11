@@ -31,6 +31,9 @@ tells the implementer three things:
 - the finish is a set of candidates, not green tests;
 - the user reviews it, not T1.
 
+The letter belongs to the tier only. Say "creative milestone", never "C
+milestone": frames name their checkpoints A, B, C.
+
 There is no `T3C`: the smallest tier is weak at work judged by taste. It can
 still do the mechanical end (formatting accepted text into data files) as an
 ordinary T3 milestone.
@@ -82,14 +85,14 @@ what the liked ones share and the disliked ones lack.
 `scripts/check` cannot judge the writing, but it can refuse what is
 mechanically wrong: text over its length limit, a reference to a lore id
 that does not exist, a slot with fewer candidates than asked, a candidate
-identical to a rejected row. `PASS` on a `C` milestone means "ready for the
+identical to a rejected row. `PASS` on a creative milestone means "ready for the
 user to judge", never "accepted".
 
 ## Status
 
 Written 2026-11-11 from a conversation, before any project had content to
 write. Nothing here has run: not the taste study, not the three files, not
-a `C` milestone, and the template's check has no creative gate yet. The
+a creative milestone, and the template's check has no creative gate yet. The
 user's view at the time: lore tables are a well-worn practice in games and
 animation, so there are existing formats to copy before inventing one.
 First use is expected after a project's first playable checkpoint.

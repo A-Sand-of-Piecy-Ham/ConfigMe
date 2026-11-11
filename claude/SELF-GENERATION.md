@@ -164,6 +164,13 @@ named here because this is a record of what ran, not an assignment.
 | 2026-11-10 | Checkpoint A review of M1 | T1 (Fable 5.2) | medium | n/a | Every finding came from the diff or a command; medium sufficed |
 | 2026-11-10 | M2, judgment, movement and energy | T2 (Opus 5.5) | low | not recorded | No code findings. 4 gaps logged before the code, 1 frame test correctly disputed |
 | 2026-11-10 | Review of M2 | T1 (Fable 5.2) | medium | n/a | As Checkpoint A. Confirmed the dispute by hand; two feel questions deferred to the user |
+| 2026-11-10 | M3, lock-on, weapons, damage, heat; ~640 lines | T2 (Opus 5.5) | medium | 2 reported, 3 in the transcript | Pass. 7 gaps logged before the code; one row disagrees with its code (target cycling); formatted |
+| 2026-11-10 | M3 again, sealed copy | T3 (Sonnet 5.5) | medium | 1 reported, 2 in the transcript | Pass, 69% of the output tokens. 5+ gaps unlogged, one a missed event the contract asks for; rows by heredoc after the code; unformatted |
+| 2026-11-11 | Findings-only review of both M3 builds | T1 (Fable 5.2) | low | n/a | 23k output tokens, 17 calls, compacted once at 167k after committing. Ran a throwaway test on both branches: the only reviewer to find the row that disagrees with its code. One weak finding |
+| 2026-11-11 | The same review, sealed copy | T2 (Opus 5.5) | medium | n/a | 20k output tokens, 27 calls, peak 148k. Same verdict. Found one duplicated rule the other missed; two statements the code contradicts; no test run, no list of missing tests |
+
+The two M3 reviews differ in tier and in effort, so the pair does not
+separate them either.
 
 M1 and M2 ran under different rules files (M2's required log rows and gave
 a reading list), so the pair does not separate tier from rules.

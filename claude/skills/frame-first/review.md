@@ -79,6 +79,17 @@ at in the diff:
   guessed silently. At the first checkpoint the log said "nothing needed
   guessing" and the diff held four such branches. At the second, with rows
   required by the check, all four gaps had rows written before the code.
+- **rows that do not match the code.** A log row is the implementer's claim
+  about its code, not evidence. For each row that describes behaviour, find
+  the lines that do it. A reviewer that took a row on trust reported "both
+  runs chose the same" where one run's code did something else (M3, 2026-11).
+
+Where two readings of the code disagree, or a finding rests on what the code
+does over several ticks, run it instead of reasoning about it: a throwaway
+test in a scratch clone (`git clone <repo> <scratchpad>/rc`), run against
+the branch, printed with `--nocapture`, never committed. In the M3 reviewer
+comparison one such test of about 70 lines produced the only finding the
+other reviewer missed and put numbers on three more.
 
 ## Process review
 
@@ -91,7 +102,10 @@ jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_us
   | @tsv' ~/.claude/projects/<project-slug>/<session-id>.jsonl
 ```
 
-The newest `.jsonl` files in that directory are the recent sessions. If the
+The slug is the session's folder with every `/` turned into `-`, so it
+starts with a dash: write `ls -t ~/.claude/projects/./-home-...`, or `ls`
+reads it as an option. Both M3 reviewers spent three calls on that. The
+newest `.jsonl` files in that directory are the recent sessions. If the
 transcript cannot be found, use the commit, the log and the report, and say
 the process review was partial.
 
