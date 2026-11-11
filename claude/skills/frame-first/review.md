@@ -19,12 +19,18 @@ that is not producing findings on the task at hand, and say so.
 
 ## Before reading anything
 
-- **Model.** If the milestone table names a review tier above this session's
-  model, tell the user and wait for a yes. "Strongest" means strongest
-  available today; the steps here are written to be followed by a mid-tier
-  model when that is the top one.
+- **Tier.** `frame.toml` gives the checkpoint's tier, normally T1. If this
+  session is a lower tier (`~/.claude/rules/model-tiers.md` says which model
+  is which), tell the user and wait for a yes. The steps here are written so
+  that a T2 model can follow them when it is the top one.
 - **Session.** Review in a fresh session, never the implementer's. Its
   context is the wrong model's cache and is full of the work being judged.
+  One review session may take several milestones in a row, but do not keep
+  it alive across days: what it knows belongs in this file and the research
+  log, where the next session can read it.
+- **Re-read this file after a compaction.** The summary keeps the task and
+  drops the steps. The second review ran its last third from the summary
+  alone and skipped the tool rule below.
 - **Load `introspection` and `research-log` now.** Neither fires by itself
   in a review turn: this skill takes the trigger (first checkpoint,
   2026-11-10, both were missed until the user asked why). A checkpoint is a
@@ -38,11 +44,16 @@ that is not producing findings on the task at hand, and say so.
 1. `git log --oneline main..<branch>` and `git diff main...<branch>`. If the
    work was committed on `main`, diff from the last checkpoint commit, and
    record the missing branch as a process finding.
-2. The project log's agent-written sections: gaps filled, decisions needed,
-   friction, deviations.
-3. The finish check, run by you. Expected: its PASS line. Do not take the
+2. The open log rows:
+   `jq -c 'select(.settled == null)' docs/log.jsonl`. Gaps, disputes,
+   subtasks, deviations and friction are all there.
+3. The finish check, run by you: `scripts/check Mx`. Expected: `PASS Mx`, or
+   `HELD Mx` when the implementer disputed a test. Do not take the
    implementer's word for it.
 4. The contract (module docs and doc comments) of each file in the diff.
+5. For `HELD`: the disputed test against its contract, before anything
+   else. Work it out by hand or run it; decide who is right. The milestone
+   cannot be judged until that is settled.
 
 Do not read the implementer's prose summary beyond its fixed report lines,
 and do not read files outside the diff unless a finding sends you there. A
@@ -63,7 +74,8 @@ at in the diff:
   special case (a zero, a missing item, a conflict), find the contract clause
   that asks for it. No clause and no row in the log means the implementer
   guessed silently. At the first checkpoint the log said "nothing needed
-  guessing" and the diff held four such branches.
+  guessing" and the diff held four such branches. At the second, with rows
+  required by the check, all four gaps had rows written before the code.
 
 ## Process review
 
@@ -82,16 +94,25 @@ the process review was partial.
 
 | Look for | How it shows | Fix goes in |
 |---|---|---|
-| Wasted reads | `Read` of a file not on the milestone's reading list | A tighter reading list for the next milestones |
+| Wasted reads | `Read` of a file the milestone's files do not use. Reading the types and helpers they use is expected: the second milestone needed four such files | A tighter reading list for the next milestones |
 | Noise reported | Report lines beyond the fixed format; remarks on things that are normal in a frame | The "normal here" list in the rules file |
 | Undocumented guesses | The code-review item above | Backfill the rows; if the rules did not make logging mechanical, fix the rules |
 | Skills or hooks bypassed | Files changed through `Bash` (`sed -i`, a heredoc, a redirect); a `Skill` call that should be there and is not; commits on the default branch | The rules file, or a hook when a rule would not be enough |
 | Finish condition not passable | The implementer explains failures, or stops short of the stated command | The check command |
-| Friction rows | The log's friction section | The cause; then delete the row |
+| Friction rows | `friction` rows in the log | The cause; then settle the row |
+| Subtask rows | `subtask` rows in the log, and files in the diff outside the milestone's list with no row | Keep it, or undo it when it departs from the plan. Several in one area mean the milestone's file list or the frame is wrong there |
+| Effort and tier | The report's `Model:` line against `frame.toml` | The milestone's `effort`, and a row in the research log's table |
 
 Each fix goes into the repo's rules file. When it would recur in another
-repo, it also goes into `agents-template.md` or `SKILL.md` here, in the same
-session, with one clause of evidence. Tell the user each fix in one line.
+repo, it also goes into `template/` or `SKILL.md` here, in the same session,
+with one clause of evidence. The same question goes to every change the
+repo has made to a file it copied from `template/` (`scripts/check`,
+`AGENTS.md`): would another repo want it? Tell the user each fix in one
+line.
+
+The reviewer follows the implementer's tool rule: project docs change
+through Edit and Write, never `sed`, a heredoc or a redirect. The second
+review broke it twice and the docs hook caught it.
 
 Ask first only when a fix would reverse something the user decided (a frozen
 item, a model assignment, a push or branch rule). Otherwise make it.
@@ -100,19 +121,38 @@ Cutting noise never means dropping a finding. A finding is anything that
 changes what someone does next; it stays in the report however short the
 report is.
 
+## Write the findings down before fixing anything
+
+Once the reading is done, put the findings in the repo: a `settled` field on
+each log row that is already decided, and a short list in the project log's
+TODO for everything else. Then fix. A review's context is at its largest
+exactly when the fixing starts, and a compaction or a usage limit there
+loses findings that exist only in the conversation.
+
+When the context is large at that point (over about 150k tokens) and the
+fixes are more than a few edits, stop after writing the findings and tell
+the user to start a fresh session for the fixes. The findings file is its
+brief.
+
 ## What to do with each finding
+
+Every log row ends the review with a `settled` field: a phrase saying what
+was decided ("kept; contract now states it", "undone", "test corrected").
 
 | Finding | Do |
 |---|---|
-| A gap the implementer filled soundly | State it in the contract, add a test that pins it, mark the log row kept |
+| A gap the implementer filled soundly | State it in the contract, add a test that pins it, settle the row as kept |
 | A gap filled badly | Settle the contract, add a test that fails, send the milestone back |
+| A dispute the implementer got right | Correct the frozen thing, add a case that would have caught it, settle the row. Set the milestone's status from `"held"` to `"done"` once the check prints PASS |
+| A dispute the implementer got wrong | Say why in the row's `settled` field and send the milestone back |
+| A subtask that departs from the plan | Undo it, or move it to where the plan wants it; say which in the row |
 | A wrong or missing test | Fix or add it. Tests are the reviewer's |
 | A bug the tests missed | Add a test that fails and send it back to the implementer's tier |
 | Small code-quality points (repetition, a missing private doc comment, an unreachable branch) | Accept and record them in the log, or list them as a clean-up item at the head of the next milestone of the same tier. Do not hand-fix |
 | The architecture is wrong | Change the frame. Do not let patches collect around it |
 
-Hand-fixing implementation in the review model ends the cheap loop: the
-review tier costs several times the implementer's.
+Hand-fixing implementation in the review tier ends the cheap loop: T1 costs
+several times the implementer's tier.
 
 A test added for behaviour that already exists must pass against the current
 code. Run it; a test that was never run is a guess.
@@ -122,15 +162,19 @@ code. Run it; a test that was never run is a guess.
 1. The finish check prints PASS with your changes in.
 2. Commit, then merge the milestone branch into the default branch. Push only
    as the user's standing rules allow.
-3. Tick the checkpoint in the milestone list.
-4. File what `research-log` and `introspection` turned up.
+3. Set the checkpoint's `status` in `frame.toml`. No open rows are left:
+   `jq -c 'select(.settled == null)' docs/log.jsonl` prints nothing.
+4. File what `research-log` and `introspection` turned up, including one row
+   per reviewed milestone in the research log's "Effort and tier, measured"
+   table.
 5. Report: verdict, findings that need the user's decision, frame changes
-   made. Then say which model the next milestone needs.
+   made. Then give the `Next:` line `scripts/check` prints, which names the
+   tier the next milestone needs.
 
 ## Review ladder (untested)
 
-Where several small-model milestones sit between two checkpoints, a mid-tier
-session can review each one with the code-review list alone, leaving the
-process review and anything frozen to the checkpoint. This was proposed on
-2026-11-10 and has not been run. Try it on the first such stretch and record
-whether the mid-tier review caught what the checkpoint then found.
+Where several T3 milestones sit between two checkpoints, a T2 session can
+review each one with the code-review list alone, leaving the process review
+and anything frozen to the checkpoint. This was proposed on 2026-11-10 and
+has not been run. Try it on the first such stretch and record whether the
+T2 review caught what the checkpoint then found.
