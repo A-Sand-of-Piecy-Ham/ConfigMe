@@ -15,6 +15,8 @@ The productive pattern from a well-received debugging session:
 **Propose and implement in one step (after reading existing config):**
 - Config improvements where the problem is concrete and the fix is targeted — read the file first, identify the specific issue, make the change. Don't wait for permission on clear improvements to code the user owns.
 
+**Each ask costs the user a round-trip.** Never ask for a go-ahead the standing rules already grant, such as a feature-branch commit or push, a PR on the user's own repo, or a merge the implementation loop may make. Gather the approvals the rules do require and ask once, at the end of a run, not once per item. The app's end-of-turn question box is not a reason to ask. 2026-11-11: one implementation loop asked five times, and four of those asks were required by no rule.
+
 **Ask before touching anything:**
 - Workflow or design questions where the right answer depends on user preference (e.g. "tabs vs buffers" — presented options, waited for direction)
 - Anything that touches shared/committed files or could surface in review
