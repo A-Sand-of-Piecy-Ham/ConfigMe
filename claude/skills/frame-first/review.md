@@ -241,9 +241,27 @@ several times the implementer's tier.
 A test added for behaviour that already exists must pass against the current
 code. Run it; a test that was never run is a guess.
 
+**Sending a milestone back** (first done in the M3 review, 2026-11-11):
+
+1. Change the contract (the doc comment) first, then add the failing test
+   for it. Bundle the small code-quality points into the same send-back.
+2. In the milestone's entry in the milestone doc, add a "Sent back" table:
+   failing test, contract clause, what to change. That table is the
+   implementer's whole brief.
+3. Set the milestone's `status` back to `""` and delete its merged branch
+   (`git branch -d`), or the list shows it as `busy` and names something
+   else as next.
+4. `scripts/check Mx` must end in `FAIL Mx` on exactly the tests you added,
+   with every other gate ok.
+5. Prove each failing test can pass: apply the fixes in a throwaway clone,
+   run the suite, keep the patch out of the repo. A send-back test that
+   cannot pass costs the implementer's tier a whole session.
+
 ## Finishing
 
-1. The finish check prints PASS with your changes in.
+1. The finish check prints PASS with your changes in. For a milestone sent
+   back it prints FAIL on the send-back tests only, and the newest finished
+   milestone before it prints PASS.
 2. Commit, then merge any milestone branch not yet in the default branch,
    with `--no-ff`. Held milestones are merged too; what the review owes
    them is a settled dispute. Remove the worktrees of merged branches

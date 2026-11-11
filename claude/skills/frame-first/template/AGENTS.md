@@ -16,6 +16,9 @@ read this page only to know what the implementer was told.
   checkout. Use `scripts/check`, which runs only what should pass.
 - A milestone listed as `busy` is being built on another branch. Its stubs
   are still stubs where you are.
+- A `ready` milestone with no stubs left, whose check fails on tests. A
+  review sent it back. Its entry in <milestone doc> has a "Sent back" list:
+  that list is the work, and step 4 of the loop does not apply.
 - A `tests` line that ends `held earlier: <test name>`. That test belongs to
   a finished milestone and waits on the reviewer. It is not yours to fix or
   to dispute again.
@@ -64,7 +67,9 @@ read this page only to know what the implementer was told.
    the code it concerns. The kinds are under [Log rows](#log-rows). Every
    milestone needs at least one `gap` row.
 6. Run `scripts/check Mx` (x = your milestone) until its last line is
-   `PASS Mx`, or `HELD Mx` (see [Frozen](#frozen)).
+   `PASS Mx`, or `HELD Mx` (see [Frozen](#frozen)). Besides the tests it
+   checks that no stub is left, the lint, the formatting (`<format command>`
+   fixes it) and the log.
 7. Update the docs the change made wrong: your milestone's `status` in
    `frame.toml` (`"done"` after PASS, `"held"` after HELD) and its row in
    <status table>. Do not rewrite anything else in them.
@@ -85,7 +90,7 @@ read this page only to know what the implementer was told.
    ```
    Milestone:  M3, branch <name>, commit <short hash>
    Model:      <your model>, effort <level, or "not known">
-   Check:      PASS M3 (<n> tests), after <n> runs of scripts/check
+   Check:      PASS M3 (<n> tests)
    Gaps:       <count>
    Disputes:   <count>, or none
    Subtasks:   <count>, or none

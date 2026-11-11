@@ -184,11 +184,13 @@ once, with T3 at medium as the second run: both passed with the same test
 count, so the mechanical measures did not decide it. What told the runs
 apart was outside the check: the T3 run left unlogged several gaps the T2 run logged, wrote its rows through a shell
 redirect after the code, and left unformatted code. The last three rows of
-the table come from that. The T1 read, the decision and step 5 have not
-been run.
+the table come from that. The T1 read and the decision ran 2026-11-11: the
+T2 build was merged, the T3 build dropped.
 
 "Two reviewers" was written 2026-11-11. Steps 1 to 4 ran once on that
 build pair (T1 at low effort against T2 at medium; rows in the research
 log). Both reached the same verdict. The T1 run made the one finding that
 changes a decision and the other missed; the T2 run stated two things the
-code contradicts. Step 5 has not run.
+code contradicts. Step 5 then ran once, from the checked list; its cost is
+a row in the research log. The clean-up in "5. Record and clean up" was
+left to the user: the app's auto mode refuses deletions.

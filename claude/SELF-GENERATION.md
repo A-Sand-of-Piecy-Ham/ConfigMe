@@ -182,6 +182,7 @@ peak (the command is in `frame-first/review.md`).
 | 2026-11-10 | M3 again, sealed copy | T3 (Sonnet 5.5) | medium | 1 reported, 2 in the transcript | 23 calls, 26k out | Pass. 5+ gaps unlogged, one a missed event the contract asks for; rows by heredoc after the code; unformatted |
 | 2026-11-11 | Findings-only review of both M3 builds | T1 (Fable 5.2) | low | n/a | 17 calls, 23k out, 65k to 167k, compacted once after committing | Ran a throwaway test on both branches: the only reviewer to find the row that disagrees with its code. One weak finding |
 | 2026-11-11 | The same review, sealed copy | T2 (Opus 5.5) | medium | n/a | 27 calls, 20k out, 63k to 148k | Same verdict. Found one duplicated rule the other missed; two statements the code contradicts; no test run, no list of missing tests |
+| 2026-11-11 | The real M3 review, from the checked list: merge, settle 8 rows, 14 tests, send-back, format gate | T1 (Fable 5.2) | high, some medium | n/a | 35 calls (110 tool calls), 56k out, 48k to 164k, compacted once mid-fix | T2 build merged and sent back with 5 failing tests and 4 clean-ups. The fixes, tried in a scratch clone, came to 25 changed lines and passed first time |
 
 The two M3 reviews differ in tier and in effort, so the pair does not
 separate them either.
@@ -483,6 +484,37 @@ the work.** Each rule so far was added after a failure and none has been
 removed. `review.md` gained reviewer friction rows, a cost measurement and
 a duty to cut one thing per review. Untested; the first real use is the M3
 review.
+
+**2026-11-11 — first use of "What the method itself costs": one cut, one
+rule moved into a gate.** The M3 review cut the run count from the
+implementer's report (both builds misreported it, so it was read at T1
+price and carried nothing) and moved formatting from a rule into
+`scripts/check` (the T3 build broke the rule; it broke no gate). One
+reviewer friction row was written. So the section paid for itself once.
+One instance.
+
+**2026-11-11 — `scripts/check` does not show a review that is owed.** M3
+was merged-pending with its branch present, so the list said `busy` and
+named a T3 milestone as next. The T1 step the user asked for was found
+only through an untracked brief file in `docs/`. Suggests a state for
+"built, waiting on review" in the listing, so "run the next T1 step" can
+be answered from the repo. Not built.
+
+**2026-11-11 — proving a send-back satisfiable means writing the fix.**
+`review.md` forbids hand-fixing in the review tier, and a send-back test
+that was never run against fixed code is a guess, so the reviewer applied
+the five fixes in a scratch clone: 25 changed lines, about ten calls,
+`PASS` first time. The implementer's tier now spends a session
+rediscovering a patch that exists. Question raised: below some size, is
+applying the proven patch cheaper than the send-back, and what does the
+implementer's tier learn from a send-back that a patch would lose? Put to
+the user, not decided.
+
+**2026-11-11 — the desktop app's auto mode refused a deletion the skill
+asks for.** `rm` of the untracked review brief was denied as irreversible.
+`ab.md` step 5 and `review.md` both end in deletions (brief, losing
+branch, sealed copies), so in that mode a review cannot finish its own
+clean-up; the reviewer listed the commands for the user instead.
 
 **2026-11-10 — starting context measured from the terminal CLI, and what
 removes it.** `claude -p` on the small model, no repo agent file: 47.6k

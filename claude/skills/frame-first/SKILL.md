@@ -373,9 +373,14 @@ early merge and `ab.md`. The gate and the listing were tested by hand; no
 implementer has yet followed the worktree step, no two agents have run at
 once. The comparison then ran through its mechanical step: T3 at medium
 passed the same 84 tests as T2 at medium, on about two thirds of the output
-tokens, and logged five gaps to seven. The T1 read that decides between
-them has not been done. `held` satisfying `needs` was added the next day
-and tested with a planted dispute, not by a real one.
+tokens, and logged five gaps to seven. `held` satisfying `needs` was added
+the next day and tested with a planted dispute, not by a real one.
+
+The T1 read then ran (2026-11-11): the T2 build was merged and, for the
+first time, a milestone was sent back with failing tests instead of being
+accepted. That run produced the send-back steps in `review.md`, the format
+gate, and the cut of the run count from the report. No implementer has yet
+worked a send-back, so the "Sent back" table as a brief is untested.
 
 Still hypotheses, never run: the thin end-to-end path, the test split and
 stub split, the overspend number, the review ladder, `new-frame` on a second

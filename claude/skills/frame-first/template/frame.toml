@@ -25,6 +25,11 @@ log = "docs/log.jsonl"
 # main_branch = "main"    # set when the default branch has another name
 # Must exit non-zero on any warning. Leave out to skip the lint gate.
 lint = "<lint command>"
+# Must exit non-zero when a file is not formatted, and change nothing.
+# format_fix is the line shown to the implementer when it fails. Leave both
+# out to skip the format gate.
+format = "<format check command>"
+format_fix = "Not formatted. Run: <format command>"
 # Regex for a stub left for a milestone. {tag} is the milestone's stub_tag,
 # else its id. Make it unable to match M1 inside M10.
 stub = '<stub marker with {tag}>'
@@ -39,11 +44,13 @@ detail = '<regex for lines worth showing on failure>'
 
 # Filled-in [check] tables. Rust:
 #   lint = "cargo clippy -q --all-targets -- -D warnings"
+#   format = "cargo fmt --check"      format_fix = "Not formatted. Run: cargo fmt"
 #   stub = 'todo!\("{tag}[^0-9]'      stub_glob = "*.rs"
 #   failed_test = '^---- (\S+) stdout ----'
 #   detail = '^error(\[|:)|panicked at'
 # Python with pytest (not yet run in a frame; check the regexes first):
 #   lint = "ruff check -q ."
+#   format = "ruff format --check -q ."      format_fix = "Not formatted. Run: ruff format ."
 #   stub = 'NotImplementedError\("{tag}[^0-9]'      stub_glob = "*.py"
 #   failed_test = '^FAILED \S+::(\S+)'
 #   detail = '^E  |^ERROR'
