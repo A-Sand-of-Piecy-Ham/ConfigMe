@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: when the conversation has grown large, tell Claude to raise it.
+"""UserPromptSubmit hook: tell Claude when an automatic compaction is near, or overdue.
 
-Every call re-reads the whole conversation, so a session at 170k pays nearly three times what
-one at 60k pays per call. The smart-compact skill covers what to do, but its "context over
-~150k" trigger never fired: the model cannot see its own context size, and on 2026-11-10 a
-session compacted automatically twice without the skill loading. The PreCompact hook runs too
-late to prepare anything.
+The model cannot see its own context size, and the PreCompact hook runs too late to prepare
+anything: on 2026-11-10 a session compacted automatically twice without the smart-compact
+skill loading. So this hook says when the compaction is coming, while there is still time to
+write down what the summary must keep.
 
-Reads the size from the last assistant message in the transcript (input + cache read + cache
-creation tokens). Fires once at each step in STEPS, and again after a compaction brings the
-size back under the first step. Injects context only; never blocks, exits 0 on any error.
+It does not ask for an early compaction. The first version did, at a fixed 150k, on the belief
+that re-reading a large context was the main cost. Measured on 2026-11-11 it is not: a call
+re-reads the context at a fortieth of the input price (a twentieth below the strongest model),
+while a compaction writes what it keeps again at twice the price, 150k to 250k claws each time.
+Compacting at 150k instead of at the automatic point cost about a sixth more per call.
+
+Reads the size and the model from the last assistant message in the transcript (input + cache
+read + cache creation tokens), and the window from the settings (compact_window below). Fires
+once at each step in STEPS, and again after a compaction brings the size back under the first
+step. Injects context only; never blocks, exits 0 on any error.
 
 It also notes user corrections. The introspection skill files what a correction teaches, but
 nothing loaded it: the user will not invoke skills by hand, and the skill ran twice in 33
@@ -19,13 +25,19 @@ PreCompact hook, which reminds the summary once if the session compacts first. T
 by phrase and will misfire; a false note costs about thirty tokens and Claude ignores it.
 """
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
 STATE = Path.home() / ".local/state/configme/context-size"
-# Sizes, in tokens, at which to speak up. The first matches smart-compact's own threshold.
-STEPS = [150_000, 250_000, 400_000]
+# Sizes at which to speak up, as fractions of the auto-compact window. The first comes shortly
+# before the compaction: with a 200k window three of them fired at 163k to 168k, about 0.82.
+# The others can only be reached while compaction is held or switched off.
+STEPS = [0.7, 1.25, 2.0]
+# The window when no setting gives a number (unset, or "auto", whose value is not published).
+DEFAULT_WINDOW = 200_000
+SETTINGS = Path.home() / ".claude/settings.json"
 # The last usage record sits near the end of the transcript; this much is plenty to find it.
 TAIL_BYTES = 400_000
 # One file per session that has an unfiled correction; compact-notes-hook reads and removes it.
@@ -61,8 +73,37 @@ def correction_note(prompt, session):
             "its filing table. If it is not a correction, ignore this line.")
 
 
+def compact_window(model):
+    """The auto-compact window, in tokens, that applies to `model`.
+
+    Claude Code's own order: the CLAUDE_CODE_AUTO_COMPACT_WINDOW variable, then
+    modelSettings.<model>.autoCompactWindow, then the top-level autoCompactWindow. A model key
+    also matches its dated spellings, so it is compared as a prefix. Only the user's settings
+    file is read; a project file that sets a window is not seen.
+    """
+    try:
+        settings = json.loads(SETTINGS.read_text())
+    except (OSError, ValueError):
+        settings = {}
+    per_model = settings.get("modelSettings") or {}
+    keys = [k for k in per_model if model.startswith(k) and isinstance(per_model[k], dict)]
+    candidates = [
+        os.environ.get("CLAUDE_CODE_AUTO_COMPACT_WINDOW"),
+        (settings.get("env") or {}).get("CLAUDE_CODE_AUTO_COMPACT_WINDOW"),
+        per_model[max(keys, key=len)].get("autoCompactWindow") if keys else None,
+        settings.get("autoCompactWindow"),
+    ]
+    for value in candidates:
+        try:
+            if int(value) > 0:
+                return int(value)
+        except (TypeError, ValueError):
+            continue
+    return DEFAULT_WINDOW
+
+
 def last_context_size(transcript):
-    """Tokens the most recent assistant call read, or None if the tail holds no usage record."""
+    """(tokens, model id) of the most recent assistant call, or None if the tail holds none."""
     with open(transcript, "rb") as f:
         f.seek(0, 2)
         f.seek(max(0, f.tell() - TAIL_BYTES))
@@ -80,7 +121,7 @@ def last_context_size(transcript):
         size = sum(usage.get(k) or 0 for k in (
             "input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
         if size:
-            return size
+            return size, row.get("message", {}).get("model") or ""
     return None
 
 
@@ -93,23 +134,34 @@ try:
         if note:
             notes.append(note)
     try:
-        size = last_context_size(payload["transcript_path"])
+        last = last_context_size(payload["transcript_path"])
     except Exception:
-        size = None
-    if size is not None:
-        reached = sum(1 for step in STEPS if size >= step)
+        last = None
+    if last is not None:
+        size, model = last
+        window = compact_window(model)
+        reached = sum(1 for step in STEPS if size >= step * window)
         marker = STATE / session
         told = int(marker.read_text()) if marker.exists() else 0
         if reached != told:
             STATE.mkdir(parents=True, exist_ok=True)
             marker.write_text(str(reached))
-        if reached > told:
+        if reached > told and reached == 1:
             notes.append(
-                f"This conversation is now about {size // 1000}k tokens, and every call re-reads "
-                "all of it. Answer the user's message first. Then, if the smart-compact skill "
-                "isn't loaded yet, invoke it and tell the user in one line whether to compact, "
-                "clear or carry on. Do not suggest a new session unless call-economy.md's "
-                "arithmetic says it pays.")
+                f"This conversation is about {size // 1000}k tokens and the auto-compact window "
+                f"is {window // 1000}k, so an automatic compaction is a few calls away. Do not "
+                "ask the user to compact or clear early; it costs more than it saves. If "
+                "something still needed exists only in this conversation (a decision, findings "
+                "not yet written, the state of a half-done task), load the smart-compact skill "
+                "and write its notes file now, or write the thing to its file. Otherwise carry "
+                "on and say nothing about it.")
+        elif reached > told:
+            notes.append(
+                f"This conversation is about {size // 1000}k tokens, past the {window // 1000}k "
+                "auto-compact window, so compaction is held or switched off. Answer the user's "
+                "message first. Then load the smart-compact skill if it isn't loaded and tell "
+                "the user in one line: remove the hold, compact, or clear. Do not suggest a new "
+                "session unless call-economy.md's arithmetic says it pays.")
     if notes:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",

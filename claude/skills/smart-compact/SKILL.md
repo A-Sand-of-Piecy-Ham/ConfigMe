@@ -1,15 +1,24 @@
 ---
 name: smart-compact
-description: Prepare a compaction or clear so nothing needed is lost and the context comes back small. Triggers - "compact", "/compact", "clear context", "context is getting big", "taking a break", "back later", "done for today", a phase boundary reached (plan approved, frame committed, milestone done), context over ~150k.
+description: Prepare a compaction or clear so nothing needed is lost and the context comes back small. Triggers - "compact", "/compact", "clear context", "context is getting big", "taking a break", "back later", "done for today", a phase boundary reached (plan approved, frame committed, milestone done), a hook note that an automatic compaction is near or that the context is past its window.
 ---
 
 ## What this is for
 
-Every tool call re-reads the whole conversation, so a large context makes each
-call expensive. Compaction swaps the conversation for a summary. Left alone,
-the summary keeps finished work in detail and can lose the thing in progress.
-The aim: the next call is small, and nothing still needed is gone. The steps
-below are the current way of getting that; change them when one fails.
+Compaction swaps the conversation for a summary. Left alone, the summary
+keeps finished work in detail and can lose the thing in progress. The aim:
+nothing still needed is gone, and what comes back is small. The steps below
+are the current way of getting that; change them when one fails.
+
+A compaction is not a saving to reach for early. Costs are in claws (one
+uncached input token of the strongest model; `session-cost` prints them).
+Each call re-reads the context at a fortieth of that price on the strongest
+model and a twentieth on the next two, so 100k of context costs 2.5k or 5k
+claws per call. A compaction writes everything it keeps again at twice price
+and pays for the summary as output: 150k to 250k measured. It repays only
+over some 40 to 60 further calls, and the automatic one comes at about
+four-fifths of the window anyway. So let the automatic compaction happen
+when it happens, and spend the effort on what survives it.
 
 The agent cannot start a compaction. It prepares one, and the user types
 `/compact`.
@@ -71,19 +80,30 @@ session.
 One line: the notes are written, type `/compact`. No arguments are needed.
 
 If they are leaving for more than about 50 minutes and the context is over
-100k, say to compact before leaving. The prompt cache lasts about an hour;
-after that the first call re-reads everything at full price, and a compaction
-run then pays that price too.
+about 150k, say to compact before leaving. The prompt cache lasts about an
+hour; after that the first call writes the whole context again at twice
+price (300k claws at 150k). Compacting first costs its 150k to 250k and then
+only the small context is written again on return, so below about 150k the
+two come out even and the detail is worth more.
 
 ## When to raise it unprompted
 
-- A phase boundary is reached and the context is over about 150k.
-- The user says they are stepping away and the context is over about 100k.
+- The hook says an automatic compaction is near, and something still needed
+  exists only in the conversation: write the notes (step 2), or set a hold
+  if the task is about to write the thing to a file. Do not tell the user to
+  type `/compact`; the automatic one will use the notes.
+- A phase boundary is reached, the cold-start question answers yes, and many
+  calls remain: offer the clear. A clear writes about 50k tokens, a third of
+  what a compaction costs.
+- The user says they are stepping away for an hour or more and the context
+  is over about 150k.
+- The hook says the context is past its window: a hold is still set, or
+  compaction is off. Say which, and what to do.
 
-Under about 100k, leave it: a compaction costs a summary's worth of output and
-loses detail, and the saving per call is small. To read the current size, use
-the session's usage tool if it has one, or the last `usage` record in the
-session transcript.
+Otherwise leave it. To read the current size, use the session's usage tool
+if it has one, or the last `usage` record in the session transcript. The
+window is `autoCompactWindow` in `~/.claude/settings.json`, or
+`modelSettings.<model>.autoCompactWindow` where one is set for the model.
 
 ## Holding an automatic compaction
 
@@ -105,8 +125,12 @@ size. Writing the thing to a file sooner is always the better fix.
 
 After a compaction the harness re-reads up to five files, most recently
 modified first (files over 5,000 tokens come back as a path only). There is no
-setting for this. Expect a floor of 20-30k tokens after a compaction. Only a
-clear avoids it.
+setting for this. Skill bodies loaded before the compaction come back too.
+Measured over three automatic compactions on 2026-11-11: `postTokens` of
+27k, 30k and 58k, and the first call afterwards wrote 51k, 57k and 99k
+tokens to the cache (the 99k carried one very large skill body). Only a
+clear avoids it. A large skill loaded for one lookup is paid for again at
+every later compaction, which is one more reason to load skills late.
 
 ## Check
 
@@ -116,15 +140,20 @@ After the user compacts, read the result:
 grep -h '"compact_boundary"' ~/.claude/projects/*/"$CLAUDE_CODE_SESSION_ID".jsonl | tail -1 | grep -o '"preTokens":[0-9]*\|"postTokens":[0-9]*'
 ```
 
-Success is `postTokens` under about 30k, and a summary that has the "keep"
-items in detail. If a "keep" item is missing, ask the user for it now, while
-they still remember, and add a line here saying what kind of item was lost.
+Success is a summary that has the "keep" items in detail, and `postTokens`
+under about 60k. Over that, look at what came back (a large skill body, big
+re-attached files) and note it here. If a "keep" item is missing, ask the
+user for it now, while they still remember, and add a line here saying what
+kind of item was lost.
 
 ## Status
 
 Written 2026-11-10 from one manual compaction (366k to 26k). The notes file
-and hook have not yet been through a real compaction, and the size thresholds
-are reasoned from cache prices, not measured. The hold was added the same
+and hook have not yet been through a real compaction. The first version's
+thresholds (compact at a phase boundary over 150k, before leaving over 100k)
+rested on a cache-read price four times too high; they were redone on
+2026-11-11 from one session's measured compactions, and the 150k to 250k
+cost of a compaction is an estimate from those three. The hold was added the same
 day after a review lost its place to a mid-task compaction; the hook's exit
 codes are tested, but no real automatic compaction has met a hold yet, so
 what the session and the user see when one is refused is unknown. Record it
