@@ -28,7 +28,7 @@ trigger. The description is permanent context cost; the body is not.
 | `research-log` | Evidence bearing on the SELF-GENERATION open questions |
 | `docs-audience` | Any edit to a project doc; picks the depth and tone for whoever reads that file |
 | `project-setup` | Setting up or assessing a repo against the project standards |
-| `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints |
+| `frame-first` | Planning a build so the strongest model designs the structure and cheaper models fill it in, with tests and review checkpoints. Carries a `template/` of repo files (rules, milestone file, finish check) and `new-frame <repo>` to copy it in |
 | `smart-compact` | Compacting or clearing a large session; writes notes on what the summary must keep, since the agent cannot start a compaction itself |
 
 Skills are drafts. A session that finds one wrong or incomplete amends it then
@@ -45,6 +45,9 @@ quietly downgraded every session that loaded them. Some still set `effort`.
 file per topic, and support `paths:` frontmatter to load only alongside matching
 files. This is the right home for always-true behaviour that should stay in
 separate files rather than being merged into `CLAUDE.md`.
+
+`model-tiers.md` is the one place that says which model is T1, T2 and T3.
+Skills and repos name tiers only, so a model change is a one-line edit there.
 
 ## Settings and hooks
 

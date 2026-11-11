@@ -143,6 +143,30 @@ For the paper, and for experiments here:
   the second: a tool that types into the session can type "yes". What makes a
   workaround safe to put in a skill: a fixed function, a precondition it
   checks, a note in the skill saying a limit is being routed around?
+- **Effort against tier.** Can T2 at high effort stand in for T1 (on a
+  checkpoint review, on a frame), and can T3 at high effort stand in for T2?
+  Tiers and effort draw on the same usage limits, so the cheaper cell that
+  gives the same findings is the one to use. The table below collects the
+  cases; the tier names are defined in `rules/model-tiers.md`.
+- **Do sub-files of a skill survive compaction?** A sub-file is read once on
+  a "read X when Y" line. After a compaction the skill body is re-attached
+  but the sub-file is not, and nothing prompts a re-read.
+
+## Effort and tier, measured
+
+One row per milestone or review in a `frame-first` project, added by the
+reviewer. "Rounds" is runs of the finish check before it passed. Models are
+named here because this is a record of what ran, not an assignment.
+
+| Date | Work | Tier (model) | Effort | Rounds | Review found |
+|---|---|---|---|---|---|
+| 2026-11-10 | M1, tight oracle, ~250 lines | T3 (Sonnet 5.5) | not recorded | not recorded | Code correct. 4 gaps filled silently, false "none" in the log, commit on the default branch |
+| 2026-11-10 | Checkpoint A review of M1 | T1 (Fable 5.2) | medium | n/a | Every finding came from the diff or a command; medium sufficed |
+| 2026-11-10 | M2, judgment, movement and energy | T2 (Opus 5.5) | low | not recorded | No code findings. 4 gaps logged before the code, 1 frame test correctly disputed |
+| 2026-11-10 | Review of M2 | T1 (Fable 5.2) | medium | n/a | As Checkpoint A. Confirmed the dispute by hand; two feel questions deferred to the user |
+
+M1 and M2 ran under different rules files (M2's required log rows and gave
+a reading list), so the pair does not separate tier from rules.
 
 ## Observations
 
@@ -317,6 +341,50 @@ into separate skills. Bears on aggregation: sub-files cost no description
 tokens and no trigger competition, but depend on the reader following a
 "read X when Y" line in the body. To check at the next checkpoint: was
 `review.md` actually opened, and by which tier.
+
+**2026-11-10 — second milestone: explicit rules held at T2-low, and the
+frame was the thing that was wrong.** A judgment milestone (movement and
+energy, 21 tests) went to T2 at low effort under the rules file rewritten
+after the first checkpoint. Every numbered step was followed: branch, fixed
+report, four gap rows written before the code they concern. One frame test
+contradicted its own contract (a sight line passing under a wall's top); the
+implementer worked the geometry, logged it, left the frozen test alone and
+did not special-case it. The review confirmed it by hand. Bears on writer
+tier vs. reader tier: step + format + check worked again, at a different
+tier and effort. What the rules lacked was a state for "finished except for
+a test I dispute": the milestone marked itself done with a caveat in prose
+and the commit message grew a paragraph. Changes: a `HELD` result in the
+check, keyed on a `test` field in the dispute row. Not separable: tier,
+effort and rules all changed between the first and second milestone. Still
+bypassed: it read files with `cat` through Bash, and made no `Skill` call.
+
+**2026-11-10 — a sub-file was not re-read after compaction, and the
+reviewer broke the rule it was reviewing.** The M2 review opened `review.md`
+at the start (first check of the entry above: yes, by T1, its author). The
+session then compacted. The summary carried the task list but not the
+file's steps, and the last third of the review ran without it. In that
+stretch the reviewer edited two project docs with `sed -i` and a python
+heredoc, the exact behaviour the first checkpoint had written a rule and a
+hook against; the Bash hook flagged it both times, which is its first
+recorded true positive. Suggests the new open question on sub-files, and
+that a rule aimed at "the implementer" is not read by a reviewer as applying
+to itself. Changes: a "re-read after a compaction" line and a reviewer tool
+rule in `review.md`.
+
+**2026-11-10 — model names in a skill went stale within the day.** The
+frame's milestone table said "Sonnet" and "Opus", and `frame-first` said
+"small", "mid" and "strongest". By the second milestone the user had moved
+the models between roles. Same shape as the model-pin entry above; bears on
+pinned values. Change: tiers T1 to T3 everywhere, with the mapping in one
+always-loaded rules file. To check: does a session reliably know its own
+tier from that file, and does it speak up when a milestone names another.
+
+**2026-11-10 — first process files generated from a template.** The frame's
+rules file, milestone file and check script were generalised into
+`frame-first/template/` with a copy script, on the user's decision that
+copies may diverge and the checkpoint review upstreams what recurs. Bears
+on transfer. Nothing measured: the template has been copied into no second
+repo, and its non-Rust check examples have never run.
 
 ## Prior art to check
 

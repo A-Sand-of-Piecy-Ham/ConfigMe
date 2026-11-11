@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+"""The finish check for one milestone of a frame.
+
+    scripts/check          list the milestones and name the next one
+    scripts/check M2       check M2 and every milestone before it
+
+Everything project-specific is in frame.toml at the repo root: the milestone
+order, each milestone's test commands, the lint command and the stub marker.
+This file is the same in every frame repo; its master copy is in ConfigMe at
+claude/skills/frame-first/template/scripts/check. A repo may change its copy.
+When a change would help other repos too, the checkpoint reviewer copies it
+back.
+
+Gates, one line each, detail only for a gate that is not ok:
+
+    tests   every test command of the milestones up to the target succeeds
+    stubs   no stub marker for the target is left
+    lint    the lint command succeeds
+    log     the log file parses, and the target has a "gap" row
+
+Last line and exit status:
+
+    PASS <id>   0   every gate ok
+    HELD <id>   3   the only failures are tests with an open "dispute" row
+    FAIL <id>   1   anything else
+"""
+
+import json
+import re
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# Fields a row of each kind must carry, besides "kind" and "milestone".
+ROW_FIELDS = {
+    "gap": ["chose"],
+    "dispute": ["found", "would_change"],
+    "subtask": ["what", "why"],
+    "deviation": ["what", "why"],
+    "friction": ["what"],
+}
+FIELD_LIMIT = 300  # characters; a row is a line, not a report
+
+
+def load_frame():
+    with open(ROOT / "frame.toml", "rb") as f:
+        frame = tomllib.load(f)
+    return frame["check"], frame["milestone"]
+
+
+def list_milestones(milestones):
+    nxt = None
+    for m in milestones:
+        status = m.get("status", "")
+        if not status and nxt is None:
+            nxt = m
+        print(f"{m['id']:<5} {m.get('tier', ''):<3} {status or '-':<5} {m['what']}")
+    if nxt is None:
+        print("Next: nothing left")
+    elif nxt.get("kind") == "checkpoint":
+        print(f"Next: checkpoint {nxt['id']}, a review by {nxt.get('tier', 'the reviewer')}. Implementers stop here.")
+    else:
+        effort = f", effort {nxt['effort']}" if "effort" in nxt else ""
+        print(f"Next: {nxt['id']} ({nxt.get('tier', '?')}{effort})")
+
+
+def read_log(path):
+    """Returns (rows, problems)."""
+    rows, problems = [], []
+    if not path.exists():
+        return rows, [f"{path.relative_to(ROOT)} does not exist"]
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as e:
+            problems.append(f"line {n}: not valid JSON ({e.msg}). One object per line.")
+            continue
+        kind = row.get("kind") if isinstance(row, dict) else None
+        if kind not in ROW_FIELDS:
+            problems.append(f"line {n}: \"kind\" must be one of {', '.join(ROW_FIELDS)}")
+            continue
+        missing = [k for k in ["milestone", *ROW_FIELDS[kind]] if not row.get(k)]
+        if missing:
+            problems.append(f"line {n}: a {kind} row needs {', '.join(missing)}")
+        long = [k for k, v in row.items() if isinstance(v, str) and len(v) > FIELD_LIMIT]
+        if long:
+            problems.append(f"line {n}: {', '.join(long)} is over {FIELD_LIMIT} characters")
+        rows.append(row)
+    return rows, problems
+
+
+def run(cmd):
+    p = subprocess.run(cmd, shell=True, cwd=ROOT, capture_output=True, text=True)
+    return p.returncode, p.stdout + p.stderr
+
+
+def detail_lines(out, pattern, limit=40):
+    """Lines matching `pattern`, each with the line after it."""
+    lines = out.splitlines()
+    keep = []
+    for i, line in enumerate(lines):
+        if re.search(pattern, line):
+            keep.append(line)
+            if i + 1 < len(lines):
+                keep.append(lines[i + 1])
+    return keep[:limit]
+
+
+def main():
+    cfg, milestones = load_frame()
+    ids = [m["id"] for m in milestones if m.get("kind") != "checkpoint"]
+    if len(sys.argv) < 2:
+        list_milestones(milestones)
+        return 0
+    target = sys.argv[1]
+    if target not in ids:
+        print(f"usage: scripts/check [milestone]   one of: {' '.join(ids)}", file=sys.stderr)
+        return 2
+
+    results = []  # (gate, status, detail lines)
+
+    rows, log_problems = read_log(ROOT / cfg["log"])
+    disputed = {
+        r["test"] for r in rows
+        if r.get("kind") == "dispute" and r.get("test") and not r.get("settled")
+    }
+
+    # --- tests ---------------------------------------------------------------
+    passed, failed_names, detail, broken = 0, set(), [], False
+    for m in milestones:
+        for cmd in m.get("test", []):
+            rc, out = run(cmd)
+            passed += sum(int(n) for n in re.findall(cfg["passed"], out))
+            if rc != 0:
+                names = set(re.findall(cfg["failed_test"], out, flags=re.M))
+                # A command that fails without naming a test did not compile
+                # or crashed: that is never a dispute.
+                broken |= not names
+                failed_names |= names
+                detail += [f"$ {cmd}"] + detail_lines(out, cfg["detail"])
+        if m["id"] == target:
+            break
+    undisputed = failed_names - disputed
+    if not failed_names and not broken:
+        results.append(("tests", f"ok    {passed} passed", []))
+    elif not undisputed and not broken:
+        held = ", ".join(sorted(failed_names))
+        results.append(("tests", f"held  {passed} passed; disputed: {held}", []))
+    else:
+        results.append(("tests", "FAIL", detail))
+
+    # --- stubs ---------------------------------------------------------------
+    tm = next(m for m in milestones if m["id"] == target)
+    marker = re.compile(cfg["stub"].replace("{tag}", re.escape(tm.get("stub_tag", target))))
+    exclude = re.compile(cfg["stub_exclude"]) if cfg.get("stub_exclude") else None
+    stubs = []
+    for base in cfg["stub_paths"]:
+        for path in sorted((ROOT / base).rglob(cfg.get("stub_glob", "*"))):
+            rel = path.relative_to(ROOT).as_posix()
+            if not path.is_file() or (exclude and exclude.search(rel)):
+                continue
+            for n, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+                if marker.search(line):
+                    stubs.append(f"{rel}:{n}: {line.strip()}")
+    results.append(("stubs", "FAIL" if stubs else "ok", stubs))
+
+    # --- lint ----------------------------------------------------------------
+    if cfg.get("lint"):
+        rc, out = run(cfg["lint"])
+        results.append(("lint", "ok" if rc == 0 else "FAIL", out.splitlines()[:30]))
+
+    # --- log -----------------------------------------------------------------
+    if not any(r.get("kind") == "gap" and r.get("milestone") == target for r in rows):
+        log_problems.append(
+            f"no gap row for {target}. Add one row per choice you made where a contract "
+            f'was silent, or {{"kind":"gap","milestone":"{target}","chose":"none"}}.'
+        )
+    results.append(("log", "FAIL" if log_problems else "ok", log_problems))
+
+    for gate, status, lines in results:
+        print(f"{gate:<7} {status}")
+        if not status.startswith("ok"):
+            for line in lines:
+                print(f"    {line}")
+
+    states = [status.split()[0] for _, status, _ in results]
+    if "FAIL" in states:
+        print(f"FAIL {target}")
+        return 1
+    if "held" in states:
+        print(f"HELD {target}")
+        return 3
+    print(f"PASS {target}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

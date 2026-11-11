@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Copy the frame template into a repo:  new-frame <repo dir>
+#
+# Copies AGENTS.md, frame.toml, scripts/check, docs/PROJECT_LOG.md and an
+# empty docs/log.jsonl. Never overwrites: a file the repo already has is left
+# alone and named, so this is safe to run on a repo that is partly set up.
+# The copies belong to the repo afterwards and may change there.
+set -eu
+src="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)/template"
+dst="${1:?usage: new-frame <repo dir>}"
+[[ -d "$dst" ]] || { echo "not a directory: $dst" >&2; exit 2; }
+
+(cd "$src" && find . -type f | sort) | while read -r f; do
+    f="${f#./}"
+    if [[ -e "$dst/$f" ]]; then
+        echo "kept    $f (already there)"
+    else
+        mkdir -p "$(dirname "$dst/$f")"
+        cp -p "$src/$f" "$dst/$f"
+        echo "copied  $f"
+    fi
+done
+echo "Next: fill the <...> slots in AGENTS.md and frame.toml, then run scripts/check."

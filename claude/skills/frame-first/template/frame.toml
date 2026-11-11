@@ -1,0 +1,62 @@
+# The build order, and how each milestone is checked. Read by scripts/check.
+# What each milestone asks for is in <milestone doc>.
+#
+# tier    who does it: T1 reviewer, T2 implementer, T3 small implementer.
+#         Which model each tier is today is not recorded here; your session's
+#         instructions say which tier you are. If they do not, ask the user.
+# effort  the reasoning effort to start from. A suggestion; the user sets it.
+# status  "" not started, "done", or "held" (finished except for a disputed
+#         test). Implementers set their own milestone's; nothing else here.
+
+[check]
+log = "docs/log.jsonl"
+# Must exit non-zero on any warning. Leave out to skip the lint gate.
+lint = "<lint command>"
+# Regex for a stub left for a milestone. {tag} is the milestone's stub_tag,
+# else its id. Make it unable to match M1 inside M10.
+stub = '<stub marker with {tag}>'
+stub_paths = ["<source dir>"]
+stub_glob = "*.<ext>"
+stub_exclude = '<regex for paths to skip, e.g. test dirs>'
+# How the test runner's output names a failed test (group 1 = the name the
+# implementer writes in a dispute row), counts passes, and reports errors.
+failed_test = '<regex>'
+passed = '(\d+) passed'
+detail = '<regex for lines worth showing on failure>'
+
+# Filled-in [check] tables. Rust:
+#   lint = "cargo clippy -q --all-targets -- -D warnings"
+#   stub = 'todo!\("{tag}[^0-9]'      stub_glob = "*.rs"
+#   failed_test = '^---- (\S+) stdout ----'
+#   detail = '^error(\[|:)|panicked at'
+# Python with pytest (not yet run in a frame; check the regexes first):
+#   lint = "ruff check -q ."
+#   stub = 'NotImplementedError\("{tag}[^0-9]'      stub_glob = "*.py"
+#   failed_test = '^FAILED \S+::(\S+)'
+#   detail = '^E  |^ERROR'
+
+[[milestone]]
+id = "M0"
+what = "The frame"
+tier = "T1"
+test = ["<command that runs only the frame's own suite>"]
+status = "done"
+
+[[milestone]]
+id = "M1"
+what = "<first milestone: small, tight oracle>"
+tier = "T3"
+effort = "medium"
+test = ["<command that runs only this milestone's suite>"]
+status = ""
+
+[[milestone]]
+id = "A"
+kind = "checkpoint"
+what = "Checkpoint A: did the frame hold up?"
+tier = "T1"
+status = ""
+
+# A milestone with no `test` is checked by hand; say how in a comment and in
+# the milestone doc. Sub-milestones that share stubs (M5a, M5b) set
+# stub_tag = "M5".

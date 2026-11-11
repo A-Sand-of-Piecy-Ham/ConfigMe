@@ -17,19 +17,34 @@ so. When a session shows a better step, add it here.
 Scale to the task. If one model would finish the job in one session, a frame
 costs more than it saves; do the work directly.
 
-Check the session's model before designing. If it is not the strongest
-available, stop and tell the user; design only if they say to go on. A frame's
-mistakes are inherited by every milestone built on it.
+## Tiers
 
-Tiers here are relative: "strongest", "mid" and "small" mean what is
-available today, not model names. When the top model is weaker than the one
-this was written with, keep the method and shrink the steps: smaller
-milestones, a checkpoint after each of the first three, and one end-to-end
-path implemented before any handoff.
+Work is assigned to a tier, never to a model name. Names went stale within
+the first project's first day; a tier does not.
+
+| Tier | Is | Does |
+|---|---|---|
+| T1 | The strongest model in regular use | Design, the frame, checkpoint review, anything frozen |
+| T2 | The main implementation model | Milestones where the contract leaves choices or modules meet |
+| T3 | The weakest model in use | Tight-oracle milestones, data entry, copying from examples |
+| T0 | A model billed outside the normal allowance | Nothing, unless the user says so |
+
+Which model each tier is today is in `~/.claude/rules/model-tiers.md`, and
+nowhere else: not in this skill, not in a repo. "The strong model" below
+means T1. Effort is a second axis, written `T2-high`.
+
+Check the session's tier before designing. If it is not T1, stop and tell
+the user; design only if they say to go on. A frame's mistakes are inherited
+by every milestone built on it.
+
+When T1 is weaker than the model this was written with, keep the method and
+shrink the steps: smaller milestones, a checkpoint after each of the first
+three, and one end-to-end path implemented before any handoff.
 
 At a checkpoint, or when reviewing what another model built, read
-`review.md` in this directory and work from it. When writing a frame's agent
-rules file, start from `agents-template.md`. Neither is needed otherwise.
+`review.md` in this directory and work from it. When setting up a frame
+repo, read `agents-template.md` and copy `template/` in with `new-frame`.
+Neither is needed otherwise.
 
 ## Sequence
 
@@ -43,10 +58,10 @@ rules file, start from `agents-template.md`. Neither is needed otherwise.
    boundary ask where a weaker model would go wrong and remove the opportunity
    (see below).
 3. **Plan review.** Present the modules, each decision with its reason, the
-   milestones, the model for each, and the checkpoints. Nothing goes on disk
-   before a yes.
-4. **Build the frame**, then tell the user plainly: swap models now, and come
-   back at these named points.
+   milestones, the tier and starting effort for each, and the checkpoints.
+   Nothing goes on disk before a yes.
+4. **Build the frame**, then tell the user plainly: swap to this tier now,
+   and come back at these named points.
 5. **Checkpoint reviews** as the milestones land, from `review.md`.
 
 Repo layout and commits follow `project-setup` and `git-workflow`.
@@ -62,7 +77,7 @@ mostly to that, not to output.
 Boundaries where the conversation so far can be dropped:
 
 1. **After plan approval.** Before building, write the approved plan to a
-   file in the repo (decisions with reasons, module list, milestones, model
+   file in the repo (decisions with reasons, module list, milestones, tier
    and checkpoint assignments). Then tell the user to start a fresh session
    pointed at that file, or to compact. Build the frame from the file.
 2. **After the frame is committed.** The repo is now the whole state. This is
@@ -115,15 +130,24 @@ state.
   shows one milestone's state. Prefer invariants and several cases to a single
   golden number: one expected value invites hard-coding and enshrines the
   designer's arithmetic slip.
-- An agent rules file in the repo, built from `agents-template.md`: milestone
-  order, exact commands, what is frozen (public signatures, tests), where to
-  log a deviation, what to read and what to report.
-- **One finish command that can pass at every milestone.** It runs that
-  milestone's tests and every earlier one, nothing later, and prints a
-  PASS or FAIL line. Run it against the bare frame before handoff. The first
-  frame said "all tests pass", which could not be true until the last
-  milestone; the implementer worked around it and reported the expected
-  failures at length.
+- The files in `template/`, copied in and filled: `AGENTS.md` (the
+  implementer's loop, what is frozen, the log rows, the fixed report),
+  `frame.toml` (milestone order, tier, effort, test commands, status) and
+  `docs/log.jsonl` (what implementers record, one JSON row each). The build
+  order lives in `frame.toml` only, so the check script and the docs cannot
+  disagree about it.
+- **One finish command that can pass at every milestone**: `scripts/check Mx`
+  from the template. It runs that milestone's tests and every earlier one,
+  nothing later, checks stubs, lint and the log, and ends in `PASS`, `FAIL`,
+  or `HELD` (the only failing test is one the implementer disputed in the
+  log). Run it against the bare frame before handoff. The first frame said
+  "all tests pass", which could not be true until the last milestone; the
+  implementer worked around it and reported the expected failures at length.
+- **The implementer may step outside its file list.** When a milestone
+  cannot be finished otherwise, it does the smallest thing that lets it
+  continue and logs a `subtask` row; T1 may undo it at the checkpoint. A
+  frozen item in the way is a `dispute`, never a subtask. The user's rule
+  (2026-11-10): waiting for a review to ask permission is "review hell".
 - Cold-start check: could a fresh session start milestone N from the repo
   alone? The implementer never sees the planning chat, so the reasons have to
   be in the repo.
@@ -140,36 +164,35 @@ before the handoff was finished.
   level geometry, test cases of one shape, per-item visuals), the strong model
   writes the schema, two instances that differ, and a check that validates the
   rest (parses, cross-references, stays in range). The remaining instances
-  become a sub-milestone for the smallest model.
+  become a sub-milestone for T3.
 - **Watch for it while writing.** About to write a third instance of the same
   shape: stop, add the sub-milestone, move on. This has to be caught live; the
   plan will not have foreseen every repetition.
 - **Estimate output at plan review.** List what the frame will contain and
   roughly how long each piece is. Anything long and repetitive is assigned to
-  a cheaper model before writing starts, and the plan shown to the user says
-  so.
+  a lower tier before writing starts, and the plan shown to the user says so.
 - **Tests split the same way, with more care.** They are the oracle, so a
   weaker model writing all of them weakens everything downstream. The strong
   model writes the list of cases for each suite (name plus the one thing it
-  asserts) and the cases that encode a design decision. A mid-tier model
-  writes out the rest; the strong model reads them at the first checkpoint.
-  Untested as of this writing.
+  asserts) and the cases that encode a design decision. T2 writes out the
+  rest; the strong model reads them at the first checkpoint. Untested as of
+  this writing.
 - **Stubs split the same way.** The strong model keeps what cannot be
   recovered from a wrong guess: signatures, formulas, the order of
-  operations, invariants, and the list of test cases. A mid-tier session
+  operations, invariants, and the list of test cases. A T2 session
   expands that into compiling files: field docs, stub bodies, test bodies,
   the rules file. The first frame's strong model typed about seventy stubs
   with their comments itself. Untested.
 - **A number to notice overspend by.** The plan's estimate gives each piece a
   length. While writing, at twice the estimate for a piece, stop, hand the
-  remainder to a cheaper model as a sub-milestone, and tell the user. Without
+  remainder to a lower tier as a sub-milestone, and tell the user. Without
   a number there is nothing to notice against.
 - **Checking is not the strong model's work either.** Pipe test, lint and
   build output through a filter so only failures reach the context (`-q`,
   `tail`, a grep for errors); unfiltered runs were a large share of the
   first frame's input. A compile-and-fix loop expected to take more than
-  two rounds goes to a cheaper subagent or session, with the error list as
-  its brief.
+  two rounds goes to a lower-tier subagent or session, with the error list
+  as its brief.
 
 ## What a weak model writes, a strong model reads
 
@@ -177,47 +200,59 @@ Every line an implementer writes into a log, a commit or a report is later
 input for the review tier, at the review tier's price and trust. So choose
 what it writes:
 
-- Fixed-format lines with a length cap: a gaps row, a friction line, the
-  report fields. The template has them.
+- Fixed-format rows with a length cap: the JSONL log rows and the report
+  fields. The template has them, and `scripts/check` refuses a milestone
+  whose rows do not parse or are missing.
 - No free prose in docs. Design docs, contracts and READMEs beyond a status
   cell are written or approved by the tier that owns them.
-- Unstated duties are not done. The first small-model implementer followed
+- Unstated duties are not done. The first T3 implementer followed
   every numbered step and none of the implied ones ("keep the log true"
   produced a false line). If the reviewer needs something recorded, the rules
   need a step, a format and a check for it.
 
-Relative cost per token when this was written (2026-11): the strongest model
-about 2x the mid tier and 4x the small one. Check current prices before
-relying on the ratio; the point is that it is large, and that it counts
-against both the short and the weekly usage limits.
+Each tier costs a multiple of the one below it per token, and all of it
+counts against the short and weekly usage limits. The user's concern
+(2026-11-10) is those limits, not money.
 
 ## Reasoning effort
 
 Effort buys the most where the output is short and a mistake is expensive, and
 the least where a test will catch the mistake anyway. These are starting
-points reasoned from that, not measurements:
+points; the measured rows are in the table under "Effort and tier, measured"
+in `claude/SELF-GENERATION.md`. Each milestone's starting effort goes in
+`frame.toml`, and the implementer's report says what was actually used.
 
-| Step | Model | Effort |
+| Step | Tier | Effort |
 |---|---|---|
-| Probe and drill | strongest | medium |
-| Architecture and plan review | strongest | high |
-| Writing the frame (the design is already decided) | strongest | medium |
-| Bulk fill from examples | small | low |
-| Tight-oracle milestones | small | medium |
-| Milestones with judgment, or where modules first meet | mid | high |
-| UI and framework wiring | small or mid | medium; look up the API instead of thinking harder |
-| Checkpoint review | strongest | medium (one run: findings came from reading and running, not from thinking longer) |
-| Tuning with the user | strongest | medium |
+| Probe and drill | T1 | medium |
+| Architecture and plan review | T1 | high |
+| Writing the frame (the design is already decided) | T1 | medium |
+| Bulk fill from examples | T3 | low |
+| Tight-oracle milestones | T3 | medium |
+| Milestones with judgment, or where modules first meet | T2 | medium to high (one run at low was clean: a movement milestone with 4 contract gaps and a wrong frame test) |
+| UI and framework wiring | T3 or T2 | medium; look up the API instead of thinking harder |
+| Checkpoint review | T1 | medium (two runs: findings came from reading and running, not from thinking longer) |
+| Tuning with the user | T1 | medium |
 
-## Splitting work across models
+Whether T2 at high effort can stand in for T1 on a review is an open
+question in the research log. Do not assume it either way.
 
-Assign by how much judgment the oracle leaves open, not by size.
+## Splitting work across tiers
 
-- Tight oracle, mechanical (data entry, derived-value functions, UI wired to a
-  spec): the smallest model.
-- The contract leaves choices, or several modules interact: mid tier.
+Assign by how much judgment the oracle leaves open, not by size. Be generous
+to T3 (the user's instruction, 2026-11-10): give it the milestone when
+unsure, and let the checkpoint show whether that held.
+
+- Tight oracle, mechanical (data entry, derived-value functions, copying
+  from two examples, UI wired to a spec): T3.
+- The contract leaves choices, or several modules interact: T2.
 - No oracle (architecture, feel, UX, balance, review, any change to something
-  frozen): the strongest model, or the user.
+  frozen): T1, or the user.
+
+T3 is weak at creative work: designing models, inventing equipment that is
+fun, anything judged by taste (the user's experience). Such a milestone
+given to T3 anyway needs a checkpoint that judges it by eye, named in the
+plan.
 
 A milestone fits one session and ends with its tests green and a commit. One
 that runs into context compaction loses its contract.
@@ -239,12 +274,14 @@ the review model.
 - **The frame outgrows the job.** A contract that dictates the body has already
   paid for the implementation. Specify interfaces and invariants.
 - **Wrong tests.** The designer wrote them without running anything. The
-  implementer logs a disputed test and stops on it; it never bends code to the
-  test or edits the test.
+  implementer logs a `dispute` row naming the test and stops on it; it never
+  bends code to the test or edits the test. The check then ends in `HELD`,
+  which is a finished milestone waiting on the reviewer. The second
+  milestone of the first project met one, and the implementer was right.
 - **Green read as done.** Tests cover what was foreseen. That is why the
   checkpoint reads code.
-- **A judgment task in a weak model's milestone** ("make it feel heavy") with
-  no proxy metric and no checkpoint behind it.
+- **A judgment task in a T3 milestone** ("make it feel heavy") with no proxy
+  metric and no checkpoint behind it.
 - **Drilling past usefulness.** A question with a conventional default costs
   the user a round trip for nothing.
 
@@ -255,14 +292,20 @@ ran and were well received. The frame was built and compiled, but overspent:
 that run produced "Budget the frame itself". It also skipped the thin
 end-to-end path, so whether that step earns its cost is still unknown.
 
-First handoff and checkpoint ran the same day: one tight-oracle milestone, a
-small model, reviewed by the strongest. The code was correct and to
-standard, so the split by oracle tightness held for that case. What failed
-was around the code, and produced `review.md`, `agents-template.md`, the
-finish-command rule and "What a weak model writes".
+First handoff and checkpoint ran the same day: one tight-oracle milestone on
+T3, reviewed by T1. The code was correct and to standard, so the split by
+oracle tightness held for that case. What failed was around the code, and
+produced `review.md`, the rules template, the finish-command rule and "What
+a weak model writes".
+
+Second milestone, same day: a judgment milestone on T2 at low effort,
+reviewed by T1 from `review.md`. No code findings; it logged four gaps
+before writing the code and correctly disputed a wrong frame test. That run
+produced `HELD`, the subtask rule, `frame.toml`, the JSONL log and the tier
+names.
 
 Still hypotheses, never run: the thin end-to-end path, the test split and
-stub split, the overspend number, the review ladder, milestones for the mid
-tier, and everything in `review.md` when the reviewer is not the model that
-wrote it. The effort table has one data point (checkpoint review). Revise
-from the next run.
+stub split, the overspend number, the review ladder, `new-frame` on a second
+repo, the template's non-Rust `[check]` examples, and the JSONL rows, `HELD`
+and subtask rules as an implementer meets them. `review.md` has only been
+followed by the model that wrote it. Revise from the next run.
