@@ -253,9 +253,28 @@ code. Run it; a test that was never run is a guess.
    else as next.
 4. `scripts/check Mx` must end in `FAIL Mx` on exactly the tests you added,
    with every other gate ok.
-5. Prove each failing test can pass: apply the fixes in a throwaway clone,
-   run the suite, keep the patch out of the repo. A send-back test that
-   cannot pass costs the implementer's tier a whole session.
+5. Prove each failing test can pass: apply the fixes in a throwaway clone
+   and run the suite. A send-back test that cannot pass costs the
+   implementer's tier a whole session.
+6. **A proven patch under about 50 lines is applied, not sent back** (the
+   user's decision, 2026-11-11: M3's was 25 lines and a second session for
+   it was not worth its cost). Steps 2 to 4 are then skipped: write the
+   tests, apply, PASS. Send back only what is too large to prove this way.
+
+**One review per milestone.** M3 had a second build, two findings-only
+reviewers and then the real review: three T1 sessions for one milestone,
+which the user called too much. A second build or a second reviewer is an
+experiment on the method. Run one only when the user asks for it, and fold
+its reading into the one real review.
+
+**Where a review's tokens go** (measured on the M3 review, 82 calls over
+two sessions): cached re-reading of the conversation, cache writes and
+output, about a third each by price. No single file was to blame; the
+largest tool result was 10k tokens. What moves it: run at the effort the
+skill's table gives (this one ran at high, the table says medium, and
+about 60% of its output was reasoning); stop after the findings and tests
+are committed and do the process fixes in a fresh session; never read a
+session transcript with `Read`, only with `jq`.
 
 ## Finishing
 
