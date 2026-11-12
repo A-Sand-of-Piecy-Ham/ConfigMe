@@ -58,7 +58,7 @@ needs = ["T"]
 tier = "T2"
 effort = "medium"
 # Checked by hand at C: no PowerShell here.
-status = ""
+status = "done"
 
 [[milestone]]
 id = "M3"
