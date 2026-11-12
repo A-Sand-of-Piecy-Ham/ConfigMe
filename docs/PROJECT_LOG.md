@@ -38,6 +38,10 @@ more than a phrase goes in "Decisions" above.
 
 ## Done
 
+- 2026-11-11: M2, `install.ps1` delegates its claude section to
+  AdaptiveDesign's `install.ps1` the same way, with `-Include` per
+  `claude-*` box. Unrun: no PowerShell here; read at Checkpoint C and tried
+  by the owner on Windows.
 - 2026-11-11: M1, `install.sh` delegates its claude section to
   AdaptiveDesign: clones it beside this repo, runs its `install.sh` with one
   `--include` per `claude-*` box, and the doctor shows its `--check`. Three
