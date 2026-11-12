@@ -7,6 +7,7 @@ first within each section.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-11 | History rewritten, on the owner's word: an employer email address on twenty commits and in two old versions of `git/config` became the personal one, and `claude/memory/dotfiles.md` is gone from every commit | It named employer-internal projects, and this repo is public. Every commit id changed: an id quoted in a doc before this date is the old one, so find the commit by its subject. GitHub still serves the old commits through the refs of PRs #1 and #2 until its support removes them |
 | 2026-11-11 | The tests drive the installer under `env -i` in scratch homes, with shims that block downloads and `sudo`, and install AdaptiveDesign from a local clone, never from GitHub | Nothing a test does may reach the real home or the network. The GitHub clone path is left to the owner (TODO below) |
 | 2026-11-11 | The Claude configuration moves to AdaptiveDesign; ConfigMe's installer clones it beside this repo and calls its installer | Owner's call. Details and reasons in [SPLIT.md](SPLIT.md) |
 
@@ -32,9 +33,11 @@ more than a phrase goes in "Decisions" above.
 - No test runs M1's clone of AdaptiveDesign from GitHub: every case sets
   `CONFIGME_NO_CLONE=1`. The owner checks it on a fresh machine before
   Checkpoint C.
-- `install.ps1` has not run since it began handing its claude section to
-  AdaptiveDesign. The owner runs it on Windows before the Windows clone
-  pulls a `main` that no longer has `claude/`.
+- `install.ps1` ran on the Windows side on 2026-11-11 with
+  `CONFIGME_NO_CLONE=1` and AdaptiveDesign cloned beside it by hand: exit
+  0, 36 Claude links. Its clone from GitHub is as untested as
+  `install.sh`'s. What the run showed about AdaptiveDesign's installer is
+  in that repo's project log.
 - The split's frame is finished (Checkpoint C, 2026-11-11). `AGENTS.md`,
   `frame.toml` and `docs/SPLIT.md` still describe it; the next frame here
   replaces their milestone parts and keeps the rest.
