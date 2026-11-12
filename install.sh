@@ -190,6 +190,26 @@ fix()  { printf '      fix: %s\n' "$1"; }
 # Continuation line for a multi-step fix, so "fix:" is not repeated.
 fix2() { printf '           %s\n' "$1"; }
 
+# ---------------------------------------------------------- AdaptiveDesign ---
+# The Claude configuration (CLAUDE.md, rules, skills, settings, hooks) lives in
+# AdaptiveDesign, cloned beside this repo. Its install.sh does all the linking;
+# ConfigMe only decides whether it runs and which includes it gets.
+AD_DIR="${ADAPTIVE_DESIGN_DIR:-$(dirname "$DOTFILES")/AdaptiveDesign}"
+AD_URL="https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign"
+
+# AdaptiveDesign's include arguments, one word per line: `--include <name>` for
+# each claude-<name> box that is on. With none on, AdaptiveDesign falls back to
+# its own includes file (~/.config/adaptive-design/includes), if there is one.
+claude_includes() {
+    local id
+    for id in $(feature_ids); do
+        case "$id" in
+            claude-*) feature_on "$id" && printf -- '--include\n%s\n' "${id#claude-}" ;;
+        esac
+    done
+    return 0
+}
+
 # A required tool is one a linked config actively depends on. An optional tool
 # gates a single feature and is reported as a warning, with the feature named
 # so the report says what is lost rather than just what is absent.
@@ -549,42 +569,37 @@ doctor() {
 
     if feature_on claude; then
         echo "==> claude"
-        for d in skills rules; do
-            if [ -L "$HOME/.claude/$d" ] && [ -d "$HOME/.claude/$d" ]; then
-                ok "$d linked ($(find -L "$HOME/.claude/$d" -maxdepth 1 -mindepth 1 | wc -l) entries)"
-            else
-                bad "~/.claude/$d not linked -- skills or rules will not load"
-                fix "./install.sh"
-            fi
-        done
-        [ -L "$HOME/.claude/CLAUDE.md" ] && ok "CLAUDE.md linked" || bad "~/.claude/CLAUDE.md not linked"
-        # Claude Code rewrites settings.json when a setting changes in /config; if it ever
-        # replaces the symlink with a plain file, the change silently stops reaching the repo.
-        if [ -L "$HOME/.claude/settings.json" ]; then
-            if python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$HOME/.claude/settings.json" 2>/dev/null; then
-                ok "settings.json linked"
-            else
-                bad "settings.json is not valid JSON -- Claude Code ignores the whole file"
-            fi
+        # AdaptiveDesign's --check reports each link (`ok   <item>` / `bad  <item>`),
+        # then the output of claude-config-check, indented, as level<TAB>msg<TAB>hint
+        # lines: settings parse and hooks resolve, CLAUDE.md and rules showed up in
+        # the last session's load log, skills and memory indexes are well-formed.
+        # Both kinds go through ok/warn/bad so they count in the summary.
+        if [ -x "$AD_DIR/install.sh" ]; then
+            local -a inc=()
+            local out rc=0 line level msg hint
+            mapfile -t inc < <(claude_includes)
+            out="$("$AD_DIR/install.sh" --check "${inc[@]}" 2>&1)" || rc=$?
+            while IFS= read -r line; do
+                if [[ $line =~ ^(ok|bad)[[:space:]]+(.*)$ ]]; then
+                    if [ "${BASH_REMATCH[1]}" = ok ]; then ok "${BASH_REMATCH[2]}"; else bad "${BASH_REMATCH[2]}"; fi
+                elif [[ $line == [[:space:]]*$'\t'* ]]; then
+                    IFS=$'\t' read -r level msg hint <<<"${line#"${line%%[![:space:]]*}"}"
+                    case "$level" in
+                        ok) ok "$msg" ;;
+                        warn) warn "$msg" ;;
+                        *) bad "$msg" ;;
+                    esac
+                    [ -n "${hint:-}" ] && fix "$hint"
+                elif [[ $line == "claude-config-check:" || $line =~ ^[0-9]+\ item\(s\)\ bad ]]; then
+                    : # its own header and summary; the doctor prints its own
+                elif [ -n "$line" ]; then
+                    printf '    %s\n' "$line"
+                fi
+            done <<<"$out"
+            [ "$rc" -eq 0 ] || fix "./install.sh   (AdaptiveDesign's installer remakes the links above)"
         else
-            bad "~/.claude/settings.json is not linked -- hooks and preferences are untracked"
-            fix "diff it against claude/settings.json, merge any changes into the repo, then ./install.sh"
-        fi
-        # Content and load evidence (bin/claude-config-check): settings parse and hooks resolve,
-        # CLAUDE.md and rules showed up in the last session's load log, skills and memory indexes
-        # are well-formed.
-        if command -v claude-config-check >/dev/null 2>&1; then
-            while IFS=$'\t' read -r level msg hint; do
-                case "$level" in
-                    ok) ok "$msg" ;;
-                    warn) warn "$msg" ;;
-                    *) bad "$msg" ;;
-                esac
-                [ -n "${hint:-}" ] && fix "$hint"
-            done < <(claude-config-check)
-        else
-            warn "claude-config-check missing -- config content and loading not verified"
-            fix "./install.sh   (links bin/claude-config-check)"
+            bad "AdaptiveDesign not found at $AD_DIR -- the Claude config is not installed"
+            fix "./install.sh   (clones $AD_URL there; ADAPTIVE_DESIGN_DIR moves it)"
         fi
         if command -v github-mcp >/dev/null 2>&1; then
             gh auth status >/dev/null 2>&1 && ok "github-mcp (gh authenticated)" \
@@ -906,12 +921,24 @@ esac
 
 echo "==> claude"
 if feature_on claude; then
-    link "$DOTFILES/claude/skills"   "$HOME/.claude/skills"
-    link "$DOTFILES/claude/rules"    "$HOME/.claude/rules"
-    link "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
-    # Shared settings: preferences and hooks. Approvals granted mid-session go to
+    # AdaptiveDesign links CLAUDE.md, settings.json, rules, skills and the Claude
+    # hooks in ~/.local/bin. Approvals granted mid-session go to
     # ~/.claude/settings.local.json, which stays machine-local.
-    link "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
+    if [ ! -d "$AD_DIR" ] && [ -z "${CONFIGME_NO_CLONE:-}" ]; then
+        echo "  cloning $AD_URL into $AD_DIR"
+        git clone --quiet "$AD_URL" "$AD_DIR" 2>&1 | sed 's/^/  /' || true
+    fi
+    if [ -x "$AD_DIR/install.sh" ]; then
+        mapfile -t _inc < <(claude_includes)
+        if ! "$AD_DIR/install.sh" "${_inc[@]}" 2>&1 | sed 's/^/  /'; then
+            bad "AdaptiveDesign's install.sh failed -- the Claude config may be partly linked"
+            fix "read its output above, then $AD_DIR/install.sh ${_inc[*]}"
+        fi
+        unset _inc
+    else
+        bad "AdaptiveDesign not found at $AD_DIR -- the Claude config is not installed"
+        fix "git clone $AD_URL \"$AD_DIR\", or set ADAPTIVE_DESIGN_DIR to a clone; then ./install.sh"
+    fi
 else
     echo "  skipped -- claude feature off (features.md)"
 fi
