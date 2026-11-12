@@ -82,6 +82,12 @@ Tier T2, medium. Needs M1, M2 and `AD:B` (the cut-over). Files: `claude/`,
 the Claude files in `bin/`, `github-templates/`, `README.md`,
 `features.md`, `docs/windows.md`, `.gitignore`.
 
+Added at AdaptiveDesign's Checkpoint B, to be done first: `install.sh`
+and `install.ps1` always pass `--include core` (`-Include core`) ahead of
+the boxes' includes, so that the boxes alone decide and AdaptiveDesign's
+includes file is never the fallback. Correct the comment on
+`claude_includes` to match.
+
 Delete `claude/`, `github-templates/` and every file in `bin/` that
 AdaptiveDesign's `core/bin` now holds. Before deleting, confirm with
 `readlink -f` that no path under `~/.claude` or `~/.local/bin` still
