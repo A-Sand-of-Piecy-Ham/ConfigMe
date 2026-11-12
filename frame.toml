@@ -76,4 +76,4 @@ what = "Checkpoint C: review, PR to main"
 needs = ["M3"]
 tier = "T1"
 first_playable = true
-status = ""
+status = "done"
