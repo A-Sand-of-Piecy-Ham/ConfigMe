@@ -197,11 +197,14 @@ fix2() { printf '           %s\n' "$1"; }
 AD_DIR="${ADAPTIVE_DESIGN_DIR:-$(dirname "$DOTFILES")/AdaptiveDesign}"
 AD_URL="https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign"
 
-# AdaptiveDesign's include arguments, one word per line: `--include <name>` for
-# each claude-<name> box that is on. With none on, AdaptiveDesign falls back to
-# its own includes file (~/.config/adaptive-design/includes), if there is one.
+# AdaptiveDesign's include arguments, one word per line: `--include core`
+# always, then `--include <name>` for each claude-<name> box that is on. Since
+# at least one --include is always passed, the boxes alone decide and
+# AdaptiveDesign never falls back to its own includes file
+# (~/.config/adaptive-design/includes).
 claude_includes() {
     local id
+    printf -- '--include\ncore\n'
     for id in $(feature_ids); do
         case "$id" in
             claude-*) feature_on "$id" && printf -- '--include\n%s\n' "${id#claude-}" ;;

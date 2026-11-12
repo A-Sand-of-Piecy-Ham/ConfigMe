@@ -17,8 +17,8 @@ failing on it, and keeps one checkout authoritative when a machine has two.
 | Git | Config and a global gitignore |
 | SSH | Connection multiplexing; host-specific settings stay machine-local |
 | Ccache | Compiler cache configuration |
-| [Claude Code](claude/README.md) | `CLAUDE.md`, always-loaded rules, and skills |
-| `bin/` | Small helpers the configs call -- tmux session attach, kitty/nvim glue, MCP launchers |
+| Claude Code | `CLAUDE.md`, always-loaded rules, skills and hooks, from [AdaptiveDesign](#claude-code-adaptivedesign) |
+| `bin/` | Small helpers the configs call -- tmux session attach, kitty/nvim glue |
 
 ## Install
 
@@ -45,6 +45,24 @@ Each machine can override any box in `~/.config/configme/features.md`, so the
 Pi and a workstation need not carry the same things. A feature that is off is
 left out everywhere: its config links, system packages, doctor checks, Mason
 tools and Neovim plugins. `install.ps1` reads the same files on Windows.
+
+## Claude Code: AdaptiveDesign
+
+The Claude Code configuration lives in its own repo, AdaptiveDesign
+(https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign). With the `claude`
+feature on, `install.sh` clones it beside this checkout
+(`../AdaptiveDesign`) if it is not there yet, then runs its `install.sh`,
+which links `~/.claude` and the Claude hooks in `~/.local/bin`. ConfigMe
+only chooses what to include: always `core`, plus one include per
+`claude-*` box that is on in features.md. `install.ps1` does the same on
+Windows, and `--doctor` shows AdaptiveDesign's own check in its claude
+section.
+
+- `ADAPTIVE_DESIGN_DIR` points the installer at a clone elsewhere.
+- `CONFIGME_NO_CLONE=1` stops it from cloning; a missing clone is then
+  reported, and the rest of the install carries on.
+
+Edit the Claude configuration in the AdaptiveDesign checkout, not here.
 
 ## Checking a machine
 
