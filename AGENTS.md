@@ -1,9 +1,10 @@
 # Rules for agents
 
-This repo is a **frame**: the design is fixed, most bodies are stubs, and
-tests say when each one is right. Your job is to fill bodies in, one
-milestone at a time. You do not see the conversation that designed this; the
-reasons are in <design doc>.
+This repo is under a **frame**: the design is fixed, and tests say when each
+change is right. The work is moving the Claude configuration out to
+AdaptiveDesign, one milestone at a time. You do not see the conversation
+that designed this; the reasons are in `docs/SPLIT.md`, which is both the
+design and the milestone list.
 
 Asked to **review** a milestone or run a checkpoint instead? These are the
 implementer's rules. Load the `frame-first` skill and follow its review file;
@@ -11,18 +12,27 @@ read this page only to know what the implementer was told.
 
 ## Normal here: do not report, do not fix
 
-- Most bodies are `<stub marker>`. That is the design.
-- `<full test command>` fails for every milestone not finished in your
-  checkout. Use `scripts/check`, which runs only what should pass.
-- A milestone listed as `busy` is being built on another branch. Its stubs
-  are still stubs where you are.
-- A `ready` milestone with no stubs left, whose check fails on tests. A
-  review sent it back. Its entry in <milestone doc> has a "Sent back" list:
-  that list is the work, and step 4 of the loop does not apply.
+- Nothing is stubbed. The work is changes to `install.sh`, `install.ps1` and
+  the docs, and `scripts/test` is the oracle: its cases fail until their
+  milestone is done. That is the design.
+- `scripts/test` fails for every milestone not finished in your checkout.
+  Use `scripts/check`, which runs only what should pass.
+- A milestone listed as `busy` is being built on another branch. Its changes
+  are not in your checkout.
+- A `ready` milestone whose check fails on tests although its work looks
+  done. A review sent it back. Its entry in `docs/SPLIT.md` has a "Sent
+  back" list: that list is the work, and step 4 of the loop does not apply.
 - A `tests` line that ends `held earlier: <test name>`. That test belongs to
   a finished milestone and waits on the reviewer. It is not yours to fix or
   to dispute again.
-- <anything else that looks broken and is not>
+- The `delegate` suite fails while AdaptiveDesign's installer is unfinished.
+  The tests install from a clone of the AdaptiveDesign checkout beside this
+  repo's main checkout, at its HEAD commit. To test against an AdaptiveDesign
+  branch that is not merged yet, set `CONFIGME_TEST_AD_SOURCE` to its
+  worktree.
+- `install.sh --doctor` exits non-zero in a test's scratch home (no fonts,
+  no tmux plugins, no instruction-load log). The tests read only its
+  `claude` section.
 
 ## The loop
 
@@ -40,41 +50,50 @@ read this page only to know what the implementer was told.
    two agents in one directory overwrite each other.
 
    ```
-   git worktree add .claude/worktrees/m3-<name> -b m3-<name> <default branch>
+   git worktree add .claude/worktrees/m3-<name> -b m3-<name> frame/split
    ```
 
    Then move into it: with the `EnterWorktree` tool, giving it that path, if
    your session has the tool; otherwise `cd` there and use that path for
    every file and command. If `git rev-parse --git-dir` already prints a
    path with `/worktrees/` in it, your session started in a worktree: stay,
-   and only make the branch (`git switch -c m3-<name> <default branch>`).
+   and only make the branch (`git switch -c m3-<name> frame/split`).
 
-   Never commit on `<default branch>`, and do not merge your branch: the
-   user, the reviewer or the session that handed you the milestone does
-   that (docs/MILESTONES.md, "Merging"). `docs/log.jsonl` never conflicts
-   in a merge, because `.gitattributes` merges it by union.
+   Never commit on `frame/split` or `main`, do not push, and do not merge
+   your branch: the user, the reviewer or the session that handed you the
+   milestone merges it into `frame/split`. `main` receives one PR, at
+   Checkpoint C. `docs/log.jsonl` never conflicts in a merge, because
+   `.gitattributes` merges it by union.
 3. Read these first:
-   - the milestone's entry in <milestone doc>;
-   - the files it lists (the contract for each function is its doc comment);
-   - the milestone's test file;
-   - the <design doc> sections named on its `Read:` line, if it has one.
+   - the milestone's entry in `docs/SPLIT.md`, and its "Decisions" and
+     "Rules for every milestone";
+   - the files it lists;
+   - the milestone's cases in `scripts/test` (the `t_<case>` functions of
+     its suite, and the helpers they call);
+   - for M1 and M2, "Installer contract" in
+     `../AdaptiveDesign/docs/DESIGN.md`: the interface you call.
 
-   Then read what those send you to: the types, constants and helpers your
-   files use. Leave the rest of the repo unread.
-4. Replace each stub for the milestone. Change files with the Edit and Write
-   tools, not with `sed`, a script or a shell redirect: the tools show the
-   reviewer a clean diff and trigger the project's checks.
+   Then read what those send you to: the functions and helpers your change
+   touches (in `install.sh`: `feature_on`, `link`, `ok`/`bad`/`fix`).
+   Leave the rest of the repo unread.
+4. Make the milestone's change. Change files with the Edit and Write tools,
+   not with `sed`, a script or a shell redirect: the tools show the reviewer
+   a clean diff and trigger the project's checks. File moves and deletions
+   are `git mv` and `git rm`.
 5. Keep the log as you go. `docs/log.jsonl` holds one JSON object per line;
    add yours at the end, **at the moment the thing happens**, before writing
    the code it concerns. The kinds are under [Log rows](#log-rows). Every
    milestone needs at least one `gap` row.
 6. Run `scripts/check Mx` (x = your milestone) until its last line is
    `PASS Mx`, or `HELD Mx` (see [Frozen](#frozen)). Besides the tests it
-   checks that no stub is left, the lint, the formatting (`<format command>`
-   fixes it) and the log.
+   checks the log. There is no lint or format gate (no shellcheck on the
+   machine that built the frame), and no stub gate to speak of. M2 has no
+   tests: no PowerShell here. Its check passes on the log alone, and the
+   reviewer reads it at Checkpoint C.
 7. Update the docs the change made wrong: your milestone's `status` in
-   `frame.toml` (`"done"` after PASS, `"held"` after HELD) and its row in
-   <status table>. Do not rewrite anything else in them.
+   `frame.toml` (`"done"` after PASS, `"held"` after HELD) and a dated line
+   under "Done" in `docs/PROJECT_LOG.md`. Do not rewrite anything else in
+   them.
 8. Commit on your branch, in this form:
 
    ```
@@ -113,7 +132,7 @@ characters. Leave out `settled`; the reviewer adds it.
 | `gap` | A contract or test does not say what to do and you have to choose | `where`, `silent_on`, `chose` |
 | `dispute` | A frozen thing looks wrong (see [Frozen](#frozen)) | `found`, `would_change`, and `test` if it is a test |
 | `subtask` | You did work outside the milestone's file list | `what`, `why` |
-| `deviation` | You added a public item or <a tuning value> | `what`, `why` |
+| `deviation` | You added a flag, an environment variable or a feature box | `what`, `why` |
 | `friction` | The rules, docs, commands or tests cost you time | `what` |
 
 Two examples; yours will differ in every field but `kind`:
@@ -131,9 +150,12 @@ A milestone that needed no choices gets
 Do not change these. Each is something the rest of the frame was built on,
 and a quiet change breaks work that has not been written yet.
 
-- <tests and fixtures>
-- <public signatures, fields, variants>
-- <conventions and orders other code depends on>
+- `docs/SPLIT.md`: the design, the milestones and their case lists.
+- `scripts/test`: the oracle.
+- The installer's interface: its flags, the environment variables
+  `CONFIGME_FEATURES`, `ADAPTIVE_DESIGN_DIR` and `CONFIGME_NO_CLONE`, and
+  the feature box names. AdaptiveDesign's installer contract belongs to that
+  repo; a disagreement with it is a `dispute` here and is never fixed there.
 - `scripts/check` and the `[check]` table of `frame.toml`.
 
 If a frozen thing looks wrong (a test that contradicts its contract, a
@@ -166,10 +188,25 @@ You may freely add private functions, modules and fields; those need no row.
 A new public item is allowed when a contract cannot be met without it, with
 a `deviation` row.
 
-## <Project rules>
+## Project rules
 
-<determinism, where numbers live, what may depend on what; each with its
-reason>
+- **Never run an installer against the real home.** Not `install.sh`, not
+  `install.ps1`, not AdaptiveDesign's, not with a flag that sounds harmless.
+  `scripts/test` runs them under `env -i` with `HOME`, `XDG_CONFIG_HOME`,
+  `CONFIGME_FEATURES` and `ADAPTIVE_DESIGN_DIR` in scratch directories and
+  every feature box off except the case's, because the installer downloads
+  and installs software when features are on. To try something by hand,
+  run one case with `CONFIGME_TEST_KEEP=1` and look in the scratch directory
+  it prints.
+- **The Claude configuration is not here.** Rules, skills and hooks live
+  in AdaptiveDesign, and `~/.claude` links into that checkout. A change to
+  one of them is made there, as an outside (`E`) contribution.
+- **Do not edit AdaptiveDesign.** It is another frame with its own agents.
+  When ConfigMe needs something of it, log a `dispute` or a `gap` here.
+- **Work in a worktree branched from `frame/split`.** Nothing goes to `main`
+  until Checkpoint C. The session that merges a milestone pushes
+  `frame/split` after the merge; nobody pushes `main`, force-pushes or
+  opens a PR but the reviewer.
 
 ## Commands
 
@@ -178,5 +215,7 @@ reason>
 | What is next | `scripts/check` |
 | The finish check for a milestone | `scripts/check M3` |
 | One suite while working | the milestone's `test` line in `frame.toml` |
-| One test, with its output | `<...>` |
+| Every suite | `scripts/test` |
+| One test, with its output | `scripts/test <case>`, e.g. `scripts/test links_made`; add `CONFIGME_TEST_KEEP=1` to keep its scratch home |
+| Against an unmerged AdaptiveDesign branch | `CONFIGME_TEST_AD_SOURCE=<its worktree> scripts/test delegate` |
 | Open log rows | `jq -c 'select(.settled == null)' docs/log.jsonl` |

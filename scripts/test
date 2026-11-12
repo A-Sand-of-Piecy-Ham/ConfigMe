@@ -1,0 +1,413 @@
+#!/usr/bin/env bash
+# The oracle for docs/SPLIT.md: one function per case listed there.
+#
+#   scripts/test                 every suite
+#   scripts/test <suite>...      delegate, removed
+#   scripts/test <case>...       one case by name, e.g. links_made
+#
+# Prints `ok <case>` or `FAIL <case>` with indented detail lines, then
+# `<n> passed` and, if any failed, `<n> failed`. The exit status is the number
+# of failures, capped at 125. Plain bash, no framework.
+#
+# Safety. Every run of an installer goes through `sandboxed`, which starts it
+# under `env -i` with HOME and XDG_CONFIG_HOME in a fresh `mktemp -d`, a
+# scratch features file with every box off except the case's, and a PATH
+# that leaves out the real home and puts shims first: `systemctl` does
+# nothing, and `curl`, `wget`, `sudo` and `git clone <url>` fail. Nothing is
+# downloaded and nothing outside the scratch directory is written.
+#
+# Environment:
+#   CONFIGME_TEST_AD_SOURCE  the AdaptiveDesign checkout to install from.
+#                            Default: AdaptiveDesign beside this repo's main
+#                            checkout. Its HEAD commit is cloned; uncommitted
+#                            changes there are not seen. Point it at a
+#                            worktree to test against an unmerged branch.
+#   CONFIGME_TEST_KEEP=1     keep the scratch directory and print its path.
+
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REAL_HOME="$HOME"
+
+SUITES=(delegate removed)
+SUITE_delegate=(links_made feature_off_skips includes_follow_boxes missing_clone_reported
+                check_delegates check_fails_unlinked other_bin_links_kept)
+SUITE_removed=(moved_paths_gone no_dangling_refs readme_names_dependency delegate_still_passes)
+
+# The boxes M1 adds to features.md. Listed here as well so that a scratch
+# features file turns them off before features.md has them: a box missing
+# from both files counts as on.
+NEW_BOXES=(claude-calendar claude-ticktick claude-dotfiles)
+
+AD_URL="github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign"
+# Spelt in two parts so that no_dangling_refs never finds this file.
+SKILLS_DIR=".claude/""skills"
+
+SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/configme-test.XXXXXX")"
+if [ "${CONFIGME_TEST_KEEP:-}" = 1 ]; then
+    echo "scratch: $SCRATCH" >&2
+else
+    trap 'rm -rf "$SCRATCH"' EXIT
+fi
+
+# ------------------------------------------------------------------ helpers ---
+
+# Detail for the current case's FAIL line. `fail` also returns 1, so a check
+# reads `cond || fail "why"`, and a case returns at its first failure with
+# `|| return 1`.
+note() { printf '%s\n' "$@" >>"$DETAIL"; }
+fail() { note "$@"; return 1; }
+
+strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
+
+# A fresh home inside the case's scratch directory. The tpm directory keeps
+# install.sh's tmux section from cloning it from GitHub.
+new_home() {
+    local h
+    h="$(mktemp -d "$CASE_DIR/home.XXXX")"
+    mkdir -p "$h/.tmux/plugins/tpm" "$h/.config"
+    printf '%s\n' "$h"
+}
+
+# write_features <file> <id>...: a features file with the given boxes on and
+# every other box off.
+write_features() {
+    local file="$1" id x mark
+    shift
+    {
+        echo "# Scratch features for scripts/test"
+        for id in $( { sed -nE 's/^[[:space:]]*[-*][[:space:]]+\[[ xX]\][[:space:]]+([a-z][a-z0-9-]*).*/\1/p' \
+                           "$ROOT/features.md"; printf '%s\n' "${NEW_BOXES[@]}"; } | sort -u); do
+            mark=' '
+            for x in "$@"; do [ "$x" = "$id" ] && mark=x; done
+            printf -- '- [%s] %s\n' "$mark" "$id"
+        done
+    } >"$file"
+}
+
+# Shims that come first on the sandbox PATH. Made once per run.
+make_shims() {
+    local real_git
+    real_git="$(command -v git)"
+    SHIMS="$SCRATCH/shims"
+    mkdir -p "$SHIMS"
+    printf '#!/bin/sh\nexit 0\n' >"$SHIMS/systemctl"
+    # The doctor asks gh whether it is logged in; a scratch home never is, and
+    # the real login is not the sandbox's to read. Say yes; refuse the rest.
+    printf '#!/bin/sh\n[ "$1 $2" = "auth status" ] && exit 0\necho "scripts/test: gh blocked in the sandbox: $*" >&2\nexit 1\n' >"$SHIMS/gh"
+    for cmd in curl wget sudo; do
+        printf '#!/bin/sh\necho "scripts/test: %s blocked in the sandbox: $*" >&2\nexit 1\n' "$cmd" >"$SHIMS/$cmd"
+    done
+    cat >"$SHIMS/git" <<EOF
+#!/bin/sh
+# git clone of a URL is a download; a local path is fine.
+case " \$* " in
+    *" clone "*://*|*" clone "*git@*)
+        echo "scripts/test: git clone of a URL blocked in the sandbox: \$*" >&2
+        exit 1 ;;
+esac
+exec "$real_git" "\$@"
+EOF
+    chmod +x "$SHIMS"/*
+    # The real PATH without anything under the real home: a tool linked into
+    # ~/.local/bin there (claude-config-check) must not answer for the sandbox.
+    BASE_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v "^$REAL_HOME\(/\|$\)" | paste -sd: -)"
+}
+
+# sandboxed <home> <features-file> <ad-dir> <command>...
+# Runs the command in a clean environment. Its output, colours stripped, is
+# in $OUT; its exit status in $RC.
+sandboxed() {
+    local home="$1" feats="$2" ad="$3"
+    shift 3
+    case "$home" in
+        "$SCRATCH"/*) ;;
+        *) echo "scripts/test: refusing to run with HOME=$home, outside $SCRATCH" >&2; exit 125 ;;
+    esac
+    [ "$home" != "$REAL_HOME" ] || { echo "scripts/test: HOME is the real home" >&2; exit 125; }
+    [ -n "$ad" ] || { echo "scripts/test: empty ADAPTIVE_DESIGN_DIR" >&2; exit 125; }
+    RUNS=$((RUNS + 1))
+    OUT="$CASE_DIR/out.$RUNS"
+    env -i \
+        HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+        CONFIGME_FEATURES="$feats" ADAPTIVE_DESIGN_DIR="$ad" CONFIGME_NO_CLONE=1 \
+        PATH="$home/.local/bin:$SHIMS:$BASE_PATH" TERM=dumb LANG=C.UTF-8 \
+        "$@" </dev/null 2>&1 | strip_ansi >"$OUT"
+    RC="${PIPESTATUS[0]}"
+}
+
+# run_install <home> <features-file> <ad-dir> [args]: ConfigMe's install.sh.
+run_install() {
+    local home="$1" feats="$2" ad="$3"
+    shift 3
+    sandboxed "$home" "$feats" "$ad" "$ROOT/install.sh" "$@"
+}
+
+# The last lines of the last run's output, as detail. Returns 1 like `fail`,
+# since it is only called on the way out of a failing check.
+show_output() {
+    note "last ${1:-15} lines of: ${2:-install.sh}"
+    tail -n "${1:-15}" "$OUT" | sed 's/^/  /' >>"$DETAIL"
+    return 1
+}
+
+# run_install that must succeed.
+install_ok() {
+    run_install "$@"
+    [ "$RC" -eq 0 ] || { fail "install.sh $* exited $RC"; show_output; return 1; }
+}
+
+# section <file> <name> <stop-regex>: the lines under `==> <name>`, up to the
+# first line matching the stop regex.
+section() {
+    awk -v start="^==> $2( |\$)" -v stop="$3" 'on && $0 ~ stop { exit } $0 ~ start { on = 1; next } on' "$1"
+}
+# The doctor's claude section runs to the summary line, not to the next
+# header: it is the doctor's last section.
+doctor_claude() { section "$1" claude '^ok [0-9]+, warnings'; }
+install_claude() { section "$1" claude '^==> '; }
+
+# The ok/warn/bad helpers of install.sh print `  * `, `  ! ` and `  x `.
+ok_lines()  { grep -E '^  \* ' || true; }
+bad_lines() { grep -E '^  x ' || true; }
+
+# The AdaptiveDesign checkout the tests install from: a clone of the source's
+# HEAD commit, made once per run. Each case works on its own copy.
+ad_base() {
+    [ -n "${AD_BASE:-}" ] && return 0
+    local src="${CONFIGME_TEST_AD_SOURCE:-}" main commit
+    if [ -z "$src" ]; then
+        main="$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")"
+        src="$(dirname "$main")/AdaptiveDesign"
+    fi
+    commit="$(git -C "$src" rev-parse HEAD 2>/dev/null)" \
+        || { AD_ERROR="no AdaptiveDesign checkout at $src (set CONFIGME_TEST_AD_SOURCE)"; return 1; }
+    git clone --quiet "$src" "$SCRATCH/AdaptiveDesign" \
+        && git -C "$SCRATCH/AdaptiveDesign" checkout --quiet --detach "$commit" \
+        || { AD_ERROR="could not clone $src at $commit"; return 1; }
+    AD_BASE="$SCRATCH/AdaptiveDesign"
+}
+
+# ad_copy: prints the path of this case's copy of AdaptiveDesign.
+ad_copy() {
+    [ -n "${AD_BASE:-}" ] || { fail "${AD_ERROR:-AdaptiveDesign was not cloned}"; return 1; }
+    cp -a "$AD_BASE" "$CASE_DIR/AdaptiveDesign"
+    printf '%s\n' "$CASE_DIR/AdaptiveDesign"
+}
+
+# resolves_into <path> <dir>: the path exists and its real path is inside dir.
+resolves_into() {
+    local got want
+    got="$(readlink -f "$1" 2>/dev/null)"
+    want="$(readlink -f "$2")"
+    [ -e "$1" ] && [ -n "$want" ] && case "$got" in "$want"/*) true ;; *) false ;; esac
+}
+
+# --------------------------------------------------------- suite: delegate ---
+
+t_links_made() {
+    local h f ad
+    h="$(new_home)"; f="$CASE_DIR/features.md"; ad="$(ad_copy)" || return 1
+    write_features "$f" claude
+    install_ok "$h" "$f" "$ad" || return 1
+    resolves_into "$h/.claude/CLAUDE.md" "$ad" \
+        || { fail "~/.claude/CLAUDE.md resolves to '$(readlink -f "$h/.claude/CLAUDE.md")', not into $ad"; show_output; }
+}
+
+t_feature_off_skips() {
+    local h f ad made
+    h="$(new_home)"; f="$CASE_DIR/features.md"; ad="$(ad_copy)" || return 1
+    write_features "$f"
+    install_ok "$h" "$f" "$ad" || return 1
+    made="$(find "$h/.claude" -mindepth 1 2>/dev/null | sed "s|^$h/|~/|" | head -5)"
+    [ -z "$made" ] || fail "with claude off, install.sh made:" "$made"
+}
+
+t_includes_follow_boxes() {
+    local h f ad link
+    ad="$(ad_copy)" || return 1
+    f="$CASE_DIR/features-off.md"; write_features "$f" claude
+    h="$(new_home)"
+    install_ok "$h" "$f" "$ad" || return 1
+    link="$h/$SKILLS_DIR/calendar-check"
+    [ ! -e "$link" ] && [ ! -L "$link" ] || { fail "claude-calendar off, yet ~/$SKILLS_DIR/calendar-check exists"; return 1; }
+
+    f="$CASE_DIR/features-on.md"; write_features "$f" claude claude-calendar
+    h="$(new_home)"
+    install_ok "$h" "$f" "$ad" || return 1
+    link="$h/$SKILLS_DIR/calendar-check"
+    resolves_into "$link" "$ad" \
+        || { fail "claude-calendar on, yet ~/$SKILLS_DIR/calendar-check does not resolve into $ad"; show_output; }
+}
+
+t_missing_clone_reported() {
+    local h f ad sec order
+    h="$(new_home)"; f="$CASE_DIR/features.md"; ad="$CASE_DIR/absent/AdaptiveDesign"
+    write_features "$f" claude
+    run_install "$h" "$f" "$ad"
+    [ "$RC" -eq 0 ] || { fail "install.sh exited $RC; a failed feature leaves it at 0"; show_output; return 1; }
+    sec="$(install_claude "$OUT")"
+    printf '%s\n' "$sec" | bad_lines | grep -qF -- "$ad" \
+        || { fail "no bad line in the claude section names $ad"; show_output 25; return 1; }
+    printf '%s\n' "$sec" | grep -qE '^ +fix: ' \
+        || { fail "no fix: line in the claude section"; show_output 25; return 1; }
+    order="$(grep -nE '^==> (claude|features|packages)( |$)|^Done\.$' "$OUT" | cut -d: -f2- | paste -sd' ' -)"
+    [ "$order" = "==> claude ==> features ==> packages Done." ] \
+        || { fail "sections after claude did not all run; saw: $order"; show_output; }
+}
+
+# The messages of the `ok` or `bad` lines ($1) in AdaptiveDesign's --check
+# output ($2): the text after the word, up to a tab.
+ad_lines() {
+    sed -nE "s/^[[:space:]]*$1[[:space:]:]+//p" "$2" | cut -f1 | sed 's/[[:space:]]*$//' | grep -v '^$' || true
+}
+
+# "Exits zero" in docs/SPLIT.md is read as: the claude section adds no bad
+# line of its own. ConfigMe's checking mode is --doctor, which also checks
+# the whole machine and fails in any scratch home; and a fresh home has no
+# instruction-load log, which claude-config-check reports as bad, and
+# AdaptiveDesign's --check runs that too. See the first dispute row of
+# milestone T in docs/log.jsonl.
+t_check_delegates() {
+    local h f ad sec msg doc_ok doc_bad
+    local -a want_ok ad_bad missing=() extra=()
+    h="$(new_home)"; f="$CASE_DIR/features.md"; ad="$(ad_copy)" || return 1
+    write_features "$f" claude
+    install_ok "$h" "$f" "$ad" || return 1
+
+    # What AdaptiveDesign itself reports on this home.
+    [ -x "$ad/install.sh" ] || { fail "$ad has no executable install.sh"; return 1; }
+    sandboxed "$h" "$f" "$ad" "$ad/install.sh" --check
+    mapfile -t want_ok < <(ad_lines ok "$OUT")
+    mapfile -t ad_bad < <(ad_lines bad "$OUT")
+    [ "${#want_ok[@]}" -gt 0 ] || { fail "AdaptiveDesign's install.sh --check printed no ok line"; show_output 15 "its --check"; return 1; }
+
+    run_install "$h" "$f" "$ad" --doctor
+    sec="$(doctor_claude "$OUT")"
+    [ -n "$sec" ] || { fail "install.sh --doctor printed no claude section"; show_output; return 1; }
+    doc_ok="$(printf '%s\n' "$sec" | ok_lines)"
+    doc_bad="$(printf '%s\n' "$sec" | bad_lines | sed 's/^  x //')"
+    for msg in "${want_ok[@]}"; do
+        printf '%s\n' "$doc_ok" | grep -qF -- "$msg" || missing+=("$msg")
+    done
+    while IFS= read -r msg; do
+        [ -n "$msg" ] || continue
+        printf '%s\n' "${ad_bad[@]}" | grep -qxF -- "$msg" || extra+=("$msg")
+    done <<<"$doc_bad"
+    [ "${#missing[@]}" -eq 0 ] \
+        || note "${#missing[@]} of AdaptiveDesign's ok lines not shown as ok by the doctor, e.g.:" "${missing[@]:0:5}"
+    [ "${#extra[@]}" -eq 0 ] \
+        || note "bad lines in the doctor's claude section that AdaptiveDesign's --check does not report:" "${extra[@]:0:5}"
+    [ "${#missing[@]}" -eq 0 ] && [ "${#extra[@]}" -eq 0 ]
+}
+
+t_check_fails_unlinked() {
+    local h f ad
+    h="$(new_home)"; f="$CASE_DIR/features.md"; ad="$(ad_copy)" || return 1
+    write_features "$f" claude
+    run_install "$h" "$f" "$ad" --doctor
+    doctor_claude "$OUT" | bad_lines | grep -q . \
+        || { fail "no bad line in the doctor's claude section on an empty home"; show_output; }
+}
+
+t_other_bin_links_kept() {
+    local h f ad n ok=0
+    h="$(new_home)"; f="$CASE_DIR/features.md"; ad="$(ad_copy)" || return 1
+    write_features "$f" claude
+    install_ok "$h" "$f" "$ad" || return 1
+    for n in kitty-nvim tmux-attach-or-new; do
+        [ "$(readlink -f "$h/.local/bin/$n")" = "$(readlink -f "$ROOT/bin/$n")" ] \
+            || { note "~/.local/bin/$n does not resolve to $ROOT/bin/$n"; ok=1; }
+    done
+    return "$ok"
+}
+
+# ---------------------------------------------------------- suite: removed ---
+
+t_moved_paths_gone() {
+    local left ad clash
+    left="$(git -C "$ROOT" ls-files -- claude github-templates | head -5)"
+    [ -z "$left" ] || { fail "still tracked, e.g.:" "$left"; return 1; }
+    ad="$(ad_copy)" || return 1
+    [ -d "$ad/core/bin" ] || { fail "$ad has no core/bin, so what moved cannot be told"; return 1; }
+    clash="$(comm -12 <(git -C "$ROOT" ls-files -- bin | sed 's|^bin/||' | sort) \
+                      <(find "$ad/core/bin" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort))"
+    [ -z "$clash" ] || fail "in bin/ and in AdaptiveDesign's core/bin:" $clash
+}
+
+t_no_dangling_refs() {
+    # The patterns are assembled so that this file does not match them.
+    local c=claude t="github-""templates/" refs
+    local legit="[.]local/bin/$c-|core/bin/$c-|[.]$c/(skills|rules)"
+    local dangling="$c/skills|$c/rules|$t|bin/$c-"
+    # Installed locations (the skills and rules folders under ~/.claude, the
+    # hooks in ~/.local/bin) and AdaptiveDesign's own paths are not dangling. Listing them in the same
+    # expression makes grep -o take them whole where they start earlier.
+    refs="$(git -C "$ROOT" grep -I -n -o -E "$legit|$dangling" -- . \
+                ':(exclude)docs/SPLIT.md' ':(exclude)docs/PROJECT_LOG.md' ':(exclude)docs/log.jsonl' \
+            | grep -vE ":[0-9]+:($legit)\$" || true)"
+    [ -z "$refs" ] || fail "$(printf '%s\n' "$refs" | wc -l) dangling refs, e.g.:" "$(printf '%s\n' "$refs" | head -10)"
+}
+
+t_readme_names_dependency() {
+    local r="$ROOT/README.md" ok=0
+    grep -q 'AdaptiveDesign' "$r" || { note "README.md does not name AdaptiveDesign"; ok=1; }
+    grep -qF "$AD_URL" "$r" || { note "README.md does not give $AD_URL"; ok=1; }
+    grep -qi 'clone' "$r" || { note "README.md does not say it is cloned"; ok=1; }
+    return "$ok"
+}
+
+t_delegate_still_passes() {
+    local out="$CASE_DIR/delegate.out" rc
+    "$ROOT/scripts/test" delegate >"$out" 2>&1
+    rc=$?
+    [ "$rc" -eq 0 ] || fail "the delegate suite failed ($rc):" "$(grep -E '^FAIL ' "$out")"
+}
+
+# ------------------------------------------------------------------- runner ---
+
+usage() {
+    echo "usage: scripts/test [suite|case]...   suites: ${SUITES[*]}" >&2
+    exit 2
+}
+
+cases=()
+[ $# -gt 0 ] || set -- "${SUITES[@]}"
+for arg in "$@"; do
+    if [[ " ${SUITES[*]} " == *" $arg "* ]]; then
+        declare -n suite="SUITE_$arg"
+        cases+=("${suite[@]}")
+        unset -n suite
+    elif declare -F "t_$arg" >/dev/null; then
+        cases+=("$arg")
+    else
+        echo "scripts/test: no suite or case named '$arg'" >&2
+        usage
+    fi
+done
+
+make_shims
+ad_base || true
+RUNS=0
+passed=0
+failed=0
+for name in "${cases[@]}"; do
+    CASE_DIR="$SCRATCH/$name"
+    mkdir -p "$CASE_DIR"
+    DETAIL="$CASE_DIR/detail"
+    : >"$DETAIL"
+    # A subshell, so a case cannot leave state behind for the next.
+    if ( "t_$name" ); then
+        echo "ok $name"
+        passed=$((passed + 1))
+    else
+        echo "FAIL $name"
+        [ -s "$DETAIL" ] || echo "(no detail)" >"$DETAIL"
+        sed 's/^/  /' "$DETAIL"
+        failed=$((failed + 1))
+    fi
+done
+
+echo "$passed passed"
+[ "$failed" -eq 0 ] || echo "$failed failed"
+exit $((failed > 125 ? 125 : failed))

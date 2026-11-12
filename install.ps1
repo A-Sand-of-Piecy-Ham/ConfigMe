@@ -305,39 +305,52 @@ return dofile("$DotfilesPosix/wezterm/wezterm.lua")
 
 Write-Host '==> claude'
 if (Test-Feature 'claude') {
-    # Rules load every session and were previously WSL-only, so every behavioural
-    # rule in this repo silently did not apply on Windows.
-    New-DirLink -Source (Join-Path $Dotfiles 'claude\rules') -Destination (Join-Path $env:USERPROFILE '.claude\rules')
+    # The Claude configuration (CLAUDE.md, settings.json, rules, skills, hooks)
+    # lives in AdaptiveDesign, cloned beside this repo. Its install.ps1 does all
+    # the linking, including replacing the junctions and 'managed by ConfigMe'
+    # shims this script used to make, and leaves foreign skill links (the
+    # %USERPROFILE%\.agents ones) alone. This section only decides whether it
+    # runs and which includes it gets: -Include core always, then <name> for
+    # each claude-<name> box that is on. Core is always passed so the boxes
+    # alone decide, and AdaptiveDesign never falls back to its includes file.
+    $AdDir = if ($env:ADAPTIVE_DESIGN_DIR) { $env:ADAPTIVE_DESIGN_DIR } `
+             else { Join-Path (Split-Path -Parent $Dotfiles) 'AdaptiveDesign' }
+    $AdUrl = 'https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign'
+    $adScript = Join-Path $AdDir 'install.ps1'
 
-    # .claude\skills is a real directory of per-skill links into
-    # %USERPROFILE%\.agents, managed separately. Junctioning the whole directory
-    # would destroy those, so link each of this repo's skills individually
-    # alongside them. Same reason the loop removes only links it previously made:
-    # a stale ConfigMe skill should go, an .agents link must not.
-    $skillsDir = Join-Path $env:USERPROFILE '.claude\skills'
-    if (-not (Test-Path -LiteralPath $skillsDir)) {
-        New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
+    if (-not (Test-Path -LiteralPath $AdDir) -and -not $env:CONFIGME_NO_CLONE `
+            -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Host "  cloning $AdUrl into $AdDir"
+        # git's stderr is not redirected: under $ErrorActionPreference Stop,
+        # PowerShell 5.1 turns redirected native stderr into a terminating error.
+        git clone --quiet $AdUrl $AdDir
+        if ($LASTEXITCODE -ne 0) { Write-Host "  git clone exited $LASTEXITCODE" -ForegroundColor Yellow }
     }
-    $repoSkills = Join-Path $Dotfiles 'claude\skills'
-    $wanted = @{}
-    foreach ($skill in Get-ChildItem -LiteralPath $repoSkills -Directory) {
-        $wanted[$skill.Name] = $true
-        New-DirLink -Source $skill.FullName -Destination (Join-Path $skillsDir $skill.Name)
-    }
-    foreach ($existing in Get-ChildItem -LiteralPath $skillsDir -Force) {
-        if (-not ($existing.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
-        if ($wanted.ContainsKey($existing.Name)) { continue }
-        if ($existing.Target -and ($existing.Target -join ' ') -like "*$repoSkills*") {
-            Write-Host ("  removing stale " + $existing.Name) -ForegroundColor DarkYellow
-            $existing.Delete()
+
+    if (Test-Path -LiteralPath $adScript) {
+        $includes = @('core') + @($Features.Keys | Where-Object { $_ -like 'claude-*' -and (Test-Feature $_) } |
+                      Sort-Object | ForEach-Object { $_.Substring('claude-'.Length) })
+        $adArgs = @{ Include = $includes }
+        # In-process, so it runs under this process's execution policy. Its
+        # `exit` ends only that script and sets $LASTEXITCODE; reset it first so
+        # a stale code from git is not read as AdaptiveDesign's.
+        $global:LASTEXITCODE = 0
+        $adFailed = $false
+        try {
+            & $adScript @adArgs
+            $adFailed = ($LASTEXITCODE -ne 0)
+        } catch {
+            Write-Host "  $_" -ForegroundColor Red
+            $adFailed = $true
         }
+        if ($adFailed) {
+            Write-Host "  bad  AdaptiveDesign's install.ps1 failed -- the Claude config may be partly linked" -ForegroundColor Red
+            Write-Host "      fix: read its output above, then $adScript -Include $($includes -join ',')"
+        }
+    } else {
+        Write-Host "  bad  AdaptiveDesign not found at $AdDir -- the Claude config is not installed" -ForegroundColor Red
+        Write-Host "      fix: git clone $AdUrl `"$AdDir`" (needs git on PATH), or set ADAPTIVE_DESIGN_DIR to a clone; then re-run this script"
     }
-    New-FileLink -Source (Join-Path $Dotfiles 'claude\CLAUDE.md') `
-                 -Destination (Join-Path $env:USERPROFILE '.claude\CLAUDE.md') `
-                 -Shim @"
-<!-- managed by ConfigMe -- edit $DotfilesPosix/claude/CLAUDE.md instead -->
-@$DotfilesPosix/claude/CLAUDE.md
-"@
 } else {
     Write-Host '  skipped -- claude feature off (features.md)' -ForegroundColor DarkGray
 }

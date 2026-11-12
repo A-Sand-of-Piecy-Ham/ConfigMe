@@ -1,0 +1,79 @@
+# The milestones, what each one needs, and how each is checked. Read by
+# scripts/check. What each milestone asks for is in docs/SPLIT.md.
+#
+# needs   the ids that must be done (and merged into the default branch)
+#         before this one can start. A need on AdaptiveDesign's frame cannot
+#         be written here; docs/SPLIT.md names those as AD:<id>.
+# tier    who does it: T1 reviewer, T2 implementer, T3 small implementer.
+#         Which model each tier is today is not recorded here; your session's
+#         instructions say which tier you are. If they do not, ask the user.
+# effort  the reasoning effort to start from. A suggestion; the user sets it.
+# status  "" not started, "done", or "held". Implementers set their own
+#         milestone's; nothing else here.
+
+[check]
+log = "docs/log.jsonl"
+main_branch = "frame/split"
+# No lint or format gate: no shellcheck on the machine that built the frame.
+# Nothing is stubbed, so the stub gate has nothing to find.
+stub = 'FRAME-STUB\("{tag}[^0-9]'
+stub_paths = ["scripts"]
+stub_glob = "*.stub"
+# scripts/test output, checked against the runner by milestone T. `detail`
+# keeps each FAIL line and the line after it (its first detail line); a
+# pattern that also matched the indented lines printed each of them twice.
+failed_test = '^FAIL (\S+)'
+passed = '^(\d+) passed$'
+detail = '^FAIL '
+
+[[milestone]]
+id = "M0"
+what = "The frame"
+needs = []
+tier = "T1"
+status = "done"
+
+[[milestone]]
+id = "T"
+what = "The oracle: scripts/test, AGENTS.md slots"
+needs = ["M0"]
+tier = "T2"
+effort = "high"
+# Checked by hand: scripts/test runs and lists every case in docs/SPLIT.md.
+status = "done"
+
+[[milestone]]
+id = "M1"
+what = "install.sh hands the claude section to AdaptiveDesign (also needs AD:M2)"
+needs = ["T"]
+tier = "T2"
+effort = "medium"
+test = ["scripts/test delegate"]
+status = "done"
+
+[[milestone]]
+id = "M2"
+what = "install.ps1 does the same (also needs AD:M5)"
+needs = ["T"]
+tier = "T2"
+effort = "medium"
+# Checked by hand at C: no PowerShell here.
+status = "done"
+
+[[milestone]]
+id = "M3"
+what = "Remove what moved to AdaptiveDesign (also needs AD:B)"
+needs = ["M1", "M2"]
+tier = "T2"
+effort = "medium"
+test = ["scripts/test removed"]
+status = "done"
+
+[[milestone]]
+id = "C"
+kind = "checkpoint"
+what = "Checkpoint C: review, PR to main"
+needs = ["M3"]
+tier = "T1"
+first_playable = true
+status = "done"
