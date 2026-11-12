@@ -38,6 +38,11 @@ more than a phrase goes in "Decisions" above.
 
 ## Done
 
+- 2026-11-11: M1, `install.sh` delegates its claude section to
+  AdaptiveDesign: clones it beside this repo, runs its `install.sh` with one
+  `--include` per `claude-*` box, and the doctor shows its `--check`. Three
+  new boxes in `features.md`: `claude-calendar`, `claude-ticktick`,
+  `claude-dotfiles`.
 - 2026-11-11: T, the oracle: `scripts/test` with the `delegate` and
   `removed` suites, and the `AGENTS.md` slots filled.
 - 2026-11-11: frame written.

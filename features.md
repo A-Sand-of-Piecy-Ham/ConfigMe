@@ -30,7 +30,10 @@ After changing a box, restart Neovim and re-run `./install.sh --deps`.
 Their configs only; the applications themselves install separately -- see
 packages/manual.md.
 
-- [x] claude -- Claude Code: CLAUDE.md, the always-loaded rules and the skills, linked into ~/.claude (install.ps1 does the same on Windows)
+- [x] claude -- Claude Code: CLAUDE.md, the always-loaded rules, the skills and the hooks, linked into ~/.claude and ~/.local/bin by AdaptiveDesign's installer, which install.sh clones beside this repo (install.ps1 does the same on Windows)
+- [x] claude-calendar -- AdaptiveDesign's calendar include: the calendar-check skill. Needs claude
+- [x] claude-ticktick -- AdaptiveDesign's ticktick include: the TickTick task-filing skill. Needs claude
+- [x] claude-dotfiles -- AdaptiveDesign's dotfiles include: the skill for editing this repo. Needs claude
 - [ ] kitty -- kitty's config and CRLF paste filter; on WSL also the hardware-GL launcher, Start Menu entry, kitty/kitten on PATH and Windows toast notifications
 - [ ] ghostty -- Ghostty's config (macOS and Linux)
 - [ ] wezterm -- WezTerm's config; on WSL it belongs to the Windows side and is linked by install.ps1
