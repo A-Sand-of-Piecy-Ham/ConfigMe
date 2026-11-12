@@ -254,7 +254,7 @@ process with every session.
 which is strictly better -- it takes a prompt and answers against the content
 rather than returning the whole page -- and it launched through `uvx`, spinning
 a Python environment per call. `memory` had never written a store file, and its
-ground is covered by auto memory and `claude/rules/`.
+ground is covered by auto memory and AdaptiveDesign's always-loaded rules.
 
 ### github
 

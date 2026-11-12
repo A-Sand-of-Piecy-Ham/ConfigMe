@@ -12,6 +12,11 @@ same path Neovim reads there. On Windows that decides whether `.wezterm.lua`
 and the Claude Code files are linked; WezTerm is off by default, so tick it in
 the override on a machine that uses it.
 
+The Claude Code files are not linked by this script. With `claude` on, it
+clones AdaptiveDesign beside this checkout if it is absent and runs that
+repo's `install.ps1 -Include core,<boxes>`, which makes the links; see the
+main [README](../README.md#claude-code-adaptivedesign).
+
 It runs without elevation. Developer Mode (Settings > System > For developers)
 improves the result but is not required -- the script probes for symlink
 permission and adapts.
@@ -23,7 +28,7 @@ Chosen per target rather than uniformly:
 | Target | Mechanism | Why |
 |---|---|---|
 | directories (`nvim`, `bash`) | junction | Reads identically to a symlink but needs no privilege, so these keep working even if Developer Mode is later turned off. A symlink buys nothing here. |
-| `.bashrc`, `.bash_profile`, `.wezterm.lua`, `CLAUDE.md` | symlink, falling back to a shim | Read-only from the consumer's side, so transparency is a pure win, and it drops any dependency on include syntax. |
+| `.bashrc`, `.bash_profile`, `.wezterm.lua` | symlink, falling back to a shim | Read-only from the consumer's side, so transparency is a pure win, and it drops any dependency on include syntax. |
 | `.gitconfig` | `[include]` shim, always | Git writes config by write-and-rename, which would replace a symlink with a regular file and silently strand the mirror. |
 
 ## Traps

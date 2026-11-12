@@ -310,8 +310,9 @@ if (Test-Feature 'claude') {
     # the linking, including replacing the junctions and 'managed by ConfigMe'
     # shims this script used to make, and leaves foreign skill links (the
     # %USERPROFILE%\.agents ones) alone. This section only decides whether it
-    # runs and which includes it gets: -Include <name> for each claude-<name>
-    # box that is on. With none on, it falls back to its own includes file.
+    # runs and which includes it gets: -Include core always, then <name> for
+    # each claude-<name> box that is on. Core is always passed so the boxes
+    # alone decide, and AdaptiveDesign never falls back to its includes file.
     $AdDir = if ($env:ADAPTIVE_DESIGN_DIR) { $env:ADAPTIVE_DESIGN_DIR } `
              else { Join-Path (Split-Path -Parent $Dotfiles) 'AdaptiveDesign' }
     $AdUrl = 'https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign'
@@ -327,10 +328,9 @@ if (Test-Feature 'claude') {
     }
 
     if (Test-Path -LiteralPath $adScript) {
-        $adArgs = @{}
-        $includes = @($Features.Keys | Where-Object { $_ -like 'claude-*' -and (Test-Feature $_) } |
+        $includes = @('core') + @($Features.Keys | Where-Object { $_ -like 'claude-*' -and (Test-Feature $_) } |
                       Sort-Object | ForEach-Object { $_.Substring('claude-'.Length) })
-        if ($includes.Count) { $adArgs['Include'] = $includes }
+        $adArgs = @{ Include = $includes }
         # In-process, so it runs under this process's execution policy. Its
         # `exit` ends only that script and sets $LASTEXITCODE; reset it first so
         # a stale code from git is not read as AdaptiveDesign's.
@@ -344,9 +344,8 @@ if (Test-Feature 'claude') {
             $adFailed = $true
         }
         if ($adFailed) {
-            $incText = if ($includes.Count) { ' -Include ' + ($includes -join ',') } else { '' }
             Write-Host "  bad  AdaptiveDesign's install.ps1 failed -- the Claude config may be partly linked" -ForegroundColor Red
-            Write-Host "      fix: read its output above, then $adScript$incText"
+            Write-Host "      fix: read its output above, then $adScript -Include $($includes -join ',')"
         }
     } else {
         Write-Host "  bad  AdaptiveDesign not found at $AdDir -- the Claude config is not installed" -ForegroundColor Red

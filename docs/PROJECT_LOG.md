@@ -38,6 +38,10 @@ more than a phrase goes in "Decisions" above.
 
 ## Done
 
+- 2026-11-11: M3, `claude/`, `github-templates/` and the Claude hooks in
+  `bin/` removed: they live in AdaptiveDesign now. Both installers always
+  pass `--include core` (`-Include core`) ahead of the boxes' includes. The
+  README says where the Claude configuration lives and how it is fetched.
 - 2026-11-11: M2, `install.ps1` delegates its claude section to
   AdaptiveDesign's `install.ps1` the same way, with `-Include` per
   `claude-*` box. Unrun: no PowerShell here; read at Checkpoint C and tried
