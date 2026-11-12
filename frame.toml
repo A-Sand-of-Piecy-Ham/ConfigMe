@@ -49,7 +49,7 @@ needs = ["T"]
 tier = "T2"
 effort = "medium"
 test = ["scripts/test delegate"]
-status = ""
+status = "done"
 
 [[milestone]]
 id = "M2"
