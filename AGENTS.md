@@ -33,9 +33,6 @@ read this page only to know what the implementer was told.
 - `install.sh --doctor` exits non-zero in a test's scratch home (no fonts,
   no tmux plugins, no instruction-load log). The tests read only its
   `claude` section.
-- The `claude` and `github-templates` directories and the Claude hooks in
-  `bin` look like they should be gone. They stay until M3: running sessions
-  load from them.
 
 ## The loop
 
@@ -201,10 +198,9 @@ a `deviation` row.
   and installs software when features are on. To try something by hand,
   run one case with `CONFIGME_TEST_KEEP=1` and look in the scratch directory
   it prints.
-- **Do not touch the `claude` or `github-templates` directories, or the
-  Claude hooks in `bin`, before M3**, and M3 only after its `readlink -f`
-  check. `~/.claude` and `~/.local/bin` link into this checkout, and every
-  running Claude session loads its rules, skills and hooks through them.
+- **The Claude configuration is not here.** Rules, skills and hooks live
+  in AdaptiveDesign, and `~/.claude` links into that checkout. A change to
+  one of them is made there, as an outside (`E`) contribution.
 - **Do not edit AdaptiveDesign.** It is another frame with its own agents.
   When ConfigMe needs something of it, log a `dispute` or a `gap` here.
 - **Work in a worktree branched from `frame/split`.** Nothing goes to `main`

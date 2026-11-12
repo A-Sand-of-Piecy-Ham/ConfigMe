@@ -32,9 +32,12 @@ more than a phrase goes in "Decisions" above.
 - No test runs M1's clone of AdaptiveDesign from GitHub: every case sets
   `CONFIGME_NO_CLONE=1`. The owner checks it on a fresh machine before
   Checkpoint C.
-- Two frozen files still name the old paths (`scripts/check` line 11 and
-  M3's `what` in `frame.toml`), so M3's `no_dangling_refs` cannot pass as
-  written. Settle the second dispute row of milestone T before M3 starts.
+- `install.ps1` has not run since it began handing its claude section to
+  AdaptiveDesign. The owner runs it on Windows before the Windows clone
+  pulls a `main` that no longer has `claude/`.
+- The split's frame is finished (Checkpoint C, 2026-11-11). `AGENTS.md`,
+  `frame.toml` and `docs/SPLIT.md` still describe it; the next frame here
+  replaces their milestone parts and keeps the rest.
 
 ## Done
 
