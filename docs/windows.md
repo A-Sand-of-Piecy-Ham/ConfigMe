@@ -12,10 +12,12 @@ same path Neovim reads there. On Windows that decides whether `.wezterm.lua`
 and the Claude Code files are linked; WezTerm is off by default, so tick it in
 the override on a machine that uses it.
 
-The Claude Code files are not linked by this script. With `claude` on, it
-clones AdaptiveDesign beside this checkout if it is absent and runs that
-repo's `install.ps1 -Include core,<boxes>`, which makes the links; see the
-main [README](../README.md#claude-code-adaptivedesign).
+The Claude Code files are mostly not linked by this script. With `claude` on,
+it clones AdaptiveDesign beside this checkout if it is absent and runs that
+repo's `install.ps1`, which makes the links. Then it junctions the three
+personal skills in `claude\skills` whose `claude-*` boxes are on into
+`%USERPROFILE%\.claude\skills`; see the main
+[README](../README.md#claude-code-adaptivedesign).
 
 It runs without elevation. Developer Mode (Settings > System > For developers)
 improves the result but is not required -- the script probes for symlink
