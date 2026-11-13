@@ -30,8 +30,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REAL_HOME="$HOME"
 
 SUITES=(delegate removed)
-SUITE_delegate=(links_made feature_off_skips includes_follow_boxes missing_clone_reported
-                check_delegates check_fails_unlinked other_bin_links_kept)
+SUITE_delegate=(links_made feature_off_skips skill_link_made skill_link_removed
+                old_include_link_replaced foreign_skill_kept second_run_unchanged
+                doctor_skill_links missing_clone_reported check_delegates
+                check_fails_unlinked other_bin_links_kept)
 SUITE_removed=(moved_paths_gone no_dangling_refs readme_names_dependency delegate_still_passes)
 
 # The boxes M1 adds to features.md. Listed here as well so that a scratch
@@ -223,7 +225,27 @@ t_feature_off_skips() {
     [ -z "$made" ] || fail "with claude off, install.sh made:" "$made"
 }
 
-t_includes_follow_boxes() {
+# The personal skills live in this repo's claude/skills and install.sh links
+# them itself; AdaptiveDesign's installer is called with no arguments. These
+# cases hold whether or not the AdaptiveDesign checkout still accepts
+# --include: none of them passes it or needs its includes/ to exist.
+
+# skill_out <file>: the lines of an install's claude section that name a
+# personal skill's place.
+skill_out() { install_claude "$1" | grep -E "/skills/(calendar-check|todo-capture|dotfiles-change)" || true; }
+
+# skill_snapshot <home>: every path under ~/.claude and ~/.local/bin with its
+# type and link target, and the inode of each personal skill's link, so that
+# a link removed and made again shows as a change.
+skill_snapshot() {
+    local s
+    find "$1/.claude" "$1/.local/bin" -printf '%P %y %l\n' 2>/dev/null | sort
+    for s in calendar-check todo-capture dotfiles-change; do
+        printf '%s %s\n' "$s" "$(stat -c %i "$1/$SKILLS_DIR/$s" 2>/dev/null)"
+    done
+}
+
+t_skill_link_made() {
     local h f ad link
     ad="$(ad_copy)" || return 1
     f="$CASE_DIR/features-off.md"; write_features "$f" claude
@@ -236,8 +258,93 @@ t_includes_follow_boxes() {
     h="$(new_home)"
     install_ok "$h" "$f" "$ad" || return 1
     link="$h/$SKILLS_DIR/calendar-check"
-    resolves_into "$link" "$ad" \
-        || { fail "claude-calendar on, yet ~/$SKILLS_DIR/calendar-check does not resolve into $ad"; show_output; }
+    [ -L "$link" ] && [ "$(readlink -f "$link")" = "$(readlink -f "$ROOT/claude/skills/calendar-check")" ] \
+        || { fail "claude-calendar on, yet ~/$SKILLS_DIR/calendar-check does not resolve to $ROOT/claude/skills/calendar-check"; show_output; return 1; }
+    [ -f "$link/SKILL.md" ] || fail "~/$SKILLS_DIR/calendar-check/SKILL.md is not there"
+}
+
+t_skill_link_removed() {
+    local h f ad link
+    h="$(new_home)"; ad="$(ad_copy)" || return 1
+    f="$CASE_DIR/features-on.md"; write_features "$f" claude claude-calendar
+    install_ok "$h" "$f" "$ad" || return 1
+    link="$h/$SKILLS_DIR/calendar-check"
+    [ -L "$link" ] || { fail "claude-calendar on, yet ~/$SKILLS_DIR/calendar-check was not linked"; show_output; return 1; }
+    f="$CASE_DIR/features-off.md"; write_features "$f" claude
+    install_ok "$h" "$f" "$ad" || return 1
+    [ ! -e "$link" ] && [ ! -L "$link" ] \
+        || { fail "claude-calendar turned off, yet ~/$SKILLS_DIR/calendar-check is still there"; show_output; }
+}
+
+# A link left by the old hand-off, into AdaptiveDesign's includes/. The path
+# need not exist: once AdaptiveDesign drops includes/ the link dangles.
+t_old_include_link_replaced() {
+    local h f ad link
+    h="$(new_home)"; ad="$(ad_copy)" || return 1
+    mkdir -p "$h/$SKILLS_DIR"
+    ln -s "$ad/includes/ticktick/skills/todo-capture" "$h/$SKILLS_DIR/todo-capture"
+    ln -s "$ad/includes/dotfiles/skills/dotfiles-change" "$h/$SKILLS_DIR/dotfiles-change"
+    f="$CASE_DIR/features.md"; write_features "$f" claude claude-ticktick
+    install_ok "$h" "$f" "$ad" || return 1
+    link="$h/$SKILLS_DIR/todo-capture"
+    [ "$(readlink -f "$link")" = "$(readlink -f "$ROOT/claude/skills/todo-capture")" ] \
+        || { fail "claude-ticktick on: ~/$SKILLS_DIR/todo-capture points at '$(readlink "$link")', not this repo"; show_output; return 1; }
+    link="$h/$SKILLS_DIR/dotfiles-change"
+    [ ! -e "$link" ] && [ ! -L "$link" ] \
+        || { fail "claude-dotfiles off: the old include link ~/$SKILLS_DIR/dotfiles-change is still there"; show_output; }
+}
+
+t_foreign_skill_kept() {
+    local h f ad elsewhere ok=0
+    h="$(new_home)"; ad="$(ad_copy)" || return 1
+    elsewhere="$CASE_DIR/elsewhere/todo-capture"
+    mkdir -p "$h/$SKILLS_DIR/calendar-check" "$elsewhere"
+    echo mine >"$h/$SKILLS_DIR/calendar-check/SKILL.md"
+    ln -s "$elsewhere" "$h/$SKILLS_DIR/todo-capture"
+    f="$CASE_DIR/features.md"; write_features "$f" claude claude-calendar claude-ticktick
+    install_ok "$h" "$f" "$ad" || return 1
+    [ ! -L "$h/$SKILLS_DIR/calendar-check" ] && [ "$(cat "$h/$SKILLS_DIR/calendar-check/SKILL.md" 2>/dev/null)" = mine ] \
+        || { note "the real directory ~/$SKILLS_DIR/calendar-check was not left as it was"; ok=1; }
+    [ "$(readlink "$h/$SKILLS_DIR/todo-capture")" = "$elsewhere" ] \
+        || { note "the link ~/$SKILLS_DIR/todo-capture to $elsewhere was changed"; ok=1; }
+    [ -z "$(find "$h/$SKILLS_DIR" -maxdepth 1 -name '*.bak')" ] \
+        || { note "something under ~/$SKILLS_DIR was backed up to .bak"; ok=1; }
+    skill_out "$OUT" | grep -q 'calendar-check' \
+        || { note "the claude section does not report ~/$SKILLS_DIR/calendar-check"; ok=1; }
+    skill_out "$OUT" | grep -q 'todo-capture' \
+        || { note "the claude section does not report ~/$SKILLS_DIR/todo-capture"; ok=1; }
+    [ "$ok" -eq 0 ] || show_output 25
+}
+
+t_second_run_unchanged() {
+    local h f ad before after
+    h="$(new_home)"; ad="$(ad_copy)" || return 1
+    f="$CASE_DIR/features.md"; write_features "$f" claude claude-calendar claude-dotfiles
+    install_ok "$h" "$f" "$ad" || return 1
+    before="$(skill_snapshot "$h")"
+    install_ok "$h" "$f" "$ad" || return 1
+    after="$(skill_snapshot "$h")"
+    [ "$before" = "$after" ] \
+        || { fail "the second run changed:" "$(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -10)"; return 1; }
+    [ -z "$(skill_out "$OUT")" ] \
+        || { fail "the second run reported skill changes:" "$(skill_out "$OUT")"; }
+}
+
+t_doctor_skill_links() {
+    local h f ad sec
+    h="$(new_home)"; ad="$(ad_copy)" || return 1
+    f="$CASE_DIR/features.md"; write_features "$f" claude claude-calendar
+    install_ok "$h" "$f" "$ad" || return 1
+    run_install "$h" "$f" "$ad" --doctor
+    sec="$(doctor_claude "$OUT")"
+    printf '%s\n' "$sec" | ok_lines | grep -q 'skills/calendar-check' \
+        || { fail "no ok line for ~/$SKILLS_DIR/calendar-check after an install"; show_output 25; return 1; }
+    printf '%s\n' "$sec" | ok_lines | grep -q 'skills/todo-capture' \
+        || { fail "no ok line for ~/$SKILLS_DIR/todo-capture, whose box is off and which is not linked"; show_output 25; return 1; }
+    rm "$h/$SKILLS_DIR/calendar-check"
+    run_install "$h" "$f" "$ad" --doctor
+    doctor_claude "$OUT" | bad_lines | grep -q 'skills/calendar-check' \
+        || { fail "no bad line for a missing ~/$SKILLS_DIR/calendar-check with its box on"; show_output 25; }
 }
 
 t_missing_clone_reported() {
@@ -326,7 +433,8 @@ t_other_bin_links_kept() {
 
 t_moved_paths_gone() {
     local left ad clash
-    left="$(git -C "$ROOT" ls-files -- claude github-templates | head -5)"
+    # claude/skills/ came back: the personal skills, which this repo links itself.
+    left="$(git -C "$ROOT" ls-files -- claude github-templates ':(exclude)claude/skills' | head -5)"
     [ -z "$left" ] || { fail "still tracked, e.g.:" "$left"; return 1; }
     ad="$(ad_copy)" || return 1
     [ -d "$ad/core/bin" ] || { fail "$ad has no core/bin, so what moved cannot be told"; return 1; }
@@ -339,13 +447,21 @@ t_no_dangling_refs() {
     # The patterns are assembled so that this file does not match them.
     local c=claude t="github-""templates/" refs
     local legit="[.]local/bin/$c-|core/bin/$c-|[.]$c/(skills|rules)"
-    local dangling="$c/skills|$c/rules|$t|bin/$c-"
+    local dangling="$c/skills(/[a-z0-9-]+)?|$c/rules|$t|bin/$c-"
+    local ref path
     # Installed locations (the skills and rules folders under ~/.claude, the
     # hooks in ~/.local/bin) and AdaptiveDesign's own paths are not dangling. Listing them in the same
     # expression makes grep -o take them whole where they start earlier.
+    # claude/skills is a path in this repo again (the personal skills): a ref
+    # to it, or to a skill under it, dangles only if that path is not here.
     refs="$(git -C "$ROOT" grep -I -n -o -E "$legit|$dangling" -- . \
                 ':(exclude)docs/SPLIT.md' ':(exclude)docs/PROJECT_LOG.md' ':(exclude)docs/log.jsonl' \
-            | grep -vE ":[0-9]+:($legit)\$" || true)"
+            | grep -vE ":[0-9]+:($legit)\$" \
+            | while IFS= read -r ref; do
+                  path="${ref#*:*:}"
+                  case "$path" in "$c/skills"*) [ -e "$ROOT/$path" ] && continue ;; esac
+                  printf '%s\n' "$ref"
+              done || true)"
     [ -z "$refs" ] || fail "$(printf '%s\n' "$refs" | wc -l) dangling refs, e.g.:" "$(printf '%s\n' "$refs" | head -10)"
 }
 

@@ -62,7 +62,12 @@ Suite `delegate`:
 |---|---|
 | `links_made` | with `claude` on, the sandbox home has `~/.claude/CLAUDE.md` resolving into the AdaptiveDesign checkout |
 | `feature_off_skips` | with `claude` off, nothing under `~/.claude` is created |
-| `includes_follow_boxes` | `claude-calendar` off: `calendar-check` not linked; on: linked |
+| `skill_link_made` | `claude-calendar` off: `calendar-check` not linked; on: linked to this repo's `claude/skills/calendar-check` (was `includes_follow_boxes`; see "After the frame") |
+| `skill_link_removed` | a skill linked while its box was on is unlinked by a run with the box off |
+| `old_include_link_replaced` | a link into AdaptiveDesign's old `includes/` is replaced while its box is on and removed while it is off |
+| `foreign_skill_kept` | a real directory, or a link elsewhere, at a skill's place is left as it was and reported |
+| `second_run_unchanged` | a second run with the same boxes changes nothing under `~/.claude` or `~/.local/bin` |
+| `doctor_skill_links` | `--doctor` has an `ok` line per skill when installed, and a `bad` line for a missing link whose box is on |
 | `missing_clone_reported` | clone absent and `CONFIGME_NO_CLONE=1`: a `bad` line names the path, exit status as for any other failed feature, later sections still run |
 | `check_delegates` | `--doctor` after an install shows AdaptiveDesign's `ok` lines in its claude section, with no `bad` line there that AdaptiveDesign's own `--check` lacks |
 | `check_fails_unlinked` | `--doctor` on an empty home with `claude` on reports `bad` |
@@ -99,8 +104,8 @@ Suite `removed`:
 
 | Case | Asserts |
 |---|---|
-| `moved_paths_gone` | no tracked file under `claude/` or `github-templates/`; none of AdaptiveDesign's `core/bin` names in `bin/` |
-| `no_dangling_refs` | no `claude/skills`, `claude/rules`, `github-templates/` or `bin/claude-` in tracked files outside `docs/SPLIT.md`, `docs/PROJECT_LOG.md`, `docs/log.jsonl` |
+| `moved_paths_gone` | no tracked file under `claude/` (other than `claude/skills/`, since "After the frame") or `github-templates/`; none of AdaptiveDesign's `core/bin` names in `bin/` |
+| `no_dangling_refs` | no `claude/skills` (unless the path exists here), `claude/rules`, `github-templates/` or `bin/claude-` in tracked files outside `docs/SPLIT.md`, `docs/PROJECT_LOG.md`, `docs/log.jsonl` |
 | `readme_names_dependency` | `README.md` names AdaptiveDesign and how it is fetched |
 | `delegate_still_passes` | the `delegate` suite passes |
 
@@ -109,3 +114,14 @@ Suite `removed`:
 T1 reads every merge, runs both suites, and opens the PR to `main`.
 PR #1 (`claude/parallel-loop-t3-review`) is the base of `frame/split` and
 is still waiting for its T1 proofread; it merges first.
+
+## After the frame: the personal skills come back
+
+On 2026-11-13 the owner had AdaptiveDesign drop includes altogether. Its
+installer takes no `--include` and installs all of itself. The three
+personal skills its includes held (`calendar-check`, `todo-capture`,
+`dotfiles-change`) are copied unchanged into `claude/skills/` here, and
+`install.sh` and `install.ps1` link them themselves, one per `claude-*` box
+(the box names are unchanged). This supersedes the decision row "ConfigMe
+passes the includes" and M3's `--include core`. The case tables above were
+updated with it.
