@@ -52,17 +52,25 @@ The Claude Code configuration lives in its own repo, AdaptiveDesign
 (https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign). With the `claude`
 feature on, `install.sh` clones it beside this checkout
 (`../AdaptiveDesign`) if it is not there yet, then runs its `install.sh`,
-which links `~/.claude` and the Claude hooks in `~/.local/bin`. ConfigMe
-only chooses what to include: always `core`, plus one include per
-`claude-*` box that is on in features.md. `install.ps1` does the same on
-Windows, and `--doctor` shows AdaptiveDesign's own check in its claude
-section.
+which links `~/.claude` and the Claude hooks in `~/.local/bin`. It takes
+no options: AdaptiveDesign installs all of itself or nothing.
+
+Three personal skills are kept here instead, in `claude/skills/`:
+`calendar-check`, `todo-capture` and `dotfiles-change`. After
+AdaptiveDesign's installer, `install.sh` links each one whose `claude-*` box
+is on in features.md to `~/.claude/skills/<skill>`, and removes the link of
+each one that is off. It only ever replaces or removes a link into this
+checkout or into AdaptiveDesign's old `includes/`; a real directory or a
+link elsewhere at that place is left alone and reported. `install.ps1` does
+the same on Windows with junctions, and `--doctor` shows AdaptiveDesign's
+own check in its claude section, followed by one line per personal skill.
 
 - `ADAPTIVE_DESIGN_DIR` points the installer at a clone elsewhere.
 - `CONFIGME_NO_CLONE=1` stops it from cloning; a missing clone is then
   reported, and the rest of the install carries on.
 
-Edit the Claude configuration in the AdaptiveDesign checkout, not here.
+Edit the Claude configuration in the AdaptiveDesign checkout, not here; the
+three personal skills are the exception, edited in `claude/skills/`.
 
 ## Checking a machine
 

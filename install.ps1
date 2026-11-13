@@ -309,10 +309,9 @@ if (Test-Feature 'claude') {
     # lives in AdaptiveDesign, cloned beside this repo. Its install.ps1 does all
     # the linking, including replacing the junctions and 'managed by ConfigMe'
     # shims this script used to make, and leaves foreign skill links (the
-    # %USERPROFILE%\.agents ones) alone. This section only decides whether it
-    # runs and which includes it gets: -Include core always, then <name> for
-    # each claude-<name> box that is on. Core is always passed so the boxes
-    # alone decide, and AdaptiveDesign never falls back to its includes file.
+    # %USERPROFILE%\.agents ones) alone. It takes no arguments: this section
+    # only decides whether it runs. The personal skills are kept in this repo
+    # (claude\skills) and junctioned by the loop after it, as install.sh does.
     $AdDir = if ($env:ADAPTIVE_DESIGN_DIR) { $env:ADAPTIVE_DESIGN_DIR } `
              else { Join-Path (Split-Path -Parent $Dotfiles) 'AdaptiveDesign' }
     $AdUrl = 'https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign'
@@ -328,16 +327,13 @@ if (Test-Feature 'claude') {
     }
 
     if (Test-Path -LiteralPath $adScript) {
-        $includes = @('core') + @($Features.Keys | Where-Object { $_ -like 'claude-*' -and (Test-Feature $_) } |
-                      Sort-Object | ForEach-Object { $_.Substring('claude-'.Length) })
-        $adArgs = @{ Include = $includes }
         # In-process, so it runs under this process's execution policy. Its
         # `exit` ends only that script and sets $LASTEXITCODE; reset it first so
         # a stale code from git is not read as AdaptiveDesign's.
         $global:LASTEXITCODE = 0
         $adFailed = $false
         try {
-            & $adScript @adArgs
+            & $adScript
             $adFailed = ($LASTEXITCODE -ne 0)
         } catch {
             Write-Host "  $_" -ForegroundColor Red
@@ -345,11 +341,69 @@ if (Test-Feature 'claude') {
         }
         if ($adFailed) {
             Write-Host "  bad  AdaptiveDesign's install.ps1 failed -- the Claude config may be partly linked" -ForegroundColor Red
-            Write-Host "      fix: read its output above, then $adScript -Include $($includes -join ',')"
+            Write-Host "      fix: read its output above, then $adScript"
         }
     } else {
         Write-Host "  bad  AdaptiveDesign not found at $AdDir -- the Claude config is not installed" -ForegroundColor Red
         Write-Host "      fix: git clone $AdUrl `"$AdDir`" (needs git on PATH), or set ADAPTIVE_DESIGN_DIR to a clone; then re-run this script"
+    }
+
+    # The personal skills: a junction per skill whose box is on, and the link
+    # of each one that is off removed -- but only a link into this checkout or
+    # into AdaptiveDesign's old includes\, where the skills lived before. A
+    # real directory or a link to anywhere else is never touched, and is
+    # reported when it stands in the way of a box that is on. Not
+    # Clear-Destination: that would back a foreign directory up and replace it.
+    $skillsDir = Join-Path $env:USERPROFILE '.claude\skills'
+    $oldIncludes = Join-Path $AdDir 'includes'
+    $claudeSkills = [ordered]@{
+        'claude-calendar' = 'calendar-check'
+        'claude-ticktick' = 'todo-capture'
+        'claude-dotfiles' = 'dotfiles-change'
+    }
+    $skillsItem = Get-Item -LiteralPath $skillsDir -Force -ErrorAction SilentlyContinue
+    if ($skillsItem -and ($skillsItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        Write-Host "  bad  $skillsDir is a link, not a directory -- the personal skills were not linked" -ForegroundColor Red
+        Write-Host "      fix: re-run this script once AdaptiveDesign's installer has made it a directory"
+    } else {
+        foreach ($box in $claudeSkills.Keys) {
+            $skill = $claudeSkills[$box]
+            $dst = Join-Path $skillsDir $skill
+            $src = Join-Path $Dotfiles "claude\skills\$skill"
+            # Get-Item rather than Test-Path, which is false for a dangling link.
+            $item = Get-Item -LiteralPath $dst -Force -ErrorAction SilentlyContinue
+            $state = 'absent'
+            if ($item -and ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                # A junction's target can come back with the NT prefix \??\.
+                $target = [string](@($item.Target)[0]) -replace '^\\\?\?\\', ''
+                $ic = [StringComparison]::OrdinalIgnoreCase
+                if ($target.TrimEnd('\').Equals($src, $ic)) { $state = 'current' }
+                elseif ($target.StartsWith("$Dotfiles\", $ic)) { $state = 'ours' }
+                elseif ($target.StartsWith("$oldIncludes\", $ic)) { $state = 'old-include' }
+                else { $state = 'foreign' }
+            } elseif ($item) {
+                $state = 'foreign'
+            }
+
+            if (Test-Feature $box) {
+                switch ($state) {
+                    'current' { }
+                    'foreign' {
+                        Write-Host "  ! $dst is not a link into ConfigMe -- left alone, so the $skill skill is not this repo's" -ForegroundColor Yellow
+                        Write-Host "      fix: move it aside, then re-run this script"
+                    }
+                    default {
+                        if ($item) { $item.Delete() }
+                        New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
+                        New-Item -ItemType Junction -Path $dst -Target $src | Out-Null
+                        Write-Host "  junction $dst" -ForegroundColor Green
+                    }
+                }
+            } elseif ($state -in 'current', 'ours', 'old-include') {
+                $item.Delete()
+                Write-Host "  removed $dst ($box off)"
+            }
+        }
     }
 } else {
     Write-Host '  skipped -- claude feature off (features.md)' -ForegroundColor DarkGray

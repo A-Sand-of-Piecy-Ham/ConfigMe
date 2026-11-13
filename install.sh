@@ -192,25 +192,112 @@ fix2() { printf '           %s\n' "$1"; }
 
 # ---------------------------------------------------------- AdaptiveDesign ---
 # The Claude configuration (CLAUDE.md, rules, skills, settings, hooks) lives in
-# AdaptiveDesign, cloned beside this repo. Its install.sh does all the linking;
-# ConfigMe only decides whether it runs and which includes it gets.
+# AdaptiveDesign, cloned beside this repo. Its install.sh links all of it, with
+# no arguments: ConfigMe only decides whether it runs.
 AD_DIR="${ADAPTIVE_DESIGN_DIR:-$(dirname "$DOTFILES")/AdaptiveDesign}"
 AD_URL="https://github.com/A-Sand-of-Piecy-Ham/AdaptiveDesign"
 
-# AdaptiveDesign's include arguments, one word per line: `--include core`
-# always, then `--include <name>` for each claude-<name> box that is on. Since
-# at least one --include is always passed, the boxes alone decide and
-# AdaptiveDesign never falls back to its own includes file
-# (~/.config/adaptive-design/includes).
-claude_includes() {
-    local id
-    printf -- '--include\ncore\n'
-    for id in $(feature_ids); do
-        case "$id" in
-            claude-*) feature_on "$id" && printf -- '--include\n%s\n' "${id#claude-}" ;;
-        esac
+# The owner's personal skills are kept here, in claude/skills/, and linked by
+# ConfigMe itself; AdaptiveDesign used to carry them as "includes" and no longer
+# does. One <box>:<skill> pair per claude-<name> box in features.md.
+CLAUDE_SKILLS=(claude-calendar:calendar-check claude-ticktick:todo-capture claude-dotfiles:dotfiles-change)
+CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+
+# _link_points_into <link> <dir>: the link's own target (not followed further)
+# is <dir> or lies under it. <dir> is compared both as given and as its
+# physical path, since either may have been written into the link.
+_link_points_into() {
+    local t phys
+    t="$(readlink -- "$1")" || return 1
+    phys="$(cd -P -- "$2" 2>/dev/null && pwd -P)" || phys="$2"
+    case "$t" in
+        "$2"|"$2"/*|"$phys"|"$phys"/*) return 0 ;;
+    esac
+    return 1
+}
+
+# claude_skill_state <dst> <src>: what is at a skill's place under ~/.claude/skills.
+#   current      a link to <src>, this checkout's copy
+#   ours         another link into this checkout
+#   old-include  a link into AdaptiveDesign's old includes/, from before the skills moved here
+#   foreign      a real file or directory, or a link to anywhere else: never touched
+#   absent       nothing there
+claude_skill_state() {
+    local dst="$1" src="$2"
+    if [ -L "$dst" ]; then
+        if [ "$(readlink -- "$dst")" = "$src" ]; then echo current
+        elif _link_points_into "$dst" "$DOTFILES"; then echo ours
+        elif _link_points_into "$dst" "$AD_DIR/includes"; then echo old-include
+        else echo foreign
+        fi
+    elif [ -e "$dst" ]; then
+        echo foreign
+    else
+        echo absent
+    fi
+}
+
+# Links each skill whose box is on and removes the link of each one that is
+# off -- but only links this checkout or AdaptiveDesign's old includes made.
+# Anything else at a skill's place belongs to someone else: it is left alone,
+# and reported when it stands in the way of a box that is on. A second run with
+# the same boxes changes nothing.
+claude_skill_links() {
+    local pair box skill dst src state
+    if [ -L "$CLAUDE_SKILLS_DIR" ]; then
+        # Linking into it would write into wherever it points.
+        bad "$CLAUDE_SKILLS_DIR is a link, not a directory -- the personal skills were not linked"
+        fix "./install.sh again once AdaptiveDesign's installer has made it a directory"
+        return 0
+    fi
+    for pair in "${CLAUDE_SKILLS[@]}"; do
+        box="${pair%%:*}"; skill="${pair#*:}"
+        dst="$CLAUDE_SKILLS_DIR/$skill"; src="$DOTFILES/claude/skills/$skill"
+        state="$(claude_skill_state "$dst" "$src")"
+        if feature_on "$box"; then
+            case "$state" in
+                current) ;;
+                foreign)
+                    warn "$dst is not a link into ConfigMe -- left alone, so the $skill skill is not this repo's"
+                    fix "move it aside, then ./install.sh" ;;
+                *)
+                    mkdir -p "$CLAUDE_SKILLS_DIR"
+                    ln -sfn "$src" "$dst"
+                    echo "  linked $dst" ;;
+            esac
+        else
+            case "$state" in
+                current|ours|old-include)
+                    rm -f -- "$dst"
+                    echo "  removed $dst ($box off)" ;;
+            esac
+        fi
     done
     return 0
+}
+
+# The doctor's view of the same links: one ok or bad line per skill.
+claude_skill_doctor() {
+    local pair box skill dst src short
+    for pair in "${CLAUDE_SKILLS[@]}"; do
+        box="${pair%%:*}"; skill="${pair#*:}"
+        dst="$CLAUDE_SKILLS_DIR/$skill"; src="$DOTFILES/claude/skills/$skill"
+        short="~/.claude/skills/$skill"
+        if feature_on "$box"; then
+            case "$(claude_skill_state "$dst" "$src")" in
+                current) ok "$short -> claude/skills/$skill" ;;
+                absent)  bad "$short missing -- $box is on"; fix "./install.sh" ;;
+                foreign) bad "$short is not a link into ConfigMe -- $box is on"; fix "move it aside, then ./install.sh" ;;
+                *)       bad "$short is a link to $(readlink -- "$dst"), not claude/skills/$skill"; fix "./install.sh" ;;
+            esac
+        else
+            case "$(claude_skill_state "$dst" "$src")" in
+                current|ours|old-include)
+                    bad "$short is still linked though $box is off"; fix "./install.sh   (removes it)" ;;
+                *)  ok "$short not linked by ConfigMe ($box off)" ;;
+            esac
+        fi
+    done
 }
 
 # A required tool is one a linked config actively depends on. An optional tool
@@ -578,10 +665,8 @@ doctor() {
         # the last session's load log, skills and memory indexes are well-formed.
         # Both kinds go through ok/warn/bad so they count in the summary.
         if [ -x "$AD_DIR/install.sh" ]; then
-            local -a inc=()
             local out rc=0 line level msg hint
-            mapfile -t inc < <(claude_includes)
-            out="$("$AD_DIR/install.sh" --check "${inc[@]}" 2>&1)" || rc=$?
+            out="$("$AD_DIR/install.sh" --check 2>&1)" || rc=$?
             while IFS= read -r line; do
                 if [[ $line =~ ^(ok|bad)[[:space:]]+(.*)$ ]]; then
                     if [ "${BASH_REMATCH[1]}" = ok ]; then ok "${BASH_REMATCH[2]}"; else bad "${BASH_REMATCH[2]}"; fi
@@ -604,6 +689,7 @@ doctor() {
             bad "AdaptiveDesign not found at $AD_DIR -- the Claude config is not installed"
             fix "./install.sh   (clones $AD_URL there; ADAPTIVE_DESIGN_DIR moves it)"
         fi
+        claude_skill_doctor
         if command -v github-mcp >/dev/null 2>&1; then
             gh auth status >/dev/null 2>&1 && ok "github-mcp (gh authenticated)" \
                                            || bad "github-mcp present but gh not logged in"
@@ -925,23 +1011,23 @@ esac
 echo "==> claude"
 if feature_on claude; then
     # AdaptiveDesign links CLAUDE.md, settings.json, rules, skills and the Claude
-    # hooks in ~/.local/bin. Approvals granted mid-session go to
+    # hooks in ~/.local/bin; then the personal skills here are linked beside
+    # its skills. Approvals granted mid-session go to
     # ~/.claude/settings.local.json, which stays machine-local.
     if [ ! -d "$AD_DIR" ] && [ -z "${CONFIGME_NO_CLONE:-}" ]; then
         echo "  cloning $AD_URL into $AD_DIR"
         git clone --quiet "$AD_URL" "$AD_DIR" 2>&1 | sed 's/^/  /' || true
     fi
     if [ -x "$AD_DIR/install.sh" ]; then
-        mapfile -t _inc < <(claude_includes)
-        if ! "$AD_DIR/install.sh" "${_inc[@]}" 2>&1 | sed 's/^/  /'; then
+        if ! "$AD_DIR/install.sh" 2>&1 | sed 's/^/  /'; then
             bad "AdaptiveDesign's install.sh failed -- the Claude config may be partly linked"
-            fix "read its output above, then $AD_DIR/install.sh ${_inc[*]}"
+            fix "read its output above, then $AD_DIR/install.sh"
         fi
-        unset _inc
     else
         bad "AdaptiveDesign not found at $AD_DIR -- the Claude config is not installed"
         fix "git clone $AD_URL \"$AD_DIR\", or set ADAPTIVE_DESIGN_DIR to a clone; then ./install.sh"
     fi
+    claude_skill_links
 else
     echo "  skipped -- claude feature off (features.md)"
 fi

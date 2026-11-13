@@ -13,7 +13,8 @@ A feature that is off is left out everywhere: `./install.sh` stops linking its
 config, `--deps` and `--install-deps` stop asking for its system packages, the
 doctor stops checking for it, Mason stops installing its tools, and its Neovim
 plugins are disabled. Switching one off does **not** uninstall or unlink
-anything already installed.
+anything already installed, with one exception: a `claude-*` skill box that is
+turned off has its link in `~/.claude/skills` removed on the next install.
 
 After changing a box, restart Neovim and re-run `./install.sh --deps`.
 
@@ -31,9 +32,9 @@ Their configs only; the applications themselves install separately -- see
 packages/manual.md.
 
 - [x] claude -- Claude Code: CLAUDE.md, the always-loaded rules, the skills and the hooks, linked into ~/.claude and ~/.local/bin by AdaptiveDesign's installer, which install.sh clones beside this repo (install.ps1 does the same on Windows)
-- [x] claude-calendar -- AdaptiveDesign's calendar include: the calendar-check skill. Needs claude
-- [x] claude-ticktick -- AdaptiveDesign's ticktick include: the TickTick task-filing skill. Needs claude
-- [x] claude-dotfiles -- AdaptiveDesign's dotfiles include: the skill for editing this repo. Needs claude
+- [x] claude-calendar -- the calendar-check skill, kept in claude/skills here and linked into ~/.claude/skills by install.sh. Needs claude
+- [x] claude-ticktick -- the TickTick task-filing skill (todo-capture), kept in claude/skills here and linked into ~/.claude/skills by install.sh. Needs claude
+- [x] claude-dotfiles -- the skill for editing this repo (dotfiles-change), kept in claude/skills here and linked into ~/.claude/skills by install.sh. Needs claude
 - [ ] kitty -- kitty's config and CRLF paste filter; on WSL also the hardware-GL launcher, Start Menu entry, kitty/kitten on PATH and Windows toast notifications
 - [ ] ghostty -- Ghostty's config (macOS and Linux)
 - [ ] wezterm -- WezTerm's config; on WSL it belongs to the Windows side and is linked by install.ps1

@@ -200,7 +200,12 @@ a `deviation` row.
   it prints.
 - **The Claude configuration is not here.** Rules, skills and hooks live
   in AdaptiveDesign, and `~/.claude` links into that checkout. A change to
-  one of them is made there, as an outside (`E`) contribution.
+  one of them is made there, as an outside (`E`) contribution. The
+  exception is the three personal skills in `claude/skills/`
+  (`calendar-check`, `todo-capture`, `dotfiles-change`): they are this
+  repo's, and `install.sh` links each into `~/.claude/skills` while its
+  `claude-*` box is on. AdaptiveDesign's installer is called with no
+  options.
 - **Do not edit AdaptiveDesign.** It is another frame with its own agents.
   When ConfigMe needs something of it, log a `dispute` or a `gap` here.
 - **Work in a worktree branched from `frame/split`.** Nothing goes to `main`
